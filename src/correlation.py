@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import scipy.stats
 from scipy.signal import correlate
 import seaborn as sns
+from statsmodels.tsa.stattools import grangercausalitytests
 from data import all_coins, timeframes, read_csv
 
 
@@ -101,30 +102,53 @@ def cross_cor():
     for time in timeframes:
         # Compute cross-correlations
         cross_correlations = np.zeros((len(all_coins), len(all_coins)))
+        cross_lags = np.zeros((len(all_coins), len(all_coins)))
         for i in range(len(all_coins)):
             for j in range(len(all_coins)):
 
                 first_coin = read_csv(all_coins[i], time, ["log returns"]).dropna()
                 other_coin = read_csv(all_coins[j], time, ["log returns"]).dropna()
-                
+
                 # Perform cross-correlation
-                cross_corr = correlate(first_coin, other_coin, mode='full', method='auto')
-                max_cross_corr = np.max(cross_corr)
+                cross_corr = correlate(
+                    first_coin, other_coin, mode="full", method="auto"
+                )
+                max_cross_corr = np.max(np.abs(cross_corr))
+                max_corr_lag = np.argmax(cross_corr) - (len(first_coin) - 1)
 
                 cross_correlations[i, j] = max_cross_corr
+                cross_lags[i, j] = max_corr_lag
 
-                #print(f"Cross-correlation between {all_coins[i]} and {all_coins[j]}: {max_cross_corr}")
-
-        # Normalize cross-correlations
+        # cross_correlations = normalize(cross_correlations, norm='max')
         cross_correlations /= np.max(cross_correlations)
+
+        # Replace values at diagonal with 1
+        np.fill_diagonal(cross_correlations, 1)
 
         # Round cross-correlations
         cross_correlations = np.round(cross_correlations, 1)
 
         # Plot the cross-correlation results in a heatmap
         plt.figure(figsize=(8, 6))
-        sns.heatmap(cross_correlations, annot=True, cmap='coolwarm', vmin=0, vmax=1, square=True, xticklabels=all_coins, yticklabels=all_coins)
-        
+        # sns.heatmap(
+        #    cross_correlations,
+        #    annot=True,
+        #    cbar=False,
+        #    vmin=0,
+        #    vmax=1,
+        #    square=True,
+        #    xticklabels=all_coins,
+        #    yticklabels=all_coins,
+        # )
+        sns.heatmap(
+            cross_lags,
+            annot=True,
+            cbar=False,
+            square=True,
+            xticklabels=all_coins,
+            yticklabels=all_coins,
+        )
+
         if time == "1m":
             time = "1-Minute"
         elif time == "15m":
@@ -133,37 +157,70 @@ def cross_cor():
             time = "4-Hour"
         elif time == "1d":
             time = "1-Day"
-        
-        plt.title(time + ' Cross-correlation Heatmap')
-        plt.xlabel('Cryptocurrencies')
-        plt.ylabel('Cryptocurrencies')
+
+        plt.title(time + " Cross-correlation Heatmap")
+        plt.xlabel("")
+        plt.ylabel("")
         plt.show()
 
-def cross_cor_plot():
-    # float lists for cross
-    # correlation
-    x = read_csv("BTC", "1d", ["log returns"]).dropna()
-    y = read_csv("ETH", "1d", ["log returns"]).dropna()
 
-    x = x["log returns"].values
-    y = y["log returns"].values
+def granger_caus():
+    # Perform Granger causality tests on the cryptocurrency data
 
-    # Plot graph
-    fig = plt.figure()
-    ax1 = fig.add_subplot(211)
+    max_lag = 5  # The maximum number of lags to test for
+    for time in timeframes:
+        results_df = pd.DataFrame(columns=all_coins, index=all_coins)
+        for c1 in all_coins:
+            for c2 in all_coins:
+                if c1 != c2:
+                    first_coin = read_csv(c1, time, ["log returns"]).dropna()
+                    other_coin = read_csv(c2, time, ["log returns"]).dropna()
 
-    # cross correlation using
-    # xcorr() function
-    ax1.xcorr(x, y, usevlines=True, maxlags=5, normed=True, lw=2)
-    # adding grid to the graph
-    ax1.grid(True)
-    ax1.axhline(0, color="blue", lw=2)
+                    cryptos = pd.concat([first_coin, other_coin], axis=1)
+                    cryptos = cryptos.dropna()
 
-    # show final plotted graph
-    plt.show()
+                    result = grangercausalitytests(cryptos, max_lag, verbose=False)
+
+                    # Extract the minimum p-value from the Granger causality test results
+                    min_p_value = min(
+                        [
+                            result[lag][0]["ssr_ftest"][1]
+                            for lag in range(1, max_lag + 1)
+                        ]
+                    )
+
+                    # Store the minimum p-value in the results DataFrame
+                    results_df.loc[c1, c2] = min_p_value
+                else:
+                    results_df.loc[c1, c2] = 1
+
+        # Cast all values to float
+        results_df = results_df.astype(float)
+        results_df = results_df.round(1)
+
+        # Add x to columns
+        results_df.columns = [c + "_x" for c in all_coins]
+
+        # Add y to index
+        results_df.index = [c + "_y" for c in all_coins]
+
+        # https://www.machinelearningplus.com/time-series/granger-causality-test-in-python/
+        # See for more info
+
+        sns.heatmap(
+            results_df,
+            annot=True,
+            cbar=False,
+            square=True,
+        )
+
+        plt.title(time + " Granger-Causality Heatmap")
+        plt.xlabel("")
+        plt.ylabel("")
+        plt.show()
 
 
 if __name__ == "__main__":
     # corr_test()
     # corr_matrix()
-    cross_cor()
+    granger_caus()
