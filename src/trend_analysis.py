@@ -5,30 +5,19 @@ import pandas as pd
 # Local imports
 from data import all_coins, timeframes, read_csv
 
-# Define a function to calculate the Sen's slope estimator
-def sen_slope(x):
-    n = len(x)
-    if n == 1:
-        return np.nan
-    slopes = []
-    for i in range(n):
-        for j in range(i + 1, n):
-            slopes.append((x[j] - x[i]) / (j - i))
-    return np.median(slopes)
 
-
-def mod_mk(test, preprocess):
+def trend_test(test, log_returns=False):
     # Test options are:
     # mk.hamed_rao_modification_test
     # mk.yue_wang_modification_test
     # mk.pre_whitening_modification_test
     # mk.trend_free_pre_whitening_modification_test
 
-    mk_df = pd.DataFrame()
+    results = pd.DataFrame()
 
     for coin in all_coins:
         for time in timeframes:
-            if preprocess:
+            if log_returns:
                 df = read_csv(coin, time, ["log returns"])
             else:
                 df = read_csv(coin, time, ["close"])
@@ -52,25 +41,45 @@ def mod_mk(test, preprocess):
                 "Trend": trend,
             }
 
-            mk_df = pd.concat(
-                [mk_df, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
+            results = pd.concat(
+                [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
             )
 
     print("Test:", test)
-    print("No trend", len(mk_df[mk_df["Trend"] == "no trend"]))
-    print("decreasing", len(mk_df[mk_df["Trend"] == "decreasing"]))
-    print("increasing", len(mk_df[mk_df["Trend"] == "increasing"]))
-    print(len(mk_df))
+    print("No trend", len(results[results["Trend"] == "no trend"]))
+    print("decreasing", len(results[results["Trend"] == "decreasing"]))
+    print("increasing", len(results[results["Trend"] == "increasing"]))
+    
+    return results
 
 
-def all_tests():
+def all_tests(log_returns):
+
+    all_results = pd.DataFrame()
+
     for test in [
         mk.hamed_rao_modification_test,
         mk.yue_wang_modification_test,
         mk.pre_whitening_modification_test,
         mk.trend_free_pre_whitening_modification_test,
     ]:
-        mod_mk(test, True)
+        results = trend_test(test, log_returns)
 
+        # Add test name as column
+        if test == mk.hamed_rao_modification_test:
+            results["Test"] = "Hamed Rao"
+        elif test == mk.yue_wang_modification_test:
+            results["Test"] = "Yue Wang"
+        elif test == mk.pre_whitening_modification_test:
+            results["Test"] = "Pre-whitening"
+        elif test == mk.trend_free_pre_whitening_modification_test:
+            results["Test"] = "Trend-free pre-whitening"
 
-all_tests()
+        # Merge results
+        all_results = pd.concat([all_results, results], axis=0, ignore_index=True)
+
+    # Save as .csv and .xlsx
+    all_results.to_csv("data/tests/trend_results.csv", index=False)
+    all_results.to_excel("data/tests/trend_results.xlsx", index=False)
+
+all_tests(True)

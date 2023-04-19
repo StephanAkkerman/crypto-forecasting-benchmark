@@ -1,0 +1,337 @@
+Coin,Time,Trend,Test
+BTC,1m,no trend,Hamed Rao
+BTC,15m,no trend,Hamed Rao
+BTC,4h,increasing,Hamed Rao
+BTC,1d,decreasing,Hamed Rao
+ETH,1m,no trend,Hamed Rao
+ETH,15m,no trend,Hamed Rao
+ETH,4h,increasing,Hamed Rao
+ETH,1d,decreasing,Hamed Rao
+BNB,1m,no trend,Hamed Rao
+BNB,15m,no trend,Hamed Rao
+BNB,4h,increasing,Hamed Rao
+BNB,1d,decreasing,Hamed Rao
+XRP,1m,no trend,Hamed Rao
+XRP,15m,no trend,Hamed Rao
+XRP,4h,no trend,Hamed Rao
+XRP,1d,decreasing,Hamed Rao
+ADA,1m,no trend,Hamed Rao
+ADA,15m,no trend,Hamed Rao
+ADA,4h,no trend,Hamed Rao
+ADA,1d,no trend,Hamed Rao
+DOGE,1m,no trend,Hamed Rao
+DOGE,15m,no trend,Hamed Rao
+DOGE,4h,increasing,Hamed Rao
+DOGE,1d,no trend,Hamed Rao
+MATIC,1m,no trend,Hamed Rao
+MATIC,15m,no trend,Hamed Rao
+MATIC,4h,no trend,Hamed Rao
+MATIC,1d,no trend,Hamed Rao
+LINK,1m,no trend,Hamed Rao
+LINK,15m,no trend,Hamed Rao
+LINK,4h,no trend,Hamed Rao
+LINK,1d,no trend,Hamed Rao
+ETC,1m,no trend,Hamed Rao
+ETC,15m,no trend,Hamed Rao
+ETC,4h,increasing,Hamed Rao
+ETC,1d,no trend,Hamed Rao
+XLM,1m,no trend,Hamed Rao
+XLM,15m,no trend,Hamed Rao
+XLM,4h,increasing,Hamed Rao
+XLM,1d,no trend,Hamed Rao
+LTC,1m,no trend,Hamed Rao
+LTC,15m,no trend,Hamed Rao
+LTC,4h,no trend,Hamed Rao
+LTC,1d,no trend,Hamed Rao
+TRX,1m,no trend,Hamed Rao
+TRX,15m,no trend,Hamed Rao
+TRX,4h,no trend,Hamed Rao
+TRX,1d,no trend,Hamed Rao
+ATOM,1m,no trend,Hamed Rao
+ATOM,15m,increasing,Hamed Rao
+ATOM,4h,no trend,Hamed Rao
+ATOM,1d,no trend,Hamed Rao
+XMR,1m,no trend,Hamed Rao
+XMR,15m,no trend,Hamed Rao
+XMR,4h,no trend,Hamed Rao
+XMR,1d,no trend,Hamed Rao
+VET,1m,no trend,Hamed Rao
+VET,15m,no trend,Hamed Rao
+VET,4h,no trend,Hamed Rao
+VET,1d,no trend,Hamed Rao
+ALGO,1m,no trend,Hamed Rao
+ALGO,15m,no trend,Hamed Rao
+ALGO,4h,no trend,Hamed Rao
+ALGO,1d,no trend,Hamed Rao
+EOS,1m,no trend,Hamed Rao
+EOS,15m,no trend,Hamed Rao
+EOS,4h,no trend,Hamed Rao
+EOS,1d,no trend,Hamed Rao
+CHZ,1m,no trend,Hamed Rao
+CHZ,15m,no trend,Hamed Rao
+CHZ,4h,no trend,Hamed Rao
+CHZ,1d,no trend,Hamed Rao
+IOTA,1m,no trend,Hamed Rao
+IOTA,15m,no trend,Hamed Rao
+IOTA,4h,no trend,Hamed Rao
+IOTA,1d,decreasing,Hamed Rao
+NEO,1m,no trend,Hamed Rao
+NEO,15m,no trend,Hamed Rao
+NEO,4h,no trend,Hamed Rao
+NEO,1d,no trend,Hamed Rao
+XTZ,1m,no trend,Hamed Rao
+XTZ,15m,no trend,Hamed Rao
+XTZ,4h,no trend,Hamed Rao
+XTZ,1d,no trend,Hamed Rao
+BTC,1m,no trend,Yue Wang
+BTC,15m,no trend,Yue Wang
+BTC,4h,increasing,Yue Wang
+BTC,1d,decreasing,Yue Wang
+ETH,1m,no trend,Yue Wang
+ETH,15m,no trend,Yue Wang
+ETH,4h,increasing,Yue Wang
+ETH,1d,decreasing,Yue Wang
+BNB,1m,no trend,Yue Wang
+BNB,15m,no trend,Yue Wang
+BNB,4h,increasing,Yue Wang
+BNB,1d,decreasing,Yue Wang
+XRP,1m,no trend,Yue Wang
+XRP,15m,increasing,Yue Wang
+XRP,4h,increasing,Yue Wang
+XRP,1d,decreasing,Yue Wang
+ADA,1m,no trend,Yue Wang
+ADA,15m,increasing,Yue Wang
+ADA,4h,increasing,Yue Wang
+ADA,1d,no trend,Yue Wang
+DOGE,1m,no trend,Yue Wang
+DOGE,15m,no trend,Yue Wang
+DOGE,4h,increasing,Yue Wang
+DOGE,1d,no trend,Yue Wang
+MATIC,1m,no trend,Yue Wang
+MATIC,15m,increasing,Yue Wang
+MATIC,4h,increasing,Yue Wang
+MATIC,1d,no trend,Yue Wang
+LINK,1m,decreasing,Yue Wang
+LINK,15m,increasing,Yue Wang
+LINK,4h,increasing,Yue Wang
+LINK,1d,decreasing,Yue Wang
+ETC,1m,no trend,Yue Wang
+ETC,15m,no trend,Yue Wang
+ETC,4h,increasing,Yue Wang
+ETC,1d,decreasing,Yue Wang
+XLM,1m,no trend,Yue Wang
+XLM,15m,no trend,Yue Wang
+XLM,4h,increasing,Yue Wang
+XLM,1d,no trend,Yue Wang
+LTC,1m,no trend,Yue Wang
+LTC,15m,no trend,Yue Wang
+LTC,4h,no trend,Yue Wang
+LTC,1d,decreasing,Yue Wang
+TRX,1m,no trend,Yue Wang
+TRX,15m,no trend,Yue Wang
+TRX,4h,increasing,Yue Wang
+TRX,1d,decreasing,Yue Wang
+ATOM,1m,decreasing,Yue Wang
+ATOM,15m,increasing,Yue Wang
+ATOM,4h,no trend,Yue Wang
+ATOM,1d,decreasing,Yue Wang
+XMR,1m,no trend,Yue Wang
+XMR,15m,no trend,Yue Wang
+XMR,4h,no trend,Yue Wang
+XMR,1d,decreasing,Yue Wang
+VET,1m,no trend,Yue Wang
+VET,15m,no trend,Yue Wang
+VET,4h,no trend,Yue Wang
+VET,1d,no trend,Yue Wang
+ALGO,1m,no trend,Yue Wang
+ALGO,15m,no trend,Yue Wang
+ALGO,4h,no trend,Yue Wang
+ALGO,1d,no trend,Yue Wang
+EOS,1m,no trend,Yue Wang
+EOS,15m,no trend,Yue Wang
+EOS,4h,increasing,Yue Wang
+EOS,1d,no trend,Yue Wang
+CHZ,1m,no trend,Yue Wang
+CHZ,15m,no trend,Yue Wang
+CHZ,4h,increasing,Yue Wang
+CHZ,1d,no trend,Yue Wang
+IOTA,1m,decreasing,Yue Wang
+IOTA,15m,decreasing,Yue Wang
+IOTA,4h,increasing,Yue Wang
+IOTA,1d,decreasing,Yue Wang
+NEO,1m,no trend,Yue Wang
+NEO,15m,no trend,Yue Wang
+NEO,4h,no trend,Yue Wang
+NEO,1d,decreasing,Yue Wang
+XTZ,1m,no trend,Yue Wang
+XTZ,15m,no trend,Yue Wang
+XTZ,4h,increasing,Yue Wang
+XTZ,1d,no trend,Yue Wang
+BTC,1m,no trend,Pre-whitening
+BTC,15m,no trend,Pre-whitening
+BTC,4h,increasing,Pre-whitening
+BTC,1d,no trend,Pre-whitening
+ETH,1m,no trend,Pre-whitening
+ETH,15m,no trend,Pre-whitening
+ETH,4h,no trend,Pre-whitening
+ETH,1d,decreasing,Pre-whitening
+BNB,1m,no trend,Pre-whitening
+BNB,15m,no trend,Pre-whitening
+BNB,4h,no trend,Pre-whitening
+BNB,1d,decreasing,Pre-whitening
+XRP,1m,no trend,Pre-whitening
+XRP,15m,no trend,Pre-whitening
+XRP,4h,no trend,Pre-whitening
+XRP,1d,no trend,Pre-whitening
+ADA,1m,no trend,Pre-whitening
+ADA,15m,no trend,Pre-whitening
+ADA,4h,no trend,Pre-whitening
+ADA,1d,no trend,Pre-whitening
+DOGE,1m,no trend,Pre-whitening
+DOGE,15m,no trend,Pre-whitening
+DOGE,4h,no trend,Pre-whitening
+DOGE,1d,no trend,Pre-whitening
+MATIC,1m,no trend,Pre-whitening
+MATIC,15m,no trend,Pre-whitening
+MATIC,4h,no trend,Pre-whitening
+MATIC,1d,no trend,Pre-whitening
+LINK,1m,no trend,Pre-whitening
+LINK,15m,no trend,Pre-whitening
+LINK,4h,no trend,Pre-whitening
+LINK,1d,no trend,Pre-whitening
+ETC,1m,no trend,Pre-whitening
+ETC,15m,no trend,Pre-whitening
+ETC,4h,no trend,Pre-whitening
+ETC,1d,no trend,Pre-whitening
+XLM,1m,no trend,Pre-whitening
+XLM,15m,no trend,Pre-whitening
+XLM,4h,no trend,Pre-whitening
+XLM,1d,no trend,Pre-whitening
+LTC,1m,no trend,Pre-whitening
+LTC,15m,no trend,Pre-whitening
+LTC,4h,no trend,Pre-whitening
+LTC,1d,no trend,Pre-whitening
+TRX,1m,no trend,Pre-whitening
+TRX,15m,no trend,Pre-whitening
+TRX,4h,no trend,Pre-whitening
+TRX,1d,no trend,Pre-whitening
+ATOM,1m,no trend,Pre-whitening
+ATOM,15m,no trend,Pre-whitening
+ATOM,4h,no trend,Pre-whitening
+ATOM,1d,no trend,Pre-whitening
+XMR,1m,no trend,Pre-whitening
+XMR,15m,no trend,Pre-whitening
+XMR,4h,no trend,Pre-whitening
+XMR,1d,no trend,Pre-whitening
+VET,1m,no trend,Pre-whitening
+VET,15m,no trend,Pre-whitening
+VET,4h,no trend,Pre-whitening
+VET,1d,no trend,Pre-whitening
+ALGO,1m,no trend,Pre-whitening
+ALGO,15m,no trend,Pre-whitening
+ALGO,4h,no trend,Pre-whitening
+ALGO,1d,no trend,Pre-whitening
+EOS,1m,no trend,Pre-whitening
+EOS,15m,no trend,Pre-whitening
+EOS,4h,no trend,Pre-whitening
+EOS,1d,no trend,Pre-whitening
+CHZ,1m,no trend,Pre-whitening
+CHZ,15m,no trend,Pre-whitening
+CHZ,4h,no trend,Pre-whitening
+CHZ,1d,no trend,Pre-whitening
+IOTA,1m,no trend,Pre-whitening
+IOTA,15m,no trend,Pre-whitening
+IOTA,4h,no trend,Pre-whitening
+IOTA,1d,no trend,Pre-whitening
+NEO,1m,no trend,Pre-whitening
+NEO,15m,no trend,Pre-whitening
+NEO,4h,no trend,Pre-whitening
+NEO,1d,no trend,Pre-whitening
+XTZ,1m,no trend,Pre-whitening
+XTZ,15m,no trend,Pre-whitening
+XTZ,4h,no trend,Pre-whitening
+XTZ,1d,no trend,Pre-whitening
+BTC,1m,no trend,Trend-free pre-whitening
+BTC,15m,no trend,Trend-free pre-whitening
+BTC,4h,increasing,Trend-free pre-whitening
+BTC,1d,no trend,Trend-free pre-whitening
+ETH,1m,no trend,Trend-free pre-whitening
+ETH,15m,no trend,Trend-free pre-whitening
+ETH,4h,no trend,Trend-free pre-whitening
+ETH,1d,decreasing,Trend-free pre-whitening
+BNB,1m,no trend,Trend-free pre-whitening
+BNB,15m,no trend,Trend-free pre-whitening
+BNB,4h,no trend,Trend-free pre-whitening
+BNB,1d,decreasing,Trend-free pre-whitening
+XRP,1m,no trend,Trend-free pre-whitening
+XRP,15m,no trend,Trend-free pre-whitening
+XRP,4h,no trend,Trend-free pre-whitening
+XRP,1d,no trend,Trend-free pre-whitening
+ADA,1m,no trend,Trend-free pre-whitening
+ADA,15m,no trend,Trend-free pre-whitening
+ADA,4h,no trend,Trend-free pre-whitening
+ADA,1d,no trend,Trend-free pre-whitening
+DOGE,1m,no trend,Trend-free pre-whitening
+DOGE,15m,no trend,Trend-free pre-whitening
+DOGE,4h,no trend,Trend-free pre-whitening
+DOGE,1d,no trend,Trend-free pre-whitening
+MATIC,1m,no trend,Trend-free pre-whitening
+MATIC,15m,no trend,Trend-free pre-whitening
+MATIC,4h,no trend,Trend-free pre-whitening
+MATIC,1d,no trend,Trend-free pre-whitening
+LINK,1m,no trend,Trend-free pre-whitening
+LINK,15m,no trend,Trend-free pre-whitening
+LINK,4h,no trend,Trend-free pre-whitening
+LINK,1d,no trend,Trend-free pre-whitening
+ETC,1m,no trend,Trend-free pre-whitening
+ETC,15m,no trend,Trend-free pre-whitening
+ETC,4h,no trend,Trend-free pre-whitening
+ETC,1d,no trend,Trend-free pre-whitening
+XLM,1m,no trend,Trend-free pre-whitening
+XLM,15m,no trend,Trend-free pre-whitening
+XLM,4h,no trend,Trend-free pre-whitening
+XLM,1d,no trend,Trend-free pre-whitening
+LTC,1m,no trend,Trend-free pre-whitening
+LTC,15m,no trend,Trend-free pre-whitening
+LTC,4h,no trend,Trend-free pre-whitening
+LTC,1d,no trend,Trend-free pre-whitening
+TRX,1m,no trend,Trend-free pre-whitening
+TRX,15m,no trend,Trend-free pre-whitening
+TRX,4h,no trend,Trend-free pre-whitening
+TRX,1d,no trend,Trend-free pre-whitening
+ATOM,1m,no trend,Trend-free pre-whitening
+ATOM,15m,no trend,Trend-free pre-whitening
+ATOM,4h,no trend,Trend-free pre-whitening
+ATOM,1d,no trend,Trend-free pre-whitening
+XMR,1m,no trend,Trend-free pre-whitening
+XMR,15m,no trend,Trend-free pre-whitening
+XMR,4h,no trend,Trend-free pre-whitening
+XMR,1d,no trend,Trend-free pre-whitening
+VET,1m,no trend,Trend-free pre-whitening
+VET,15m,no trend,Trend-free pre-whitening
+VET,4h,no trend,Trend-free pre-whitening
+VET,1d,no trend,Trend-free pre-whitening
+ALGO,1m,no trend,Trend-free pre-whitening
+ALGO,15m,no trend,Trend-free pre-whitening
+ALGO,4h,no trend,Trend-free pre-whitening
+ALGO,1d,no trend,Trend-free pre-whitening
+EOS,1m,no trend,Trend-free pre-whitening
+EOS,15m,no trend,Trend-free pre-whitening
+EOS,4h,no trend,Trend-free pre-whitening
+EOS,1d,no trend,Trend-free pre-whitening
+CHZ,1m,no trend,Trend-free pre-whitening
+CHZ,15m,no trend,Trend-free pre-whitening
+CHZ,4h,no trend,Trend-free pre-whitening
+CHZ,1d,no trend,Trend-free pre-whitening
+IOTA,1m,no trend,Trend-free pre-whitening
+IOTA,15m,no trend,Trend-free pre-whitening
+IOTA,4h,no trend,Trend-free pre-whitening
+IOTA,1d,no trend,Trend-free pre-whitening
+NEO,1m,no trend,Trend-free pre-whitening
+NEO,15m,no trend,Trend-free pre-whitening
+NEO,4h,no trend,Trend-free pre-whitening
+NEO,1d,no trend,Trend-free pre-whitening
+XTZ,1m,no trend,Trend-free pre-whitening
+XTZ,15m,no trend,Trend-free pre-whitening
+XTZ,4h,no trend,Trend-free pre-whitening
+XTZ,1d,no trend,Trend-free pre-whitening
