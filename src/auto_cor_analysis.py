@@ -44,88 +44,88 @@ def durbin_watson(diff, log):
     return len(dw_df[(dw_df["Durbin-Watson"] > 1.5) & (dw_df["Durbin-Watson"] < 2.5)])
 
 
-def ljung_box(lags, diff, log):
+def ljung_box(diff, log):
     lb_df = pd.DataFrame()
 
-    for coin in all_coins:
-        for time in timeframes:
-            df = read_csv(coin, time)
+    for lag in range(1, 101):
+        for coin in all_coins:
+            for time in timeframes:
+                df = read_csv(coin, time)
 
-            if log:
-                df = np.log(df)
+                if log:
+                    df = np.log(df)
 
-            if diff:
-                df = df.diff().dropna()
+                if diff:
+                    df = df.diff().dropna()
 
-            # Perform the Ljung-Box test with a lag of 20
-            res = sm.stats.acorr_ljungbox(df.values.squeeze(), lags=lags)
-            lb_stat = res["lb_stat"].tolist()[-1]
-            lb_p = res["lb_pvalue"].tolist()[-1]
+                # Perform the Ljung-Box test with a lag of 20
+                res = sm.stats.acorr_ljungbox(df.values.squeeze(), lags=lag)
+                p_val = res["lb_pvalue"].tolist()[-1]
 
-            info = {
-                "Coin": coin,
-                "Time": time,
-                "Ljung-Box": lb_stat,
-                "p-value": lb_p,
-            }
+                info = {
+                    "Coin": coin,
+                    "Time": time,
+                    # P-value > 0.05 indicates no autocorrelation
+                    "Result": "Autocorrelated"
+                    if p_val < 0.05
+                    else "Not Autocorrelated",
+                    "Lag": lag,
+                }
 
-            lb_df = pd.concat(
-                [lb_df, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
-            )
+                lb_df = pd.concat(
+                    [lb_df, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
+                )
 
-    # P-value > 0.05 indicates no autocorrelation
-    return len(lb_df[lb_df["p-value"] > 0.05])
+    # Save as excel
+    lb_df.to_excel("data/tests/Ljung-Box.xlsx", index=False)
 
 
-def breusch_godfrey(lags, diff, log):
+def breusch_godfrey(diff, log):
     bg_df = pd.DataFrame()
 
-    for coin in all_coins:
-        for time in timeframes:
-            df = read_csv(coin, time)
+    for lag in range(1, 101):
+        for coin in all_coins:
+            for time in timeframes:
+                df = read_csv(coin, time)
 
-            if log:
-                df = np.log(df)
+                if log:
+                    df = np.log(df)
 
-            if diff:
-                df = df.diff().dropna()
+                if diff:
+                    df = df.diff().dropna()
 
-            # Fit a regression model to the data
-            X = sm.add_constant(df.iloc[:, :-1])
-            y = df.iloc[:, -1]
-            model = sm.OLS(y, X).fit()
+                # Fit a regression model to the data
+                X = sm.add_constant(df.iloc[:, :-1])
+                y = df.iloc[:, -1]
+                model = sm.OLS(y, X).fit()
 
-            # Perform the Breusch-Godfrey test with 2 lags
-            bg = sm.stats.diagnostic.acorr_breusch_godfrey(model, nlags=lags)
+                # Perform the Breusch-Godfrey test with 2 lags
+                bg = sm.stats.diagnostic.acorr_breusch_godfrey(model, nlags=lag)
 
-            info = {
-                "Coin": coin,
-                "Time": time,
-                "Breusch-Godfrey": bg[0],
-                "p-value": bg[1],
-            }
+                info = {
+                    "Coin": coin,
+                    "Time": time,
+                    "Result": "Autocorrelated"
+                    if bg[1] < 0.05
+                    else "Not Autocorrelated",
+                    "Lag": lag,
+                }
 
-            bg_df = pd.concat(
-                [bg_df, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
-            )
+                bg_df = pd.concat(
+                    [bg_df, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
+                )
 
-    return len(bg_df[bg_df["p-value"] > 0.05])
+    # Save it as excel
+    bg_df.to_excel("data/tests/breusch_godfrey.xlsx", index=False)
+
+    # return len(bg_df[bg_df["p-value"] > 0.05])
 
 
 def auto_cor_test(diff, log):
     print("Durbin-Watson: ", durbin_watson(diff, log))
 
-    avg_bg = 0
-    avg_lb = 0
-
-    for i in range(1, 100):
-        print("Lags: ", i)
-        avg_bg += breusch_godfrey(i, diff, log)
-        avg_lb += ljung_box(i, diff, log)
-
-    print("P-value > 0.05")
-    print("Average BG: ", avg_bg / 99)
-    print("Average LB: ", avg_lb / 99)
+    breusch_godfrey(diff, log)
+    ljung_box(diff, log)
 
 
 def plot_acf_pacf(crypto, timeframe):
@@ -149,5 +149,5 @@ def plot_acf_pacf(crypto, timeframe):
 
 
 if __name__ == "__main__":
-    # auto_cor_test(True, True)
-    plot_acf_pacf("BTC", "1d")
+    auto_cor_test(True, True)
+    #plot_acf_pacf("BTC", "1d")
