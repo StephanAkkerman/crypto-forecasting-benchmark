@@ -4,7 +4,10 @@ import statsmodels.api as sm
 from statsmodels.stats.diagnostic import het_breuschpagan, het_goldfeldquandt, het_arch
 from arch import arch_model
 from statsmodels.tsa.arima.model import ARIMA
-from data import all_coins, timeframes, read_csv
+
+# Local imports
+from vars import all_coins, timeframes
+from csv_data import read_csv
 
 
 def complete_test(test, diff):

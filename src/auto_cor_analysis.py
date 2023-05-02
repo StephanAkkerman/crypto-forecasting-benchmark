@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 from statsmodels.graphics.tsaplots import plot_acf
 
 # Local imports
-from data import all_coins, timeframes, read_csv
+from vars import all_coins, timeframes
+from csv_data import read_csv
 
 
 def durbin_watson(diff, log):

@@ -4,25 +4,30 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
 
-from data import all_coins, timeframes, read_csv
+# Local imports
+from vars import all_coins, timeframes
+from csv_data import read_csv
 
 
-def window_analysis():
+def window_analysis(coin, time):
     # for coin in all_coins:
     #    for time in timeframes:
-    df = read_csv("BTC", "1m")
-    df = np.log(df).diff().dropna()
+    df = read_csv(coin, time, ["log returns"])
 
     window = 90
-    df["Long Window (90)"] = df["close"].rolling(window=window).std() * np.sqrt(window)
+    df["Long Window (90)"] = df["log returns"].rolling(window=window).std() * np.sqrt(
+        window
+    )
     window = 30
-    df["Medium Window (30)"] = df["close"].rolling(window=window).std() * np.sqrt(
+    df["Medium Window (30)"] = df["log returns"].rolling(window=window).std() * np.sqrt(
         window
     )
     window = 10
-    df["Short Window (10)"] = df["close"].rolling(window=window).std() * np.sqrt(window)
+    df["Short Window (10)"] = df["log returns"].rolling(window=window).std() * np.sqrt(
+        window
+    )
 
-    df["BTC Log Returns"] = df["close"]
+    df["BTC Log Returns"] = df["log returns"]
     df[
         [
             "BTC Log Returns",
@@ -35,40 +40,9 @@ def window_analysis():
     plt.show()
 
 
-# window_analysis()
-
-def show_total_vol():
-    total = pd.read_csv(f"data/TOTAL/TOTAL_1d_vol.csv", index_col="date")
-    coin = pd.read_csv(f"data/DOGE/DOGEUSDT_1d_vol.csv", index_col="date")
-
-    # Show both volatilitys on the same graph
-    total["close"].plot(figsize=(8, 6), label="Total Market Cap")
-    coin["close"].plot(label="BTC")
-    plt.show()
-
-
-def percentiles():
-    total = pd.read_csv(f"data/TOTAL/TOTAL_1d_vol.csv")
-    coin = "BTC"
-    coin = pd.read_csv(f"data/{coin}/{coin}USDT_1d_vol.csv")
-
-    total_percentile = total.rank(pct=True)
-    coin_percentile = coin.rank(pct=True)
-
-    # difference
-    diff = total_percentile - coin_percentile
-    # print(len(diff[diff["volatility"] > 0]))
-
-    # Show both volatilitys on the same graph
-    diff["volatility"].plot(figsize=(8, 6), label="Total Market Cap")
-    coin["volatility"].plot(label="BTC")
-    total["volatility"].plot(label="Total Market Cap")
-    plt.show()
-
-
 def vol_diff(selected_coin: str, timeframe: str):
-    total = pd.read_csv(f"data/TOTAL/TOTAL_{timeframe}_vol.csv")
-    coin = pd.read_csv(f"data/{selected_coin}/{selected_coin}USDT_{timeframe}_vol.csv")
+    total = read_csv("TOTAL", timeframe, ["volatility"])
+    coin = read_csv(selected_coin, timeframe, ["volatility"])
 
     # Subtract the TOTAL index volatility from the cryptocurrency volatility
     volatility_differences = coin["volatility"] - total["volatility"]
@@ -106,7 +80,9 @@ def vol_diff(selected_coin: str, timeframe: str):
     fig, (ax1, ax2) = plt.subplots(2, 1)
     # Set the indices
     total = total.set_index("date")
-    total["volatility"].plot(figsize=(8, 6), label="TOTAL index", ax=ax1, legend=True, xlabel="")
+    total["volatility"].plot(
+        figsize=(8, 6), label="TOTAL index", ax=ax1, legend=True, xlabel=""
+    )
     coin = coin.set_index("date")
     coin["volatility"].plot(ax=ax1, label=selected_coin, legend=True, xlabel="")
 
@@ -129,5 +105,57 @@ def vol_diff(selected_coin: str, timeframe: str):
 
     plt.show()
 
-#vol_diff("BTC", "1m")
-# vol_categories()
+
+def avg_vol(timeframe: str = "1d"):
+    total_vol = 0
+
+    for coin in all_coins:
+        coin = read_csv(coin, timeframe, ["volatility"]).dropna()
+        total_vol += coin["volatility"].mean()
+
+    return total_vol / len(all_coins)
+
+
+def plot_all_volatilies(timeframe="1d"):
+    # Plot all volatilities
+    complete_df = pd.DataFrame()
+
+    for coin in all_coins:
+        coin_df = read_csv(coin, timeframe, ["volatility"]).dropna()
+
+        # Set the index to the dates from coin_df
+        if complete_df.empty:
+            complete_df.index = coin_df.index
+
+        complete_df[coin] = coin_df["volatility"].tolist()
+
+    ax = complete_df.plot(figsize=(12, 6), alpha=0.3, legend=False)
+
+    # Calculate the average of all volatilities
+    avg_volatility = complete_df.mean(axis=1)
+
+    # Plot the average volatility as a big red line with increased width
+    avg_line = plt.plot(
+        avg_volatility, color="red", linewidth=2, label="Average Volatility"
+    )
+
+    # Calculate the overall average of the avg_volatility and plot it as a horizontal blue line
+    overall_avg_volatility = avg_volatility.mean()
+    overall_avg_line = plt.axhline(
+        y=overall_avg_volatility,
+        color="blue",
+        linewidth=2,
+        label="Overall Average Volatility",
+    )
+
+    # Show legends only for the average volatility and overall average volatility lines
+    ax.legend(handles=[avg_line[0], overall_avg_line], loc="best")
+
+    # Set y-axis title
+    ax.set_ylabel('Volatility')
+    ax.set_xlabel("Date")
+
+    plt.show()
+
+
+plot_all_volatilies("1m")

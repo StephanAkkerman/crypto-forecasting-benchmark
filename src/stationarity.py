@@ -3,7 +3,8 @@ from statsmodels.tsa.stattools import adfuller, kpss
 import matplotlib.pyplot as plt
 
 # Local imports
-from data import all_coins, timeframes, read_csv
+from vars import all_coins, timeframes
+from csv_data import read_csv
 
 
 def write_adf_test(diff=False):

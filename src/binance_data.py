@@ -2,25 +2,6 @@ import pandas as pd
 import numpy as np
 from binance.client import Client
 
-large_cap = ["BTC", "ETH", "BNB", "XRP", "ADA", "DOGE", "MATIC"]
-mid_cap = ["LINK", "ETC", "XLM", "LTC", "TRX", "ATOM", "XMR"]
-small_cap = ["VET", "ALGO", "EOS", "CHZ", "IOTA", "NEO", "XTZ"]
-
-all_coins = large_cap + mid_cap + small_cap
-
-timeframes = ["1m", "15m", "4h", "1d"]
-
-
-def read_csv(coin : str, timeframe : str, col_names : list = ["close"]):
-    df = pd.read_csv(f"data/{coin}/{coin}USDT_{timeframe}.csv")
-
-    # Set date as index
-    df.set_index("date", inplace=True)
-    df.index = pd.to_datetime(df.index)
-
-    return df[col_names]
-
-
 # Initialize the Client
 client = Client()
 
@@ -144,49 +125,3 @@ def fetchData(symbol="BTC", amount=1, timeframe="1d", as_csv=False, file_name=No
         print(f"Succesfully saved {len(df)} rows to {file_name}")
 
     return df
-
-
-def create_all_data():
-    for coin in all_coins:
-        for time in timeframes:
-            fetchData(symbol=coin, amount=1, timeframe=time, as_csv=True)
-
-
-def format_TOTAL():
-    """
-    Adds a date column to the TOTAL.csv file
-    Removes the unnecessary data, so it's as long as the BTC data
-    Then adds logarithmic returns and the volatility of it
-    """
-
-    for time, btc_time in [("1", "1m"), ("15", "15m"), ("240", "4h"), ("1D", "1d")]:
-        df = pd.read_csv(f"data/TOTAL/CRYPTOCAP_TOTAL, {time}.csv")
-
-        df["date"] = pd.to_datetime(df["time"], unit="s")
-
-        btc = pd.read_csv(f"data/BTC/BTCUSDT_{btc_time}.csv")
-
-        # Only keeps dates that are in both dataframes
-        df = df[df["date"].isin(btc["date"])]
-        df.reset_index(drop=True, inplace=True)
-
-        # Make the date the index
-        df.set_index("date", inplace=True)
-
-        # Add the log returns
-        df["close"] = df["close"].astype(float)
-        df["log returns"] = np.log(df["close"]).diff().dropna()
-
-        # Add volatility
-        df["volatility"] = df["log returns"].rolling(window=30).std() * np.sqrt(30)
-
-        # Add news columns to csv
-        df.to_csv(f"data/TOTAL/TOTAL_{btc_time}.csv", index=True)
-
-        # Make sure they are 1000 rows
-        print(btc_time, len(df))
-
-
-if __name__ == "__main__":
-    # create_all_data()
-    format_TOTAL()

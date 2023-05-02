@@ -5,7 +5,9 @@ from darts.models import ARIMA
 from darts.metrics import mape, mase, rmse
 import matplotlib.pyplot as plt
 
-from data import read_csv, all_coins, timeframes
+# Local imports
+from vars import all_coins, timeframes
+from csv_data import read_csv
 
 def split_time_series_periods(ts, n_periods = 10, test_split = 0.25):
     """

@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 from scipy.stats import jarque_bera
 from hurst import compute_Hc
-from data import all_coins, timeframes, read_csv
 
+from vars import all_coins, timeframes, read_csv
+from csv_data import read_csv
 
 def jarque_bera_test():
     results = pd.DataFrame()

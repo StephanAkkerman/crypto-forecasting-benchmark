@@ -1,9 +1,9 @@
 import pymannkendall as mk
-import numpy as np
 import pandas as pd
 
 # Local imports
-from data import all_coins, timeframes, read_csv
+from vars import all_coins, timeframes
+from csv_data import read_csv
 
 
 def trend_test(test, log_returns=False):

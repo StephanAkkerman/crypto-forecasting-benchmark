@@ -6,7 +6,9 @@ import scipy.stats
 from scipy.signal import correlate
 import seaborn as sns
 from statsmodels.tsa.stattools import grangercausalitytests
-from data import all_coins, timeframes, read_csv
+
+from vars import all_coins, timeframes
+from csv_data import read_csv
 
 
 def corr_matrix():
@@ -98,14 +100,12 @@ def corr_test():
 
 
 def cross_cor():
-
     for time in timeframes:
         # Compute cross-correlations
         cross_correlations = np.zeros((len(all_coins), len(all_coins)))
         cross_lags = np.zeros((len(all_coins), len(all_coins)))
         for i in range(len(all_coins)):
             for j in range(len(all_coins)):
-
                 first_coin = read_csv(all_coins[i], time, ["log returns"]).dropna()
                 other_coin = read_csv(all_coins[j], time, ["log returns"]).dropna()
 
