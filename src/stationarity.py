@@ -8,7 +8,7 @@ from csv_data import read_csv
 
 
 def write_adf_test(diff=False):
-    file_name="adf_test"
+    file_name = "adf_test"
     adf_df = pd.DataFrame()
 
     for coin in all_coins:
@@ -49,7 +49,7 @@ def write_adf_test(diff=False):
 
 
 def write_kpss_test(diff=False):
-    file_name="kpss_test"
+    file_name = "kpss_test"
 
     kpss_df = pd.DataFrame()
 
@@ -91,17 +91,28 @@ def write_kpss_test(diff=False):
     # Show the coins that are stationary, p-value < 0.05
     print(kpss_df[kpss_df["p-value"] > 0.05])
 
+
 def plot_price(crypto, timeframe):
     df = read_csv(crypto, timeframe)
     df_diff = df.diff().dropna()
 
-    _, axs = plt.subplots(2, 1, figsize=(8, 8))
-    
-    df.plot(ax=axs[0])
-    df_diff.plot(ax=axs[1])
+    _, axs = plt.subplots(2, 1, figsize=(12, 8))
+
+    df["close"].plot(ax=axs[0], label="Price")
+    df_diff["close"].plot(ax=axs[1], label="Returns")
+
+    axs[0].legend(loc="upper right")
+    axs[1].legend(loc="upper right")
+
+    axs[0].set_ylabel("Price in USD")
+    axs[1].set_ylabel("Returns in USD")
+
+    axs[0].set_xlabel("")
+    axs[1].set_xlabel("Date")
 
     plt.show()
 
+
 plot_price("BTC", "1d")
-#write_kpss_test(True)
-#write_adf_test()
+# write_kpss_test(True)
+# write_adf_test()

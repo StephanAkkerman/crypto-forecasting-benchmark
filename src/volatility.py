@@ -9,7 +9,7 @@ from vars import all_coins, timeframes
 from csv_data import read_csv
 
 
-def window_analysis(coin, time):
+def window_analysis(coin="BTC", time="1d"):
     # for coin in all_coins:
     #    for time in timeframes:
     df = read_csv(coin, time, ["log returns"])
@@ -28,21 +28,35 @@ def window_analysis(coin, time):
     )
 
     df["BTC Log Returns"] = df["log returns"]
-    df[
+    axes = df[
         [
             "BTC Log Returns",
             "Long Window (90)",
             "Medium Window (30)",
             "Short Window (10)",
         ]
-    ].plot(subplots=True, figsize=(8, 6))
+    ].plot(subplots=True, figsize=(12, 8))
+
+    # Put all legends right upper
+    for ax in axes:
+        ax.legend(loc="upper right")
+        ax.set_ylabel("Volatility")  # Set y-axis label for each subplot
+
+    axes[0].set_ylabel("Log Returns")  # Set y-axis label for the first subplot
+
+    # Change x-axis labels
+    axes[-1].set_xlabel("Date")  # Only set x-axis label for the last subplot
 
     plt.show()
 
 
-def vol_diff(selected_coin: str, timeframe: str):
-    total = read_csv("TOTAL", timeframe, ["volatility"])
-    coin = read_csv(selected_coin, timeframe, ["volatility"])
+def vol_diff(selected_coin: str = "BTC", timeframe: str = "1d"):
+    total = pd.read_csv(f"data/TOTAL/TOTAL_{timeframe}.csv").dropna()
+    coin = read_csv(selected_coin, timeframe, ["volatility"]).dropna()
+    dates = total["date"]
+
+    total.reset_index(inplace=True)
+    coin.reset_index(inplace=True)
 
     # Subtract the TOTAL index volatility from the cryptocurrency volatility
     volatility_differences = coin["volatility"] - total["volatility"]
@@ -81,19 +95,19 @@ def vol_diff(selected_coin: str, timeframe: str):
     # Set the indices
     total = total.set_index("date")
     total["volatility"].plot(
-        figsize=(8, 6), label="TOTAL index", ax=ax1, legend=True, xlabel=""
+        figsize=(12, 8), label="TOTAL index", ax=ax1, legend=True, xlabel=""
     )
-    coin = coin.set_index("date")
+    # coin = coin.set_index("date")
     coin["volatility"].plot(ax=ax1, label=selected_coin, legend=True, xlabel="")
 
     # ax2.add_collection(lc)
     # Add index
-    volatility_differences = volatility_differences.set_axis(coin.index)
+    volatility_differences = volatility_differences.set_axis(dates)
     volatility_differences.plot(ax=ax2, label="Volatility Difference")
     plt.axhline(y=0, color="grey", linestyle="-", alpha=0.7)
 
     ax1.legend(loc="upper right")
-    ax2.legend(loc="upper right")
+    # ax2.legend(loc="upper right")
 
     # plt.xlim(periods_df.index.min(), periods_df.index.max())
     # plt.ylim(-1.1, 1.1)
@@ -102,6 +116,12 @@ def vol_diff(selected_coin: str, timeframe: str):
     # Plot the volatility differences
 
     # volatility_differences.plot(label="Volatility Difference")
+
+    ax1.set_ylabel("Volatility")
+    ax2.set_ylabel("Volatility Difference")
+
+    ax1.set_xlabel("")
+    ax2.set_xlabel("Date")
 
     plt.show()
 
@@ -152,10 +172,98 @@ def plot_all_volatilies(timeframe="1d"):
     ax.legend(handles=[avg_line[0], overall_avg_line], loc="best")
 
     # Set y-axis title
-    ax.set_ylabel('Volatility')
+    ax.set_ylabel("Volatility")
+    ax.set_xlabel("Date")
+
+    plt.show()
+
+    # Use percentiles to identify the most volatile coins, 75th percentile could be considered the most volatile
+
+
+def percentiles(timeframe="1d"):
+    # Plot all volatilities
+    complete_df = pd.DataFrame()
+
+    for coin in all_coins:
+        coin_df = read_csv(coin, timeframe, ["volatility"]).dropna()
+
+        # Set the index to the dates from coin_df
+        if complete_df.empty:
+            complete_df.index = coin_df.index
+
+        complete_df[coin] = coin_df["volatility"].tolist()
+
+    ax = complete_df.plot(figsize=(12, 6), alpha=0.3, legend=False)
+
+    # Calculate the overall 50th percentile (median) of all volatilities
+    overall_median_volatility = complete_df.stack().median()
+
+    # Plot the overall median volatility as a horizontal blue line
+    overall_median_line = plt.axhline(
+        y=overall_median_volatility,
+        color="blue",
+        linewidth=2,
+        label="Overall Median Volatility",
+    )
+
+    # Calculate the overall 75th percentile of all volatilities
+    overall_q3_volatility = complete_df.stack().quantile(0.75)
+    print(overall_q3_volatility)
+
+    # Plot the overall 75th percentile volatility as a horizontal green line
+    overall_q3_line = plt.axhline(
+        y=overall_q3_volatility,
+        color="lime",
+        linewidth=2,
+        label="Overall 75th Percentile Volatility",
+    )
+
+    overall_q1_volatility = complete_df.stack().quantile(0.25)
+    print(overall_q1_volatility)
+
+    # Plot the overall 75th percentile volatility as a horizontal blue line
+    overall_q1_line = plt.axhline(
+        y=overall_q1_volatility,
+        color="red",
+        linewidth=2,
+        label="Overall 25th Percentile Volatility",
+    )
+
+    # Show legends only for the overall median volatility and overall 75th percentile volatility lines
+    ax.legend(
+        handles=[overall_median_line, overall_q3_line, overall_q1_line], loc="best"
+    )
+
+    # Set y-axis title
+    ax.set_ylabel("Volatility")
     ax.set_xlabel("Date")
 
     plt.show()
 
 
-plot_all_volatilies("1m")
+def percentiles_table():
+    # Plot all volatilities
+    complete_df = pd.DataFrame()
+
+    for timeframe in timeframes:
+        for coin in all_coins:
+            coin_df = read_csv(coin, timeframe, ["volatility"]).dropna()
+
+            # Set the index to the dates from coin_df
+            if complete_df.empty:
+                complete_df.index = coin_df.index
+
+            complete_df[coin] = coin_df["volatility"].tolist()
+
+        # Calculate the overall 75th percentile of all volatilities
+        overall_q3_volatility = complete_df.stack().quantile(0.75)
+        print(f"75th percentile for {timeframe}: {overall_q3_volatility}")
+
+        overall_q1_volatility = complete_df.stack().quantile(0.25)
+        print(f"25th percentile for {timeframe}: {overall_q1_volatility}")
+
+        print()
+
+
+percentiles_table()
+# vol_diff("DOGE", "1d")

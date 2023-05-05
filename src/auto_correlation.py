@@ -149,6 +149,28 @@ def plot_acf_pacf(crypto, timeframe):
     plt.show()
 
 
+def log_returns(crypto="BTC", timeframe="1d"):
+    returns = read_csv(crypto, timeframe).diff().dropna()
+    log_returns = read_csv(crypto, timeframe, ["log returns"])
+
+    _, axs = plt.subplots(2, 1, figsize=(12, 8))
+
+    returns["close"].plot(ax=axs[0], label="Returns")
+    log_returns["log returns"].plot(ax=axs[1], label="Logarithmic returns")
+
+    axs[0].legend(loc="upper right")
+    axs[1].legend(loc="upper right")
+
+    axs[0].set_ylabel("Returns in USD")
+    axs[1].set_ylabel("Logarithmic returns")
+
+    axs[0].set_xlabel("")
+    axs[1].set_xlabel("Date")
+
+    plt.show()
+
+
 if __name__ == "__main__":
-    auto_cor_test(True, True)
-    #plot_acf_pacf("BTC", "1d")
+    log_returns()
+    # auto_cor_test(True, True)
+    # plot_acf_pacf("BTC", "1d")
