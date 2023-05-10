@@ -5,13 +5,31 @@ from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
 
 # Local imports
-from vars import all_coins, timeframes
-from csv_data import read_csv
+from data.vars import all_coins, timeframes
+from data.csv_data import read_csv
+
+def volatility_tests():
+    """
+    Main function to perform all volatility tests
+    """
+    window_analysis()
+    vol_diff()
+    plot_percentiles()
+    percentiles_table()
 
 
 def window_analysis(coin="BTC", time="1d"):
-    # for coin in all_coins:
-    #    for time in timeframes:
+    """
+    Shows the volatility of the data using different windows.
+
+    Parameters
+    ----------
+    coin : str, optional
+        The symbol of the cryptocurrency, by default "BTC"
+    time : str, optional
+        The time frame to be used, by default "1d"
+    """
+    
     df = read_csv(coin, time, ["log returns"])
 
     window = 90
@@ -48,9 +66,21 @@ def window_analysis(coin="BTC", time="1d"):
     axes[-1].set_xlabel("Date")  # Only set x-axis label for the last subplot
 
     plt.show()
+    plt.savefig("data/plots/window_analysis.png")
 
 
 def vol_diff(selected_coin: str = "BTC", timeframe: str = "1d"):
+    """
+    Calculates the difference in volatility between the selected coin and the TOTAL index.
+
+    Parameters
+    ----------
+    selected_coin : str, optional
+        Symbol of the cryptocurrency, by default "BTC"
+    timeframe : str, optional
+        The time frame to be used, by default "1d"
+    """
+    
     total = pd.read_csv(f"data/TOTAL/TOTAL_{timeframe}.csv").dropna()
     coin = read_csv(selected_coin, timeframe, ["volatility"]).dropna()
     dates = total["date"]
@@ -124,9 +154,23 @@ def vol_diff(selected_coin: str = "BTC", timeframe: str = "1d"):
     ax2.set_xlabel("Date")
 
     plt.show()
+    plt.savefig("data/plots/volatility_difference.png")
 
+def avg_vol(timeframe: str = "1d") -> float:
+    """
+    Calculates the average volatility of all cryptocurrencies.
 
-def avg_vol(timeframe: str = "1d"):
+    Parameters
+    ----------
+    timeframe : str, optional
+        The time frame to use, by default "1d"
+
+    Returns
+    -------
+    float
+        The average volatility of all cryptocurrencies.
+    """
+    
     total_vol = 0
 
     for coin in all_coins:
@@ -137,7 +181,15 @@ def avg_vol(timeframe: str = "1d"):
 
 
 def plot_all_volatilies(timeframe="1d"):
-    # Plot all volatilities
+    """
+    Plots the volatility of all cryptocurrencies and the average volatility.
+
+    Parameters
+    ----------
+    timeframe : str, optional
+        The time frame to use, by default "1d"
+    """
+
     complete_df = pd.DataFrame()
 
     for coin in all_coins:
@@ -176,12 +228,18 @@ def plot_all_volatilies(timeframe="1d"):
     ax.set_xlabel("Date")
 
     plt.show()
+    plt.savefig("data/plots/avg_volatility.png")
 
-    # Use percentiles to identify the most volatile coins, 75th percentile could be considered the most volatile
+def plot_percentiles(timeframe="1d"):
+    """
+    Plots all volatilities and the 25th, 50th, and 75th percentile.
 
-
-def percentiles(timeframe="1d"):
-    # Plot all volatilities
+    Parameters
+    ----------
+    timeframe : str, optional
+        The time frame to use for the data, by default "1d"
+    """
+    
     complete_df = pd.DataFrame()
 
     for coin in all_coins:
@@ -221,7 +279,7 @@ def percentiles(timeframe="1d"):
     overall_q1_volatility = complete_df.stack().quantile(0.25)
     print(overall_q1_volatility)
 
-    # Plot the overall 75th percentile volatility as a horizontal blue line
+    # Plot the overall 25th percentile volatility as a horizontal blue line
     overall_q1_line = plt.axhline(
         y=overall_q1_volatility,
         color="red",
@@ -239,10 +297,13 @@ def percentiles(timeframe="1d"):
     ax.set_xlabel("Date")
 
     plt.show()
-
+    plt.savefig("data/plots/volatility_percentiles.png")
 
 def percentiles_table():
-    # Plot all volatilities
+    """
+    Displays the 25th and 75th percentile for each time frame.
+    """
+    
     complete_df = pd.DataFrame()
 
     for timeframe in timeframes:
@@ -254,16 +315,7 @@ def percentiles_table():
                 complete_df.index = coin_df.index
 
             complete_df[coin] = coin_df["volatility"].tolist()
-
-        # Calculate the overall 75th percentile of all volatilities
-        overall_q3_volatility = complete_df.stack().quantile(0.75)
-        print(f"75th percentile for {timeframe}: {overall_q3_volatility}")
-
-        overall_q1_volatility = complete_df.stack().quantile(0.25)
-        print(f"25th percentile for {timeframe}: {overall_q1_volatility}")
-
+            
+        print(f"25th percentile for {timeframe}: {complete_df.stack().quantile(0.25)}")
+        print(f"75th percentile for {timeframe}: {complete_df.stack().quantile(0.75)}")
         print()
-
-
-percentiles_table()
-# vol_diff("DOGE", "1d")

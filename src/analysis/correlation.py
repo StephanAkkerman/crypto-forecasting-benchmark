@@ -1,17 +1,31 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 import seaborn as sn
-import matplotlib.pyplot as plt
 import scipy.stats
+import matplotlib.pyplot as plt
 from scipy.signal import correlate
-import seaborn as sns
 from statsmodels.tsa.stattools import grangercausalitytests
 
-from vars import all_coins, timeframes
-from csv_data import read_csv
+from data.vars import all_coins, timeframes
+from data.csv_data import read_csv
 
+def correlation_tests():
+    """
+    Generates all correlation plots and matrices
+    """
+    
+    corr_matrix()
+    corr_pval()
+    cross_cor(True)
+    cross_cor(False)
+    granger_caus()
 
 def corr_matrix():
+    """
+    Generates the correlation matrix for all coins and time frames
+    Shows each time frame separately, with Pearson and Spearman correlation
+    """
+    
     one_d = pd.DataFrame()
     one_m = pd.DataFrame()
     four_h = pd.DataFrame()
@@ -47,7 +61,7 @@ def corr_matrix():
         spear_matrix = df.corr(method="spearman").round(1)
 
         # Plot correlation matrices side by side
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+        _, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
         sn.heatmap(pearson_matrix, cbar=False, annot=True, ax=ax1).set(
             title=f"{time} Pearson Correlation Matrix"
@@ -55,10 +69,15 @@ def corr_matrix():
         sn.heatmap(spear_matrix, cbar=False, annot=True, ax=ax2).set(
             title=f"{time} Spearman Correlation Matrix"
         )
+        
         plt.show()
+        plt.savefig(f"data/plots/{time}_corr_matrix.png")
 
-
-def corr_test():
+def corr_pval(pearson : bool = False):
+    """
+    Prints the coin pairs that have a p-value below 0.05 using the Spearman or Pearson correlation
+    """
+    
     for time in timeframes:
         time_df = pd.DataFrame()
         for coin in all_coins:
@@ -72,10 +91,12 @@ def corr_test():
                 other_coin = np.log(other_coin).diff().dropna()
 
                 # Calculate Pearson's correlation coefficient and p-value
-                # correlation_coefficient, p_value = scipy.stats.pearsonr(first_coin['close'].values, other_coin['close'].values)
-                correlation_coefficient, p_value = scipy.stats.spearmanr(
-                    first_coin["close"].values, other_coin["close"].values
-                )
+                if pearson:
+                    correlation_coefficient, p_value = scipy.stats.pearsonr(first_coin['close'].values, other_coin['close'].values)
+                else:
+                    correlation_coefficient, p_value = scipy.stats.spearmanr(
+                        first_coin["close"].values, other_coin["close"].values
+                    )
 
                 time_df = pd.concat(
                     [
@@ -94,12 +115,20 @@ def corr_test():
                     ignore_index=True,
                 )
 
-        print(time)
-        # Check for p_val < 0.05
-        print(len(time_df["p-value"] < 0.05))
+    print(time)
+    # Check for p_val < 0.05
+    print(len(time_df["p-value"] < 0.05))
 
+def cross_cor(show_lags : bool = False):
+    """
+    Displays cross-correlation between all coins and time frames as a heatmap
 
-def cross_cor():
+    Parameters
+    ----------
+    show_lags : bool, optional
+        Shows the lags instead of cross-correlation, by default False
+    """
+    
     for time in timeframes:
         # Compute cross-correlations
         cross_correlations = np.zeros((len(all_coins), len(all_coins)))
@@ -130,24 +159,26 @@ def cross_cor():
 
         # Plot the cross-correlation results in a heatmap
         plt.figure(figsize=(8, 6))
-        # sns.heatmap(
-        #    cross_correlations,
-        #    annot=True,
-        #    cbar=False,
-        #    vmin=0,
-        #    vmax=1,
-        #    square=True,
-        #    xticklabels=all_coins,
-        #    yticklabels=all_coins,
-        # )
-        sns.heatmap(
-            cross_lags,
-            annot=True,
-            cbar=False,
-            square=True,
-            xticklabels=all_coins,
-            yticklabels=all_coins,
-        )
+        if not show_lags:
+            sn.heatmap(
+                cross_correlations,
+                annot=True,
+                cbar=False,
+                vmin=0,
+                vmax=1,
+                square=True,
+                xticklabels=all_coins,
+                yticklabels=all_coins,
+            )
+        else:
+            sn.heatmap(
+                cross_lags,
+                annot=True,
+                cbar=False,
+                square=True,
+                xticklabels=all_coins,
+                yticklabels=all_coins,
+            )
 
         if time == "1m":
             time = "1-Minute"
@@ -161,11 +192,18 @@ def cross_cor():
         plt.title(time + " Cross-correlation Heatmap")
         plt.xlabel("")
         plt.ylabel("")
+        
         plt.show()
+        if not show_lags:
+            plt.savefig(f"data/plots/{time}_cross_cor.png")
+        else:
+            plt.savefig(f"data/plots/{time}_cross_lags.png")
 
 
 def granger_caus():
-    # Perform Granger causality tests on the cryptocurrency data
+    """
+    Performs Granger causality tests on the cryptocurrency data, displayed as a heatmap
+    """
 
     max_lag = 5  # The maximum number of lags to test for
     for time in timeframes:
@@ -207,7 +245,7 @@ def granger_caus():
         # https://www.machinelearningplus.com/time-series/granger-causality-test-in-python/
         # See for more info
 
-        sns.heatmap(
+        sn.heatmap(
             results_df,
             annot=True,
             cbar=False,
@@ -218,9 +256,5 @@ def granger_caus():
         plt.xlabel("")
         plt.ylabel("")
         plt.show()
-
-
-if __name__ == "__main__":
-    # corr_test()
-    # corr_matrix()
-    granger_caus()
+        
+        plt.savefig(f"data/plots/{time}_granger_caus.png")

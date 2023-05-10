@@ -1,15 +1,14 @@
 import pandas as pd
-import numpy as np
 from darts import TimeSeries
 from darts.models import ARIMA
 from darts.metrics import mape, mase, rmse
 import matplotlib.pyplot as plt
 
 # Local imports
-from vars import all_coins, timeframes
-from csv_data import read_csv
+from data.vars import all_coins, timeframes
+from data.csv_data import read_csv
 
-def split_time_series_periods(ts, n_periods = 10, test_split = 0.25):
+def split_time_series_periods(ts, n_periods = 9, test_split = 0.25):
     """
     Splits a TimeSeries into train and test sets, with the test set being the last n_periods of the TimeSeries.
     """

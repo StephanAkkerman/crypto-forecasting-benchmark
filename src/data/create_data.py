@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from vars import all_coins, timeframes
-from binance_data import fetchData
+from data.vars import all_coins, timeframes
+from data.binance_data import fetchData
 
 
 def create_all_data():

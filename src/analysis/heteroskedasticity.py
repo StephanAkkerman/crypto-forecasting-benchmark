@@ -1,25 +1,33 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 import statsmodels.api as sm
 from statsmodels.stats.diagnostic import het_breuschpagan, het_goldfeldquandt, het_arch
-from arch import arch_model
-from statsmodels.tsa.arima.model import ARIMA
 
 # Local imports
-from vars import all_coins, timeframes
-from csv_data import read_csv
+from data.vars import all_coins, timeframes
+from data.csv_data import read_csv
 
 
-def complete_test(test, diff):
+def uncon_het_tests(log_returns : bool = True):
+    """
+    Tests for uncoditional heteroskedasticity using Breusch-Pagan and Goldfeld-Quandt tests.
+    Saves the results as an excel file.
+
+    Parameters
+    ----------
+    log_returns : bool
+        If True, use the logarithmic returns of the data, by default True
+    """
+    
     # Read the dataset
-    mk_df = pd.DataFrame()
+    results = pd.DataFrame()
 
     for test in [het_breuschpagan, het_goldfeldquandt]:
         for coin in all_coins:
             for time in timeframes:
                 df = read_csv(coin, time)
 
-                if diff:
+                if log_returns:
                     df = np.log(df)
                     df = df.diff().dropna()
 
@@ -61,43 +69,31 @@ def complete_test(test, diff):
                     "Test": test_name,
                 }
 
-                mk_df = pd.concat(
-                    [mk_df, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
+                results = pd.concat(
+                    [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
                 )
 
     # Save as excel
-    mk_df.to_excel(f"data/tests/unconditional_heteroskedasticity.xlsx", index=False)
+    results.to_excel(f"data/tests/unconditional_heteroskedasticity.xlsx", index=False)
 
-def arch_test(coin, time):
-    returns = read_csv(coin, time, ["log returns"]).dropna()
-
-    # Fit GARCH model
-    model = arch_model(returns, vol="Garch", p=1, q=1)
-    results = model.fit()
-
-    print(results.summary())
-
-
-def het_test(diff):
-    for test in [het_breuschpagan, het_goldfeldquandt]:
-        complete_test(test, diff)
-
-
-def cond_het_test():
-    # Read the dataset
+def con_het_test():
+    """
+    Perform the Engle's ARCH test for conditional heteroskedasticity on all datasets and saves it as an excel file
+    """
+    
     results = pd.DataFrame()
 
     for coin in all_coins:
         for time in timeframes:
+            # Read the dataset
             returns = read_csv(coin, time, ["log returns"]).dropna()
 
             # Perform the Engle's ARCH test
-            test_stat, p_value, f_stat, f_p_value = het_arch(returns)
+            _, p_value, _, _ = het_arch(returns)
 
             info = {
                 "Coin": coin,
                 "Time": time,
-                # "Breusch-Pagan test statistic": test_stat,
                 "p-value": p_value,
                 "result": "heteroskedasticity"
                 if p_value < 0.05
@@ -107,13 +103,5 @@ def cond_het_test():
             results = pd.concat(
                 [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
             )
-
-    print(results)
     # save as .xlsx
     results.to_excel("data/tests/cond_heteroskedasticity.xlsx")
-
-
-if __name__ == "__main__":
-    het_test(True)
-    # arch_test("BTC", "1d")
-    # cond_het_test()

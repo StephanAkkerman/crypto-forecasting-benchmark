@@ -1,15 +1,34 @@
 import pandas as pd
-from statsmodels.tsa.stattools import adfuller, kpss
 import matplotlib.pyplot as plt
+from statsmodels.tsa.stattools import adfuller, kpss
 
 # Local imports
-from vars import all_coins, timeframes
-from csv_data import read_csv
+from data.vars import all_coins, timeframes
+from data.csv_data import read_csv
 
+def stationarity_tests():
+    """
+    Performs the Augmented Dickey-Fuller and KPSS tests on the data and saves the results to an Excel file.
+    """
+    plot_price()
+    
+    for diff in [False, True]:
+        adf_test(diff)
+        kpss_test(diff)
 
-def write_adf_test(diff=False):
-    file_name = "adf_test"
-    adf_df = pd.DataFrame()
+def adf_test(diff : bool = False, file_name : str = "adf_test"):
+    """
+    Performs the Augmented Dickey-Fuller test on the data and saves the results to an Excel file.
+
+    Parameters
+    ----------
+    diff : bool, optional
+        If True then uses returns instead, by default False
+    file_name : str, optional
+        The name for the file to be saved in /data/tests/, by default "adf_test"
+    """
+    
+    results = pd.DataFrame()
 
     for coin in all_coins:
         for time in timeframes:
@@ -17,7 +36,7 @@ def write_adf_test(diff=False):
 
             if diff:
                 df = df.diff().dropna()
-                file_name = "adf_test_diff"
+                file_name = f"{file_name}_diff"
 
             test_stat, p_val, num_lags, num_obs, crit_vals, _ = adfuller(df)
             first_crit = crit_vals["1%"]
@@ -36,22 +55,30 @@ def write_adf_test(diff=False):
             }
 
             # Use concat instead of append to avoid the warning
-            adf_df = pd.concat(
-                [adf_df, pd.DataFrame(adf_dict, index=[0])], axis=0, ignore_index=True
+            results = pd.concat(
+                [results, pd.DataFrame(adf_dict, index=[0])], axis=0, ignore_index=True
             )
 
-    # Write to .csv
-    adf_df.to_csv(f"data/tests/{file_name}.csv")
-    adf_df.to_excel(f"data/tests/{file_name}.xlsx")
+    # Write to Excel
+    results.to_excel(f"data/tests/{file_name}.xlsx")
 
     # Show the coins that are stationary, p-value < 0.05
-    print(adf_df[adf_df["p-value"] < 0.05])
+    print(results[results["p-value"] < 0.05])
 
 
-def write_kpss_test(diff=False):
-    file_name = "kpss_test"
+def kpss_test(diff : bool = False, file_name : str = "kpss_test"):
+    """
+    Performs the KPSS test on the data and saves the results to an Excel file.
 
-    kpss_df = pd.DataFrame()
+    Parameters
+    ----------
+    diff : bool, optional
+        If True then uses returns instead, by default False
+    file_name : str, optional
+        The name for the file to be saved in /data/tests/, by default "kpss_test"
+    """
+
+    results = pd.DataFrame()
 
     for coin in all_coins:
         for time in timeframes:
@@ -59,7 +86,7 @@ def write_kpss_test(diff=False):
 
             if diff:
                 df = df.diff().dropna()
-                file_name = "kpss_test_diff"
+                file_name = f"{file_name}_diff"
 
             test_stat, p_val, num_lags, crit_vals = kpss(df)
             first_crit = crit_vals["1%"]
@@ -80,19 +107,29 @@ def write_kpss_test(diff=False):
             }
 
             # Use concat instead of append to avoid the warning
-            kpss_df = pd.concat(
-                [kpss_df, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
+            results = pd.concat(
+                [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
             )
 
-    # Write to .csv
-    kpss_df.to_csv(f"data/tests/{file_name}.csv")
-    kpss_df.to_excel(f"data/tests/{file_name}.xlsx")
+    results.to_excel(f"data/tests/{file_name}.xlsx")
 
     # Show the coins that are stationary, p-value < 0.05
-    print(kpss_df[kpss_df["p-value"] > 0.05])
+    print(results[results["p-value"] > 0.05])
 
 
-def plot_price(crypto, timeframe):
+def plot_price(crypto : str = "BTC", timeframe : str = "1d"):
+    """
+    Shows a plot of the price and returns of the crypto.
+
+    Parameters
+    ----------
+    crypto : str, optional
+        The symbol of the cryptocurrency, by default "BTC"
+    timeframe : str, optional
+        The time frame to use, by default "1d"
+    """
+    
+    
     df = read_csv(crypto, timeframe)
     df_diff = df.diff().dropna()
 
@@ -111,8 +148,4 @@ def plot_price(crypto, timeframe):
     axs[1].set_xlabel("Date")
 
     plt.show()
-
-
-plot_price("BTC", "1d")
-# write_kpss_test(True)
-# write_adf_test()
+    plt.savefig("data/plots/price.png")
