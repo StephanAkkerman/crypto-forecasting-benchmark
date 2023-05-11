@@ -83,7 +83,8 @@ def plot_periods(timeframe="1d", n_periods=9, test_size_percentage=0.25):
         label="Overall Average Volatility",
     )
 
-    test_size = int(len(coin_df) / (1 / test_size_percentage - 1 + n_periods))
+    ts_length = 999
+    test_size = int(ts_length / (1 / test_size_percentage - 1 + n_periods))
     train_size = int(test_size * (1 / test_size_percentage - 1))
 
     print("Train size:", train_size)
@@ -102,7 +103,7 @@ def plot_periods(timeframe="1d", n_periods=9, test_size_percentage=0.25):
 
         start_pos = (complete_df.index[train_start] - date_min) / (date_max - date_min)
         end_pos = (complete_df.index[train_end] - date_min) / (date_max - date_min)
-        test_pos = (complete_df.index[train_end + test_size] - date_min) / (
+        test_pos = (complete_df.index[min(train_end + test_size, 969)] - date_min) / (
             date_max - date_min
         )
 

@@ -5,7 +5,7 @@ from darts import TimeSeries, concatenate
 from darts.metrics import mape, mase, rmse
 
 
-def plot_results(train, test, predictions):
+def plot_results(train, test, predictions, show_plots=True):
     errors_mape = []
     errors_mase = []
     errors_rmse = []
@@ -36,11 +36,12 @@ def plot_results(train, test, predictions):
     all_tests = concatenate(test, axis=0)  # TimeSeries.stack(test)
 
     # Plot the results
-    plt.figure(figsize=(12, 6))
-    plt.plot(all_tests.univariate_values(), label="Test Set")
-    plt.plot(all_preds.univariate_values(), label="Forecast")
-    plt.xlabel("Time")
-    plt.ylabel("Value")
-    plt.legend()
-    plt.title("Test Set vs. Forecast")
-    plt.show()
+    if show_plots:
+        plt.figure(figsize=(12, 6))
+        plt.plot(all_tests.univariate_values(), label="Test Set")
+        plt.plot(all_preds.univariate_values(), label="Forecast")
+        plt.xlabel("Time")
+        plt.ylabel("Value")
+        plt.legend()
+        plt.title("Test Set vs. Forecast")
+        plt.show()

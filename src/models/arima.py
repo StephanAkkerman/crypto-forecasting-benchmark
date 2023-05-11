@@ -22,13 +22,13 @@ def forecast(train, test) -> list:
     return forecast
 
 
-def arima():
+def arima(n_periods=9, show_plot=True):
     # Get the training and testing data for each period
-    trains, tests = get_train_test(n_periods=5)
+    trains, tests = get_train_test(n_periods=n_periods)
     predictions = []
 
     for i, (train, test) in enumerate(zip(trains, tests)):
         print(f"Training on period {i + 1}...")
         predictions.append(forecast(train, test))
 
-    plot_results(trains, tests, predictions)
+    plot_results(trains, tests, predictions, show_plot)

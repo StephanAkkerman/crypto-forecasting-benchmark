@@ -8,7 +8,8 @@ from analysis import (
     trend,
     volatility,
 )
-from models import arima
+from models import arima, train_test
+import timeit
 
 
 def analysis():
@@ -43,9 +44,11 @@ def analysis():
 
 
 def models():
-    arima.arima()
+    arima.arima(n_periods=9, show_plot=False)
+    # 9 periods: 490 sec, 0.037 RMSE
+    # 5 periods: 432 sec, 0.035 RMSE
 
 
 if __name__ == "__main__":
-    # models()
-    volatility.plot_all_volatilies()
+    elapsed_time = timeit.timeit(models, number=1)
+    print(f"Time elapsed: {elapsed_time:.2f} seconds")
