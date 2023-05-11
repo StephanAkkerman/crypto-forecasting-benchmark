@@ -47,5 +47,5 @@ def models():
 
 
 if __name__ == "__main__":
-    models()
-    # volatility.plot_all_volatilies()
+    # models()
+    volatility.plot_all_volatilies()

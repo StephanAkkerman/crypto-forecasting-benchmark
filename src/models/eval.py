@@ -5,7 +5,7 @@ from darts import TimeSeries, concatenate
 from darts.metrics import mape, mase, rmse
 
 
-def plot_results(data, train, test, predictions):
+def plot_results(train, test, predictions):
     errors_mape = []
     errors_mase = []
     errors_rmse = []

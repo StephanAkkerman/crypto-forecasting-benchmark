@@ -65,8 +65,8 @@ def window_analysis(coin="BTC", time="1d"):
     # Change x-axis labels
     axes[-1].set_xlabel("Date")  # Only set x-axis label for the last subplot
 
-    plt.show()
     plt.savefig("data/plots/window_analysis.png")
+    plt.show()
 
 
 def vol_diff(selected_coin: str = "BTC", timeframe: str = "1d"):
@@ -153,9 +153,9 @@ def vol_diff(selected_coin: str = "BTC", timeframe: str = "1d"):
     ax1.set_xlabel("")
     ax2.set_xlabel("Date")
 
-    plt.show()
     plt.savefig("data/plots/volatility_difference.png")
-
+    plt.show()
+    
 def avg_vol(timeframe: str = "1d") -> float:
     """
     Calculates the average volatility of all cryptocurrencies.
@@ -227,8 +227,8 @@ def plot_all_volatilies(timeframe="1d"):
     ax.set_ylabel("Volatility")
     ax.set_xlabel("Date")
 
-    plt.show()
     plt.savefig("data/plots/avg_volatility.png")
+    plt.show()
 
 def plot_percentiles(timeframe="1d"):
     """
@@ -296,8 +296,8 @@ def plot_percentiles(timeframe="1d"):
     ax.set_ylabel("Volatility")
     ax.set_xlabel("Date")
 
-    plt.show()
     plt.savefig("data/plots/volatility_percentiles.png")
+    plt.show()
 
 def percentiles_table():
     """
