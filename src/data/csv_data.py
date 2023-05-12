@@ -1,7 +1,8 @@
 import pandas as pd
 
-def read_csv(coin : str, timeframe : str, col_names : list = ["close"]):
-    df = pd.read_csv(f"data/{coin}/{coin}USDT_{timeframe}.csv")
+
+def read_csv(coin: str, timeframe: str, col_names: list = ["close"]):
+    df = pd.read_csv(f"data/coins/{coin}/{coin}USDT_{timeframe}.csv")
 
     # Set date as index
     df.set_index("date", inplace=True)

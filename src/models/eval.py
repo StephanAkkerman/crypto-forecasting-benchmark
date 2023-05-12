@@ -5,7 +5,7 @@ from darts import TimeSeries, concatenate
 from darts.metrics import mape, mase, rmse
 
 
-def plot_results(train, test, predictions, show_plots=True):
+def plot_results(coin, time_frame, train, test, predictions, show_plots=True):
     errors_mape = []
     errors_mase = []
     errors_rmse = []
@@ -26,22 +26,23 @@ def plot_results(train, test, predictions, show_plots=True):
     results = pd.DataFrame(
         {"MAPE": errors_mape, "MASE": errors_mase, "RMSE": errors_rmse}
     )
-    print(results)
+    # Add the average error metrics
+    # results = results.append({"MAPE": np.mean(errors_mape), "MASE": np.mean(errors_mase), "RMSE": np.mean(errors_rmse)}, ignore_index=True)
 
-    print("Average MAPE:", np.mean(errors_mape))
-    print("Average MASE:", np.mean(errors_mase))
-    print("Average RMSE:", np.mean(errors_rmse))
+    # Save the results to a CSV file
+    results.to_csv(f"data/models/ARIMA/{coin}_{time_frame}.csv", index=False)
 
     all_preds = concatenate(preds_ts, axis=0)  # TimeSeries.stack(preds_ts)
     all_tests = concatenate(test, axis=0)  # TimeSeries.stack(test)
 
     # Plot the results
+    plt.figure(figsize=(12, 6))
+    plt.plot(all_tests.univariate_values(), label="Test Set")
+    plt.plot(all_preds.univariate_values(), label="Forecast")
+    plt.xlabel("Time")
+    plt.ylabel("Value")
+    plt.legend()
+    plt.title("Test Set vs. Forecast")
     if show_plots:
-        plt.figure(figsize=(12, 6))
-        plt.plot(all_tests.univariate_values(), label="Test Set")
-        plt.plot(all_preds.univariate_values(), label="Forecast")
-        plt.xlabel("Time")
-        plt.ylabel("Value")
-        plt.legend()
-        plt.title("Test Set vs. Forecast")
         plt.show()
+    plt.savefig(f"plots/ARIMA/{coin}_{time_frame}.png")

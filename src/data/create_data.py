@@ -19,11 +19,11 @@ def format_TOTAL():
     """
 
     for time, btc_time in [("1", "1m"), ("15", "15m"), ("240", "4h"), ("1D", "1d")]:
-        df = pd.read_csv(f"data/TOTAL/CRYPTOCAP_TOTAL, {time}.csv")
+        df = pd.read_csv(f"data/coins/TOTAL/CRYPTOCAP_TOTAL, {time}.csv")
 
         df["date"] = pd.to_datetime(df["time"], unit="s")
 
-        btc = pd.read_csv(f"data/BTC/BTCUSDT_{btc_time}.csv")
+        btc = pd.read_csv(f"data/coins/BTC/BTCUSDT_{btc_time}.csv")
 
         # Only keeps dates that are in both dataframes
         df = df[df["date"].isin(btc["date"])]
@@ -40,7 +40,7 @@ def format_TOTAL():
         df["volatility"] = df["log returns"].rolling(window=30).std() * np.sqrt(30)
 
         # Add news columns to csv
-        df.to_csv(f"data/TOTAL/TOTAL_{btc_time}.csv", index=True)
+        df.to_csv(f"data/coins/TOTAL/TOTAL_{btc_time}.csv", index=True)
 
         # Make sure they are 1000 rows
         print(btc_time, len(df))
