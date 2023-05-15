@@ -46,7 +46,7 @@ def analysis():
 
 
 def models():
-    forecast.generate_forecasts("autoarima", "BTC", "1d", n_periods=9, show_plot=False)
+    forecast.generate_forecasts("autoarima", "BTC", "1d", n_periods=9, show_plot=True)
     # 9 periods: 490 sec, 0.037 RMSE
     # 5 periods: 432 sec, 0.035 RMSE
 

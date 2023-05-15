@@ -1,11 +1,11 @@
-import numpy as np
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from darts import TimeSeries, concatenate
 from darts.metrics import mape, mase, rmse
 
 
-def plot_results(coin, time_frame, train, test, predictions, show_plots=True):
+def eval_model(model_name, coin, time_frame, train, test, predictions, show_plots=True):
     errors_mape = []
     errors_mase = []
     errors_rmse = []
@@ -13,7 +13,6 @@ def plot_results(coin, time_frame, train, test, predictions, show_plots=True):
     preds_ts = []
 
     for i in range(len(predictions)):
-        print("Period", i + 1)
         preds = pd.DataFrame({"preds": predictions[i], "date": test[i].time_index})
         preds = TimeSeries.from_dataframe(preds, "date", "preds")
         preds_ts.append(preds)
@@ -26,14 +25,36 @@ def plot_results(coin, time_frame, train, test, predictions, show_plots=True):
     results = pd.DataFrame(
         {"MAPE": errors_mape, "MASE": errors_mase, "RMSE": errors_rmse}
     )
-    # Add the average error metrics
-    # results = results.append({"MAPE": np.mean(errors_mape), "MASE": np.mean(errors_mase), "RMSE": np.mean(errors_rmse)}, ignore_index=True)
 
-    # Save the results to a CSV file
-    results.to_csv(f"data/models/ARIMA/{coin}_{time_frame}.csv", index=False)
+    print(results)
 
-    all_preds = concatenate(preds_ts, axis=0)  # TimeSeries.stack(preds_ts)
-    all_tests = concatenate(test, axis=0)  # TimeSeries.stack(test)
+    # Add the folders if they don't exist
+    if not os.path.exists(f"data/models/{model_name}/{coin}"):
+        if not os.path.exists(f"data/models/{model_name}"):
+            if not os.path.exists("data/models"):
+                os.makedirs("data/models")
+            os.makedirs(f"data/models/{model_name}")
+        os.makedirs(f"data/models/{model_name}/{coin}")
+        os.makedirs(f"data/models/{model_name}/{coin}/plots")
+
+    csv_file_loc = f"data/models/{model_name}/{coin}/{time_frame}_metrics.csv"
+    plot_file_loc = f"data/models/{model_name}/{coin}/plots/{time_frame}.png"
+    forecast_loc = f"data/models/{model_name}/{coin}/{time_frame}_forecast.csv"
+
+    make_plot(
+        results, csv_file_loc, plot_file_loc, forecast_loc, preds_ts, test, show_plots
+    )
+
+
+def make_plot(
+    results, csv_file_loc, plot_file_loc, forecast_loc, preds_ts, test, show_plots
+):  # Save the results to a CSV file
+    results.to_csv(csv_file_loc, index=False)
+
+    all_preds = concatenate(preds_ts, axis=0)
+    all_tests = concatenate(test, axis=0)
+
+    all_preds.to_csv(forecast_loc, index=False)
 
     # Plot the results
     plt.figure(figsize=(12, 6))
@@ -43,6 +64,7 @@ def plot_results(coin, time_frame, train, test, predictions, show_plots=True):
     plt.ylabel("Value")
     plt.legend()
     plt.title("Test Set vs. Forecast")
+    plt.savefig(plot_file_loc)
     if show_plots:
         plt.show()
-    plt.savefig(f"plots/ARIMA/{coin}_{time_frame}.png")
+    plt.close()
