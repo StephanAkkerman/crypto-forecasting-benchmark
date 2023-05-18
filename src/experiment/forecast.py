@@ -2,8 +2,6 @@ from tqdm import tqdm
 
 # Models
 from darts.models import (
-    ARIMA,
-    AutoARIMA,
     StatsForecastAutoARIMA,
     RNNModel,
     TCNModel,
@@ -18,8 +16,8 @@ from darts.models import (
 )
 
 # Local imports
-from models.train_test import get_train_test
-from models.eval import eval_model
+from experiment.train_test import get_train_test
+from experiment.eval import eval_model
 
 
 def one_step_forecast(model_name, train, test) -> list:
@@ -43,13 +41,7 @@ def one_step_forecast(model_name, train, test) -> list:
 
 
 def get_model(model_name: str):
-    if model_name == "arima":
-        model = ARIMA()
-
-    elif model_name == "autoarima":  # Basically hyperparameter tuning for ARIMA
-        # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.auto_arima.html
-        # model = AutoARIMA()
-
+    if model_name == "arima":  # Basically hyperparameter tuning for ARIMA
         # https://nixtla.github.io/statsforecast/models.html#arima-methods
         model = StatsForecastAutoARIMA()
 

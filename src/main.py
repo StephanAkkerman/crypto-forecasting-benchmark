@@ -1,4 +1,5 @@
 import timeit
+import sys
 
 # Local imports
 from analysis import (
@@ -11,7 +12,9 @@ from analysis import (
     trend,
     volatility,
 )
-from models import forecast
+from experiment import forecast
+
+from experiment import hyper_opt2
 
 
 def analysis():
@@ -52,5 +55,8 @@ def models():
 
 
 if __name__ == "__main__":
-    elapsed_time = timeit.timeit(models, number=1)
-    print(f"Time elapsed: {elapsed_time:.2f} seconds")
+    # elapsed_time = timeit.timeit(models, number=1)
+    # print(f"Time elapsed: {elapsed_time:.2f} seconds")
+    sys.path.append(
+        "c:\\Users\\Stephan\\OneDrive\\GitHub\\Crypto_Forecasting\\src\\experiment"
+    )
