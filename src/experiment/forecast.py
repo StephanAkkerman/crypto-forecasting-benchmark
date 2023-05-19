@@ -50,7 +50,7 @@ def get_model(model_name: str):
             input_chunk_length=30,
             training_length=248,
             output_chunk_length=1,  # 1 for one-step-ahead forecasting
-            force_reset=True,
+            force_reset=True,  # This should be done with every new period (or change model_name per period)
             pl_trainer_kwargs={"accelerator": "gpu", "devices": [0]},  # for GPU
             n_epochs=5,
             random_state=42,

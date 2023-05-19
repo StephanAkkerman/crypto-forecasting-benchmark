@@ -1,8 +1,11 @@
+import os
 import pandas as pd
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.loggers import TensorBoardLogger
 import ray
 from ray import tune
 from ray.tune import CLIReporter
+from ray.tune.search.skopt import SkOptSearch
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.schedulers import ASHAScheduler
 from torchmetrics import (
@@ -15,9 +18,19 @@ from darts.models import NBEATSModel
 
 
 def read_csv(coin: str, timeframe: str, col_names: list = ["close"]):
-    # df = pd.read_csv(f"../data/coins/{coin}/{coin}USDT_{timeframe}.csv")
-    path = "C:/Users/Stephan/OneDrive/GitHub/Crypto_Forecasting/data/coins"
-    df = pd.read_csv(f"{path}/{coin}/{coin}USDT_{timeframe}.csv")
+    # Get the current directory
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Go up two levels to the parent directory
+    crypto_forecasting_folder = os.path.dirname(os.path.dirname(current_dir))
+
+    # Go to the data folder
+    data_folder = os.path.join(crypto_forecasting_folder, "data")
+
+    # Go to the coins folder
+    coins_folder = os.path.join(data_folder, "coins")
+
+    df = pd.read_csv(f"{coins_folder}/{coin}/{coin}USDT_{timeframe}.csv")
 
     # Set date as index
     df.set_index("date", inplace=True)
@@ -62,16 +75,27 @@ trains, tests = get_train_test(coin="BTC", time_frame="1d", n_periods=9)
 
 
 def train_model(model_args, callbacks, train, val):
+    # This is necessary for the TuneReportCallback
     torch_metrics = MetricCollection(
         [MeanAbsolutePercentageError(), MeanAbsoluteError()]
     )
+
+    # Define a logger
+    logger = TensorBoardLogger(save_dir="tb_logs", name="my_model")
+
     # Create the model using model_args from Ray Tune
     model = NBEATSModel(
         input_chunk_length=24,
-        output_chunk_length=1,
+        output_chunk_length=1,  # 1 step ahead forecasting
         n_epochs=500,
         torch_metrics=torch_metrics,
-        pl_trainer_kwargs={"callbacks": callbacks, "enable_progress_bar": False},
+        pl_trainer_kwargs={
+            "callbacks": callbacks,
+            "enable_progress_bar": False,
+            "logger": logger,
+            "accelerator": "gpu",
+            "devices": [0],
+        },
         **model_args,
     )
 
@@ -92,7 +116,7 @@ my_stopper = EarlyStopping(
 # set up ray tune callback
 tune_callback = TuneReportCallback(
     {
-        "loss": "val_Loss",
+        "loss": "val_loss",
         "MAPE": "val_MeanAbsolutePercentageError",
     },
     on="validation_end",
@@ -111,14 +135,9 @@ reporter = CLIReporter(
     metric_columns=["loss", "MAPE", "training_iteration"],
 )
 
-resources_per_trial = {"cpu": 8, "gpu": 1}
-
-# the number of combinations to try
-num_samples = 10
-
-scheduler = ASHAScheduler(max_t=1000, grace_period=3, reduction_factor=2)
-
+# Merge this with the get_data()
 val_len = int(0.1 * len(trains[0]))
+print("Validation length: ", val_len)
 for period in range(9):
     print("Period: ", period)
     for v in range(val_len):
@@ -126,6 +145,7 @@ for period in range(9):
         # val = trains[period][-val_len + v]
 
         train = trains[period][: -val_len + v]
+        # Add the input_chunk_length to the validation set
         val = trains[period][-val_len + v - 24 : -val_len + v + 1]
 
         train_fn_with_parameters = tune.with_parameters(
@@ -138,20 +158,28 @@ for period in range(9):
         # optimize hyperparameters by minimizing the MAPE on the validation set
         analysis = tune.run(
             train_fn_with_parameters,
-            resources_per_trial=resources_per_trial,
+            resources_per_trial={"cpu": 8, "gpu": 1},
             # Using a metric instead of loss allows for
             # comparison between different likelihood or loss functions.
-            metric="MAPE",  # any value in TuneReportCallback.
-            mode="min",
+            # metric="MAPE",  # any value in TuneReportCallback.
+            # mode="min",
             config=config,
-            num_samples=num_samples,
-            scheduler=scheduler,
+            num_samples=1,  # the number of combinations to try
+            scheduler=ASHAScheduler(
+                metric="MAPE",
+                mode="min",
+                max_t=1000,
+                grace_period=3,
+                reduction_factor=2,
+            ),
             progress_reporter=reporter,
-            name="tune_darts",
-            local_dir="/tune_results",
+            search_alg=SkOptSearch(metric="MAPE", mode="min"),
+            local_dir="ray_results",
+            name="NBEATS",
+            trial_name_creator=lambda trial: f"NBEATS_{trial.trial_id}",  # f"NBEATS_{trial.trainable_name}_{trial.trial_id}"
+            # trial_dirname_creator=custom_trial_name,
         )
-
-        # ValueError: You passed a `metric` or `mode` argument to `tune.run(...)`, but the scheduler you are using was already instantiated with their own `metric` and `mode` parameters. Either remove the arguments from your scheduler or from `tune.run(...)` args.
-        # WARNING pytorch_lightning.py:142 -- Metric val_Loss does not exist in `trainer.callback_metrics.
-
-        print("Best hyperparameters found were: ", analysis.best_config)
+        print(
+            "Best hyperparameters found were: ",
+            analysis.get_best_config(metric="MAPE", mode="min"),
+        )

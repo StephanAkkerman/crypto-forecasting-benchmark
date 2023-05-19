@@ -97,31 +97,32 @@ reporter = CLIReporter(
     metric_columns=["loss", "MAPE", "training_iteration"],
 )
 
-train, val = get_data()
-train_fn_with_parameters = tune.with_parameters(
-    train_model,
-    callbacks=[my_stopper, tune_callback],
-    train=train,
-    val=val,
-)
+for _ in range(9):
+    train, val = get_data()
+    train_fn_with_parameters = tune.with_parameters(
+        train_model,
+        callbacks=[my_stopper, tune_callback],
+        train=train,
+        val=val,
+    )
 
-# optimize hyperparameters by minimizing the MAPE on the validation set
-analysis = tune.run(
-    train_fn_with_parameters,
-    resources_per_trial={"cpu": 8, "gpu": 1},
-    # Using a metric instead of loss allows for
-    # comparison between different likelihood or loss functions.
-    metric="MAPE",  # any value in TuneReportCallback.
-    mode="min",
-    config=config,
-    num_samples=1,  # the number of combinations to try
-    scheduler=ASHAScheduler(max_t=1000, grace_period=3, reduction_factor=2),
-    progress_reporter=reporter,
-    search_alg=SkOptSearch(),
-    local_dir="ray_results",
-    name="NBEATS",
-    trial_name_creator=lambda trial: f"NBEATS_{trial.trial_id}",  # f"NBEATS_{trial.trainable_name}_{trial.trial_id}"
-    # trial_dirname_creator=custom_trial_name,
-)
+    # optimize hyperparameters by minimizing the MAPE on the validation set
+    analysis = tune.run(
+        train_fn_with_parameters,
+        resources_per_trial={"cpu": 8, "gpu": 1},
+        # Using a metric instead of loss allows for
+        # comparison between different likelihood or loss functions.
+        metric="MAPE",  # any value in TuneReportCallback.
+        mode="min",
+        config=config,
+        num_samples=1,  # the number of combinations to try
+        scheduler=ASHAScheduler(max_t=1000, grace_period=3, reduction_factor=2),
+        progress_reporter=reporter,
+        search_alg=SkOptSearch(),
+        local_dir="ray_results",
+        name="NBEATS",
+        trial_name_creator=lambda trial: f"NBEATS_{trial.trial_id}",  # f"NBEATS_{trial.trainable_name}_{trial.trial_id}"
+        # trial_dirname_creator=custom_trial_name,
+    )
 
-print("Best hyperparameters found were: ", analysis.best_config)
+    print("Best hyperparameters found were: ", analysis.best_config)
