@@ -93,8 +93,7 @@ def train_model(model_args, callbacks, train, val):
             "callbacks": callbacks,
             "enable_progress_bar": False,
             "logger": logger,
-            "accelerator": "gpu",
-            "devices": [0],
+            "accelerator": "auto",
         },
         **model_args,
     )

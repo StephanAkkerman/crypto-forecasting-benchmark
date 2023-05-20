@@ -1,23 +1,15 @@
 import optuna
 from optuna.integration import PyTorchLightningPruningCallback
-from optuna.visualization import (
-    plot_optimization_history,
-    plot_contour,
-    plot_param_importances,
-)
 import torch
-import random
 import numpy as np
-import matplotlib.pyplot as plt
 from tqdm import tqdm
-from pytorch_lightning.callbacks import Callback, EarlyStopping
+from pytorch_lightning.callbacks import EarlyStopping
 from sklearn.preprocessing import MaxAbsScaler
 
 from darts.datasets import ElectricityDataset
-from darts.models import TCNModel, LinearRegressionModel
+from darts.models import TCNModel
 from darts.dataprocessing.transformers import Scaler
 from darts.metrics import smape
-from darts.utils.likelihood_models import GaussianLikelihood
 
 all_series = ElectricityDataset(multivariate=False).load()
 
@@ -75,8 +67,7 @@ def build_fit_tcn_model(
     # detect if a GPU is available
     if torch.cuda.is_available():
         pl_trainer_kwargs = {
-            "accelerator": "gpu",
-            "devices": [0],
+            "accelerator": "auto",
             "callbacks": callbacks,
         }
         num_workers = 4
@@ -181,7 +172,7 @@ if __name__ == "__main__":
     # We use optuna to find the best hyperparameters
     study = optuna.create_study(direction="minimize")
 
-    study.optimize(objective, n_trials=1, callbacks=[print_callback])
+    study.optimize(objective, timeout=100, callbacks=[print_callback])
 
     # We could also have used a command as follows to limit the number of trials instead:
     # study.optimize(objective, n_trials=100, callbacks=[print_callback])

@@ -38,7 +38,9 @@ def get_train_test(coin="BTC", time_frame="1d", n_periods=9, test_size_percentag
     return train_set, test_set
 
 
-def plot_periods(timeframe="1d", n_periods=9, test_size_percentage=0.25):
+def plot_periods(
+    timeframe="1d", n_periods=9, test_size_percentage=0.25, col_name="volatility"
+):
     """
     Plots the volatility of all cryptocurrencies and the average volatility.
     Also shows the train and test sets for each period.
@@ -56,13 +58,15 @@ def plot_periods(timeframe="1d", n_periods=9, test_size_percentage=0.25):
     complete_df = pd.DataFrame()
 
     for coin in all_coins:
-        coin_df = read_csv(coin, timeframe, ["volatility"]).dropna()
+        coin_df = read_csv(
+            coin=coin, timeframe=timeframe, col_names=[col_name]
+        ).dropna()
 
         # Set the index to the dates from coin_df
         if complete_df.empty:
             complete_df.index = coin_df.index
 
-        complete_df[coin] = coin_df["volatility"].tolist()
+        complete_df[coin] = coin_df[col_name].tolist()
 
     ax = complete_df.plot(figsize=(12, 6), alpha=0.3, legend=False)
 
@@ -71,7 +75,7 @@ def plot_periods(timeframe="1d", n_periods=9, test_size_percentage=0.25):
 
     # Plot the average volatility as a big red line with increased width
     avg_line = plt.plot(
-        avg_volatility, color="red", linewidth=2, label="Average Volatility"
+        avg_volatility, color="red", linewidth=2, label=f"Average {col_name}"
     )
 
     # Calculate the overall average of the avg_volatility and plot it as a horizontal blue line
@@ -80,7 +84,7 @@ def plot_periods(timeframe="1d", n_periods=9, test_size_percentage=0.25):
         y=overall_avg_volatility,
         color="blue",
         linewidth=2,
-        label="Overall Average Volatility",
+        label=f"Overall Average {col_name}",
     )
 
     ts_length = 999
