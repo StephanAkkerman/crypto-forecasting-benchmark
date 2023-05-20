@@ -132,7 +132,7 @@ def objective(trial):
     callback = [PyTorchLightningPruningCallback(trial, monitor="val_loss")]
 
     # set input_chunk_length, between 5 and 14 days
-    days_in = 5  # trial.suggest_int("days_in", 5, 14)
+    days_in = trial.suggest_int("days_in", 5, 14)
     in_len = days_in * DAY_DURATION
 
     # set out_len, between 1 and 13 days (it has to be strictly shorter than in_len).
@@ -140,25 +140,25 @@ def objective(trial):
     out_len = days_out * DAY_DURATION
 
     # Other hyperparameters
-    kernel_size = 5  # trial.suggest_int("kernel_size", 5, 25)
-    # num_filters = trial.suggest_int("num_filters", 5, 25)
-    # weight_norm = trial.suggest_categorical("weight_norm", [False, True])
-    # dilation_base = trial.suggest_int("dilation_base", 2, 4)
-    # dropout = trial.suggest_float("dropout", 0.0, 0.4)
-    # lr = trial.suggest_float("lr", 5e-5, 1e-3, log=True)
-    # include_dayofweek = trial.suggest_categorical("dayofweek", [False, True])
+    kernel_size = trial.suggest_int("kernel_size", 5, 25)
+    num_filters = trial.suggest_int("num_filters", 5, 25)
+    weight_norm = trial.suggest_categorical("weight_norm", [False, True])
+    dilation_base = trial.suggest_int("dilation_base", 2, 4)
+    dropout = trial.suggest_float("dropout", 0.0, 0.4)
+    lr = trial.suggest_float("lr", 5e-5, 1e-3, log=True)
+    include_dayofweek = trial.suggest_categorical("dayofweek", [False, True])
 
     # build and train the TCN model with these hyper-parameters:
     model = build_fit_tcn_model(
         in_len=in_len,
         out_len=out_len,
         kernel_size=kernel_size,
-        num_filters=5,
-        weight_norm=False,
-        dilation_base=2,
-        dropout=0.1,
-        lr=5e-5,
-        include_dayofweek=False,
+        num_filters=num_filters,
+        weight_norm=weight_norm,
+        dilation_base=dilation_base,
+        dropout=dropout,
+        lr=lr,
+        include_dayofweek=include_dayofweek,
         callbacks=callback,
     )
 
@@ -177,6 +177,7 @@ def print_callback(study, trial):
 
 # This is the main function that will run the optimization
 if __name__ == "__main__":
+    # https://github.com/unit8co/darts/blob/master/examples/17-hyperparameter-optimization.ipynb
     # We use optuna to find the best hyperparameters
     study = optuna.create_study(direction="minimize")
 
