@@ -52,23 +52,21 @@ def objective(config):
         # Initial training data
         train_ts = series_scaled[start:end]
 
-        # Make a rolling forecast for each time step in the test period
-        for t in range(test_size):
-            test_ts = series_scaled[
-                end + t - config["input_chunk_length"] : end + t + 1
-            ]
-            # Train the model on the current training data
-            model.fit(series=train_ts, val_series=test_ts, verbose=True)
+        # Train the model on the current training data
+        # model.fit(series=train_ts, verbose=True)
 
-            # One-step-ahead forecasting
-            pred = model.predict(n=1)
+        pred = model.backtest(
+            series=series_scaled,
+            start=end,
+            forecast_horizon=1,
+            stride=1,
+            retrain=True,
+            verbose=True,
+            metric=[mape, rmse],
+        )
 
-            # Compute the loss on the test data
-            total_mape += mape(test_ts[-1], pred)
-            total_rmse += rmse(test_ts[-1], pred)
-
-            # Add the actual observed value to the training data
-            train_ts = train_ts.append(series_scaled[end + t : end + t + 1])
+        total_mape += pred[0]
+        total_rmse += pred[1]
 
     # Average test loss
     avg_mape = total_mape / n_periods

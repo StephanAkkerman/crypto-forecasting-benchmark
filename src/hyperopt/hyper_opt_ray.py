@@ -9,12 +9,13 @@ from ray.tune.search.skopt import SkOptSearch
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.schedulers import ASHAScheduler
 from torchmetrics import (
-    MeanAbsoluteError,
+    MeanSquaredError,
     MeanAbsolutePercentageError,
     MetricCollection,
 )
 from darts import TimeSeries
 from darts.models import NBEATSModel
+from darts.metrics import mape, rmse
 
 
 def read_csv(coin: str, timeframe: str, col_names: list = ["close"]):
@@ -52,8 +53,8 @@ def get_train_test(coin="BTC", time_frame="1d", n_periods=9, test_size_percentag
     test_size = int(len(time_series) / (1 / test_size_percentage - 1 + n_periods))
     train_size = int(test_size * (1 / test_size_percentage - 1))
 
-    print("Train size:", train_size)
-    print("Test size:", test_size)
+    print("Train size per period:", train_size)
+    print("Test size per period:", test_size)
 
     # Save the training and test sets as lists of TimeSeries
     train_set = []
@@ -74,10 +75,10 @@ def get_train_test(coin="BTC", time_frame="1d", n_periods=9, test_size_percentag
 trains, tests = get_train_test(coin="BTC", time_frame="1d", n_periods=9)
 
 
-def train_model(model_args, callbacks, train, val):
+def train_model(model_args, callbacks):
     # This is necessary for the TuneReportCallback
     torch_metrics = MetricCollection(
-        [MeanAbsolutePercentageError(), MeanAbsoluteError()]
+        [MeanAbsolutePercentageError(), MeanSquaredError(squared=False)]
     )
 
     # Define a logger
@@ -87,7 +88,7 @@ def train_model(model_args, callbacks, train, val):
     model = NBEATSModel(
         input_chunk_length=24,
         output_chunk_length=1,  # 1 step ahead forecasting
-        n_epochs=500,
+        n_epochs=1,
         torch_metrics=torch_metrics,
         pl_trainer_kwargs={
             "callbacks": callbacks,
@@ -98,10 +99,46 @@ def train_model(model_args, callbacks, train, val):
         **model_args,
     )
 
-    model.fit(
-        series=train,
-        val_series=val,
-    )
+    # Merge this with the get_data()
+    val_len = int(0.1 * len(trains[0]))
+    n_periods = 1
+
+    total_mape = 0
+    total_rmse = 0
+    for period in range(n_periods):
+        print("PERIOD:", period, "\n")
+        for v in range(val_len):
+            # train = trains[period][: -val_len + v]
+            # val = trains[period][-val_len + v]
+
+            train = trains[period][: -val_len + v]
+            # Add the input_chunk_length to the validation set
+            if -val_len + v + 1 != 0:
+                val = trains[period][-val_len + v - 24 : -val_len + v + 1]
+            else:
+                val = trains[period][-val_len + v - 24 :]
+
+            model.fit(
+                series=train,
+                val_series=val,
+            )
+
+            # One-step-ahead forecasting
+            pred = model.predict(n=1)
+
+            # Compute the loss on the test data
+            mape_loss = mape(val[-1], pred)
+            rmse_loss = rmse(val[-1], pred)
+
+            total_mape += mape_loss.mean().item()
+            total_rmse += rmse_loss.mean().item()
+
+    # Average test loss
+    avg_mape = total_mape / n_periods
+    avg_rmse = total_rmse / n_periods
+
+    # Tune reports the metrics back to its optimization engine
+    tune.report(mape=avg_mape, rmse=avg_rmse)
 
 
 # Early stop callback
@@ -116,7 +153,8 @@ my_stopper = EarlyStopping(
 tune_callback = TuneReportCallback(
     {
         "loss": "val_loss",
-        "MAPE": "val_MeanAbsolutePercentageError",
+        "mape": "val_MeanAbsolutePercentageError",
+        "rmse": "val_MeanSquaredError",
     },
     on="validation_end",
 )
@@ -131,54 +169,35 @@ config = {
 
 reporter = CLIReporter(
     parameter_columns=list(config.keys()),
-    metric_columns=["loss", "MAPE", "training_iteration"],
+    metric_columns=["loss", "mape", "rmse", "training_iteration"],
 )
 
-# Merge this with the get_data()
-val_len = int(0.1 * len(trains[0]))
-print("Validation length: ", val_len)
-for period in range(9):
-    print("Period: ", period)
-    for v in range(val_len):
-        # train = trains[period][: -val_len + v]
-        # val = trains[period][-val_len + v]
+train_fn_with_parameters = tune.with_parameters(
+    train_model,
+    callbacks=[my_stopper, tune_callback],
+)
 
-        train = trains[period][: -val_len + v]
-        # Add the input_chunk_length to the validation set
-        val = trains[period][-val_len + v - 24 : -val_len + v + 1]
-
-        train_fn_with_parameters = tune.with_parameters(
-            train_model,
-            callbacks=[my_stopper, tune_callback],
-            train=train,
-            val=val,
-        )
-
-        # optimize hyperparameters by minimizing the MAPE on the validation set
-        analysis = tune.run(
-            train_fn_with_parameters,
-            resources_per_trial={"cpu": 8, "gpu": 1},
-            # Using a metric instead of loss allows for
-            # comparison between different likelihood or loss functions.
-            # metric="MAPE",  # any value in TuneReportCallback.
-            # mode="min",
-            config=config,
-            num_samples=1,  # the number of combinations to try
-            scheduler=ASHAScheduler(
-                metric="MAPE",
-                mode="min",
-                max_t=1000,
-                grace_period=3,
-                reduction_factor=2,
-            ),
-            progress_reporter=reporter,
-            search_alg=SkOptSearch(metric="MAPE", mode="min"),
-            local_dir="ray_results",
-            name="NBEATS",
-            trial_name_creator=lambda trial: f"NBEATS_{trial.trial_id}",  # f"NBEATS_{trial.trainable_name}_{trial.trial_id}"
-            # trial_dirname_creator=custom_trial_name,
-        )
-        print(
-            "Best hyperparameters found were: ",
-            analysis.get_best_config(metric="MAPE", mode="min"),
-        )
+# optimize hyperparameters by minimizing the MAPE on the validation set
+analysis = tune.run(
+    train_fn_with_parameters,
+    resources_per_trial={"cpu": 12, "gpu": 1},  # CPU number is the number of cores
+    config=config,
+    num_samples=1,  # the number of combinations to try
+    scheduler=ASHAScheduler(
+        metric="mape",
+        mode="min",
+        max_t=1000,
+        grace_period=3,
+        reduction_factor=2,
+    ),
+    # progress_reporter=reporter,
+    search_alg=SkOptSearch(metric="mape", mode="min"),
+    # local_dir="ray_results",
+    # name="NBEATS",
+    trial_name_creator=lambda trial: f"NBEATS_{trial.trial_id}",  # f"NBEATS_{trial.trainable_name}_{trial.trial_id}"
+    # trial_dirname_creator=custom_trial_name,
+)
+print(
+    "Best hyperparameters found were: ",
+    analysis.get_best_config(metric="mape", mode="min"),
+)
