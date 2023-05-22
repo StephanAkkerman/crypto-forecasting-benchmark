@@ -29,7 +29,7 @@ def objective(config):
         output_chunk_length=1,  # Set to 1 for one-step-ahead forecasting
         num_blocks=int(config["num_blocks"] * config["num_layers"]),
         layer_widths=int(config["layer_widths"] * config["num_layers"]),
-        n_epochs=1,
+        n_epochs=100,
         random_state=0,
         pl_trainer_kwargs={
             "accelerator": "auto",

@@ -7,6 +7,7 @@ from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler
 from ray.tune.search.skopt import SkOptSearch
+from ray.tune.integration.pytorch_lightning import TuneReportCallback
 
 # Load the data and perform scaling
 series = AirPassengersDataset().load()
@@ -21,6 +22,15 @@ config = {
     "layer_widths": tune.choice([10, 20, 30]),
 }
 
+tune_callback = TuneReportCallback(
+    {
+        "loss": "val_loss",
+        "mape": "val_MeanAbsolutePercentageError",
+        "rmse": "val_MeanSquaredError",
+    },
+    on="validation_end",
+)
+
 
 # Define the objective function to minimize
 def objective(config):
@@ -34,6 +44,7 @@ def objective(config):
         pl_trainer_kwargs={
             "accelerator": "auto",
             "enable_progress_bar": False,
+            "callbacks": [tune_callback],
         },
     )
 
@@ -61,7 +72,7 @@ def objective(config):
             forecast_horizon=1,
             stride=1,
             retrain=True,
-            verbose=True,
+            verbose=False,
             metric=[mape, rmse],
         )
 
@@ -77,9 +88,13 @@ def objective(config):
 
 
 # Define a reporter to track progress
-reporter = CLIReporter(metric_columns=["mape", "rmse", "training_iteration"])
+reporter = CLIReporter(
+    # parameter_columns=list(config.keys()),
+    metric_columns=["mape", "rmse", "training_iteration"],
+)
 
 # Use Ray Tune to perform hyperparameter tuning
+# https://docs.ray.io/en/latest/_modules/ray/tune/tune.html
 tune.run(
     objective,
     resources_per_trial={"cpu": 12, "gpu": 1},
@@ -90,5 +105,6 @@ tune.run(
     ),
     search_alg=SkOptSearch(metric="rmse", mode="min"),
     progress_reporter=reporter,
+    verbose=1,  # 0: silent, 1: only status updates, 2: status and trial results 3: most detailed
     # stop={"training_iteration": 3},
 )
