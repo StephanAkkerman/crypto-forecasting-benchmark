@@ -56,3 +56,4 @@ if __name__ == "__main__":
     # elapsed_time = timeit.timeit(models, number=1)
     # print(f"Time elapsed: {elapsed_time:.2f} seconds")
     print()
+    train_test.plot_periods(n_periods=5)

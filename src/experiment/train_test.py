@@ -39,7 +39,11 @@ def get_train_test(coin="BTC", time_frame="1d", n_periods=9, test_size_percentag
 
 
 def plot_periods(
-    timeframe="1d", n_periods=9, test_size_percentage=0.25, col_name="volatility"
+    timeframe="1d",
+    n_periods=9,
+    test_size_percentage=0.25,
+    val_size_percentage=0.1,
+    col_name="volatility",
 ):
     """
     Plots the volatility of all cryptocurrencies and the average volatility.
@@ -90,9 +94,11 @@ def plot_periods(
     ts_length = 999
     test_size = int(ts_length / (1 / test_size_percentage - 1 + n_periods))
     train_size = int(test_size * (1 / test_size_percentage - 1))
+    val_size = int(val_size_percentage * train_size)
+    train_size = train_size - val_size
 
-    print("Train size:", train_size)
-    print("Test size:", test_size)
+    # print("Train size:", train_size)
+    # print("Test size:", test_size)
 
     line_start = 1.7
     for i in range(n_periods):
@@ -105,14 +111,44 @@ def plot_periods(
         date_min = complete_df.index.min()
         date_max = complete_df.index.max()
 
-        start_pos = (complete_df.index[train_start] - date_min) / (date_max - date_min)
-        end_pos = (complete_df.index[train_end] - date_min) / (date_max - date_min)
-        test_pos = (complete_df.index[min(train_end + test_size, 969)] - date_min) / (
+        # Train start and end
+        train_line_start = (complete_df.index[train_start] - date_min) / (
+            date_max - date_min
+        )
+        train_line_end = (complete_df.index[train_end] - date_min) / (
             date_max - date_min
         )
 
-        plt.axhline(y=line_start, xmin=start_pos, xmax=end_pos, color="blue")
-        plt.axhline(y=line_start, xmin=end_pos, xmax=test_pos, color="red")
+        # Validation
+        val_end = (complete_df.index[train_end + val_size] - date_min) / (
+            date_max - date_min
+        )
+
+        test_end = (complete_df.index[min(train_end + test_size, 969)] - date_min) / (
+            date_max - date_min
+        )
+
+        plt.axhline(
+            y=line_start,
+            xmin=train_line_start,
+            xmax=train_line_end,
+            color="blue",
+            linewidth=4,
+        )
+        plt.axhline(
+            y=line_start,
+            xmin=train_line_end,
+            xmax=val_end,
+            color="green",
+            linewidth=4,
+        )
+        plt.axhline(
+            y=line_start,
+            xmin=val_end,
+            xmax=test_end,
+            color="red",
+            linewidth=4,
+        )
         line_start -= 0.1
 
     # Show legends only for the average volatility and overall average volatility lines

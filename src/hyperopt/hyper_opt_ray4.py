@@ -1,27 +1,37 @@
 from pytorch_lightning.loggers import TensorBoardLogger
 from ray import tune
-from torchmetrics import (
-    MeanSquaredError,
-    MeanAbsoluteError,
-    MetricCollection,
-)
 from darts.models import NBEATSModel
 from darts.metrics import rmse, mae
+import matplotlib.pyplot as plt
 
 # Local files
-from config import config, stopper, tune_callback, search_alg, reporter, scheduler
+from config import config, search_alg, reporter, scheduler
 from data import get_train_test
 
 # load data
-trains, tests = get_train_test(coin="BTC", time_frame="1d", n_periods=9)
+train_series, _ = get_train_test(coin="BTC", time_frame="1d", n_periods=9)
 
 
-def train_model(model_args, callbacks):
-    # This is necessary for the TuneReportCallback
-    torch_metrics = MetricCollection(
-        [MeanAbsoluteError(), MeanSquaredError(squared=False)]
-    )
+def plot_results(val, pred):
+    # Plot the results
+    plt.figure(figsize=(12, 6))
+    plt.plot(val.univariate_values(), label="Test Set")
+    plt.plot(pred.univariate_values(), label="Forecast")
+    plt.xlabel("Time")
+    plt.ylabel("Value")
+    plt.legend()
+    plt.title("Test Set vs. Forecast")
+    plt.show()
+    plt.close()
 
+
+# n_epochs = 1, MAE 0.244, RMSE 0.278, 2 minutes
+# n_epochs = 5, MAE 0.039, RMSE 0.049, 5 minutes
+# n_epochs = 7, MAE 0.042, RMSE 0.04788, 8 minutes
+# n_epochs = 10 , MAE 0.036, RMSE 0.045, 11 minutes
+# ..., input_chunk_length = 48, MAE: 0.047, RMSE: 0.059 10 minutes
+# n_epochs = 20 , MAE 0.036, RMSE 0.045, 21 minutes
+def train_model(model_args, model_name: str, period: int, plot_trial=False):
     # Define a logger
     logger = TensorBoardLogger(save_dir="tb_logs", name="my_model")
 
@@ -30,9 +40,9 @@ def train_model(model_args, callbacks):
         input_chunk_length=24,
         output_chunk_length=1,  # 1 step ahead forecasting
         n_epochs=1,
-        torch_metrics=torch_metrics,
+        # torch_metrics=torch_metrics,
         pl_trainer_kwargs={
-            "callbacks": callbacks,
+            # "callbacks": callbacks,
             "enable_progress_bar": False,
             "logger": logger,
             "accelerator": "auto",
@@ -40,59 +50,57 @@ def train_model(model_args, callbacks):
         **model_args,
     )
 
-    NBEATSModel.backtest
+    val_len = int(0.1 * len(train_series[0]))
+    val = train_series[period][-val_len:]
 
-    # Merge this with the get_data()
-    val_len = int(0.1 * len(trains[0]))
-    n_periods = 1
+    # Train the model
+    pred = model.historical_forecasts(
+        series=train_series[period],
+        start=len(train_series[period]) - val_len,
+        forecast_horizon=1,
+        stride=1,
+        retrain=True,
+        verbose=False,
+    )
 
-    total_mae = 0
-    total_rmse = 0
-    for period in range(n_periods):
-        print("PERIOD:", period, "\n")
+    # Calculate the metrics
+    tune.report(mae=mae(val, pred), rmse=rmse(val, pred))
 
-        pred = model.backtest(
-            series=trains[period],
-            start=len(trains[period]) - val_len,
-            forecast_horizon=1,
-            stride=1,
-            retrain=True,
-            verbose=False,
-            metric=[mae, rmse],
-            last_points_only=True,
-        )
-
-        total_mae += pred[0]
-        total_rmse += pred[1]
-
-    # Average test loss
-    # Tune reports the metrics back to its optimization engine
-    tune.report(mae=total_mae / n_periods, rmse=total_rmse / n_periods)
+    if plot_trial:
+        plot_results(val, pred)
 
 
-train_fn_with_parameters = tune.with_parameters(
-    train_model, callbacks=[tune_callback]  # [stopper, tune_callback],
-)
+def start_analysis(model_name):
+    train_fn_with_parameters = tune.with_parameters(
+        train_model,
+        model_name=model_name,
+    )
 
-# optimize hyperparameters by minimizing the MAPE on the validation set
-analysis = tune.run(
-    train_fn_with_parameters,
-    resources_per_trial={"cpu": 12, "gpu": 1},  # CPU number is the number of cores
-    config=config,
-    num_samples=2,  # the number of combinations to try
-    scheduler=scheduler,
-    metric="rmse",
-    mode="min",  # "min" or "max
-    progress_reporter=reporter,
-    search_alg=search_alg,
-    # local_dir="ray_results",
-    # name="NBEATS",
-    trial_name_creator=lambda trial: f"NBEATS_{trial.trial_id}",  # f"NBEATS_{trial.trainable_name}_{trial.trial_id}"
-    verbose=1,  # 0: silent, 1: only status updates, 2: status and trial results 3: most detailed
-    # trial_dirname_creator=custom_trial_name,
-)
+    # optimize hyperparameters by minimizing the MAPE on the validation set
+    analysis = tune.run(
+        train_fn_with_parameters,
+        resources_per_trial={"cpu": 12, "gpu": 1},  # CPU number is the number of cores
+        config=config,
+        num_samples=1,  # the number of combinations to try
+        scheduler=scheduler,
+        metric="rmse",
+        mode="min",  # "min" or "max
+        progress_reporter=reporter,
+        search_alg=search_alg,
+        # local_dir="ray_results",
+        # name="NBEATS",
+        trial_name_creator=lambda trial: f"{model_name}_{trial.trial_id}",  # f"NBEATS_{trial.trainable_name}_{trial.trial_id}"
+        verbose=1,  # 0: silent, 1: only status updates, 2: status and trial results 3: most detailed
+        # trial_dirname_creator=custom_trial_name,
+    )
 
-best = analysis.get_best_config(metric="rmse", mode="min")
-print(
-    f"Best config: {best}\nHad a RMSE of {analysis.best_result['rmse']} and MAE of {analysis.best_result['mae']}"
-)
+    best = analysis.get_best_config(metric="rmse", mode="min")
+    print(
+        f"Best config: {best}\nHad a RMSE of {analysis.best_result['rmse']} and MAE of {analysis.best_result['mae']}"
+    )
+
+    # TODO: Save the best model (weights)
+
+
+if __name__ == "__main__":
+    start_analysis("NBEATS")

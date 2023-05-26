@@ -2,15 +2,16 @@ from pytorch_lightning.callbacks import EarlyStopping
 from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.search.skopt import SkOptSearch
+from ray.tune.search.optuna import OptunaSearch
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.schedulers import ASHAScheduler
 
 # define the hyperparameter space
 config = {
-    "batch_size": tune.choice([16, 32, 64, 128]),
-    "num_blocks": tune.choice([1, 2, 3, 4, 5]),
-    "num_stacks": tune.choice([32, 64, 128]),
-    "dropout": tune.uniform(0, 0.2),
+    "batch_size": tune.choice([16]),  # , 32, 64, 128]),
+    "num_blocks": tune.choice([2]),  # [1, 2, 3, 4, 5]),
+    "num_stacks": tune.choice([32]),  # , 64, 128]),
+    "dropout": tune.uniform(0.1, 0.2),
 }
 
 # Early stop callback
@@ -33,7 +34,7 @@ tune_callback = TuneReportCallback(
 
 reporter = CLIReporter(
     parameter_columns=list(config.keys()),
-    metric_columns=["loss", "mae", "rmse", "training_iteration"],
+    metric_columns=["loss", "mae", "rmse"],  # "training_iteration"],
 )
 
 scheduler = ASHAScheduler(
@@ -44,4 +45,7 @@ scheduler = ASHAScheduler(
     reduction_factor=2,
 )
 
-search_alg = SkOptSearch(metric="mape", mode="min")
+# https://docs.ray.io/en/latest/tune/api/suggestion.html
+search_alg = OptunaSearch(
+    metric="mape", mode="min"
+)  # SkOptSearch(metric="mape", mode="min")
