@@ -1,5 +1,10 @@
+import glob
+import re
+import os
+
 from pytorch_lightning.loggers import TensorBoardLogger
 from ray import tune
+from ray.air.checkpoint import Checkpoint
 from darts.models import NBEATSModel
 from darts.metrics import rmse, mae
 import matplotlib.pyplot as plt
@@ -31,49 +36,59 @@ def plot_results(val, pred):
 # n_epochs = 10 , MAE 0.036, RMSE 0.045, 11 minutes
 # ..., input_chunk_length = 48, MAE: 0.047, RMSE: 0.059 10 minutes
 # n_epochs = 20 , MAE 0.036, RMSE 0.045, 21 minutes
-def train_model(model_args, model_name: str, period: int, plot_trial=False):
-    # Define a logger
-    logger = TensorBoardLogger(save_dir="tb_logs", name="my_model")
+class TrainModel(tune.Trainable):
+    def setup(self, config, model_name: str, period: int, plot_trial=False):
+        self.period = period
+        self.best_rmse = float("inf")
 
-    # Create the model using model_args from Ray Tune
-    model = NBEATSModel(
-        input_chunk_length=24,
-        output_chunk_length=1,  # 1 step ahead forecasting
-        n_epochs=1,
-        # torch_metrics=torch_metrics,
-        pl_trainer_kwargs={
-            # "callbacks": callbacks,
-            "enable_progress_bar": False,
-            "logger": logger,
-            "accelerator": "auto",
-        },
-        **model_args,
-    )
+        self.model = NBEATSModel(
+            input_chunk_length=24,
+            output_chunk_length=1,  # 1 step ahead forecasting
+            n_epochs=1,
+            pl_trainer_kwargs={
+                "enable_progress_bar": False,
+                "accelerator": "auto",
+            },
+            **config,
+        )
 
-    val_len = int(0.1 * len(train_series[0]))
-    val = train_series[period][-val_len:]
+    def step(self):
+        val_len = int(0.1 * len(train_series[0]))
+        val = train_series[self.period][-val_len:]
 
-    # Train the model
-    pred = model.historical_forecasts(
-        series=train_series[period],
-        start=len(train_series[period]) - val_len,
-        forecast_horizon=1,
-        stride=1,
-        retrain=True,
-        verbose=False,
-    )
+        # Train the model
+        pred = self.model.historical_forecasts(
+            series=train_series[self.period],
+            start=len(train_series[self.period]) - val_len,
+            forecast_horizon=1,
+            stride=1,
+            retrain=True,
+            verbose=False,
+        )
 
-    # Calculate the metrics
-    tune.report(mae=mae(val, pred), rmse=rmse(val, pred))
+        result = {"mae": mae(val, pred), "rmse": rmse(val, pred)}
 
-    if plot_trial:
-        plot_results(val, pred)
+        if result["rmse"] < self.best_rmse:
+            result.update(should_checkpoint=True)
+            self.best_rmse = result["rmse"]
+
+        return result
+
+    # https://github.com/ray-project/ray/issues/10290
+    def save_checkpoint(self, checkpoint_dir):
+        path = os.path.join(checkpoint_dir, "model.pt")
+        f = open(path, "w")
+        f.write("%s" % self.best_rmse)
+        f.close()
+        return path
+
+    def load_checkpoint(self, path):
+        self.model = NBEATSModel.load(path)
 
 
 def start_analysis(model_name):
     train_fn_with_parameters = tune.with_parameters(
-        train_model,
-        model_name=model_name,
+        TrainModel, model_name=model_name, period=1
     )
 
     # optimize hyperparameters by minimizing the MAPE on the validation set
@@ -87,11 +102,16 @@ def start_analysis(model_name):
         mode="min",  # "min" or "max
         progress_reporter=reporter,
         search_alg=search_alg,
-        # local_dir="ray_results",
-        # name="NBEATS",
-        trial_name_creator=lambda trial: f"{model_name}_{trial.trial_id}",  # f"NBEATS_{trial.trainable_name}_{trial.trial_id}"
+        local_dir="ray_results",
+        name=model_name,
+        trial_name_creator=lambda trial: f"{model_name}_{trial.trial_id}",
         verbose=1,  # 0: silent, 1: only status updates, 2: status and trial results 3: most detailed
         # trial_dirname_creator=custom_trial_name,
+        keep_checkpoints_num=1,
+        # checkpoint_at_end=True,
+        checkpoint_score_attr="rmse",
+        checkpoint_freq=0,
+        stop={"training_iteration": 1},
     )
 
     best = analysis.get_best_config(metric="rmse", mode="min")
@@ -99,8 +119,21 @@ def start_analysis(model_name):
         f"Best config: {best}\nHad a RMSE of {analysis.best_result['rmse']} and MAE of {analysis.best_result['mae']}"
     )
 
-    # TODO: Save the best model (weights)
+    # Gets best trial based on max accuracy across all training iterations.
+    best_trial = analysis.get_best_trial(metric="rmse", mode="min", scope="all")
+    print(best_trial)
+
+    # Gets best checkpoint for trial based on accuracy.
+    best_checkpoint = analysis.get_best_checkpoint(
+        best_trial, metric="rmse", mode="min"
+    )
+
+    model_path = os.path.join(best_checkpoint, "model.pt")
+    loaded = NBEATSModel.load(model_path)
+    print(loaded)
 
 
 if __name__ == "__main__":
     start_analysis("NBEATS")
+    # path = "C:\\Users\\Stephan\\OneDrive\\GitHub\\Crypto_Forecasting\\ray_results\\NBEATS\\NBEATS_66fde9a5_1_batch_size=16,dropout=0.1365,num_blocks=2,num_stacks=32_2023-06-12_10-29-24\\NBEATSModel_2023-06-12_10_31_19.pt"
+    # NBEATSModel.load(path)

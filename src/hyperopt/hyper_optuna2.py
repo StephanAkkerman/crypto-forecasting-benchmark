@@ -21,6 +21,19 @@ train_series, _ = get_train_test(coin="BTC", time_frame="1d", n_periods=9)
 # Took 627.7269632816315 seconds to run.
 
 
+def plot_results(val, pred):
+    # Plot the results
+    plt.figure(figsize=(12, 6))
+    plt.plot(val.univariate_values(), label="Test Set")
+    plt.plot(pred.univariate_values(), label="Forecast")
+    plt.xlabel("Time")
+    plt.ylabel("Value")
+    plt.legend()
+    plt.title("Test Set vs. Forecast")
+    plt.show()
+    plt.close()
+
+
 # define objective function
 def objective(trial):
     # throughout training we'll monitor the validation loss for both pruning and early stopping
@@ -51,39 +64,19 @@ def objective(trial):
     )
     # Merge this with the get_data()
     val_len = int(0.1 * len(train_series[0]))
+    val = train_series[0][-val_len:]
     n_periods = 1
 
-    total_mae = 0
-    total_rmse = 0
-    for period in range(n_periods):
-        print("PERIOD:", period, "\n")
+    pred = model.historical_forecasts(
+        series=train_series[0],
+        start=len(train_series[0]) - val_len,
+        forecast_horizon=1,
+        stride=1,
+        retrain=True,
+        verbose=False,
+    )
 
-        # train the model
-        all_pred = model.historical_forecasts(
-            series=train_series[period],
-            start=len(train_series[period]) - val_len,
-            forecast_horizon=1,
-            stride=1,
-            retrain=True,
-            verbose=False,
-        )
-
-        all_val = train_series[period][-val_len:]
-
-    print("Took", time.time() - start, "seconds to run.")
-
-    # Plot the results
-    plt.figure(figsize=(12, 6))
-    plt.plot(all_val.univariate_values(), label="Test Set")
-    plt.plot(all_pred.univariate_values(), label="Forecast")
-    plt.xlabel("Time")
-    plt.ylabel("Value")
-    plt.legend()
-    plt.title("Test Set vs. Forecast")
-    plt.show()
-    plt.close()
-
-    return rmse(all_val, all_pred)
+    return rmse(val, pred)
 
 
 # for convenience, print some optimization trials information
