@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 /.vscode
+/hyperopt_results
 
 # C extensions
 *.so

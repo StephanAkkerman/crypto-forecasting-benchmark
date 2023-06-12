@@ -1,51 +1,41 @@
-from pytorch_lightning.callbacks import EarlyStopping
 from ray import tune
 from ray.tune import CLIReporter
-from ray.tune.search.skopt import SkOptSearch
 from ray.tune.search.optuna import OptunaSearch
-from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.schedulers import ASHAScheduler
 
 # define the hyperparameter space
-config = {
-    "batch_size": tune.choice([16]),  # , 32, 64, 128]),
-    "num_blocks": tune.choice([2]),  # [1, 2, 3, 4, 5]),
-    "num_stacks": tune.choice([32]),  # , 64, 128]),
-    "dropout": tune.uniform(0.1, 0.2),
+config2 = {
+    "NBEATS": {
+        "n_epochs": tune.choice([10, 25, 50, 100]),
+        "batch_size": tune.choice([16, 32, 64, 128]),
+        "optimizer_kwargs": {"lr": tune.loguniform(1e-4, 1e-1)},
+        "dropout": tune.choice([0, 0.1, 0.2, 0.3, 0.4, 0.5]),
+        "num_layers": tune.choice([2, 3, 4, 5]),
+        "num_blocks": tune.choice([1, 2, 3, 4, 5]),
+    }
 }
 
-# Early stop callback
-stopper = EarlyStopping(
-    monitor="val_MeanSquaredError",
-    patience=5,
-    min_delta=0.05,
-    mode="min",
-)
+config = {
+    "NBEATS": {
+        "n_epochs": 1,
+        "batch_size": 16,
+        "num_blocks": tune.choice([2, 3]),
+        "num_stacks": tune.choice([32]),
+        # "dropout": tune.uniform(0.1, 0.2),
+    }
+}
 
-# set up ray tune callback
-tune_callback = TuneReportCallback(
-    {
-        "loss": "val_loss",
-        "mae": "val_MeanAbsoluteError",
-        "rmse": "val_MeanSquaredError",
-    },
-    on="validation_end",
-)
 
-reporter = CLIReporter(
-    parameter_columns=list(config.keys()),
-    metric_columns=["loss", "mae", "rmse"],  # "training_iteration"],
-)
+def get_reporter(model_name):
+    return CLIReporter(
+        parameter_columns=list(config[model_name].keys()),
+        metric_columns=["loss", "mae", "rmse"],
+    )
 
-scheduler = ASHAScheduler(
-    # metric="rmse",
-    # mode="min",
-    max_t=100,
-    grace_period=3,
-    reduction_factor=2,
-)
+
+# https://docs.ray.io/en/latest/tune/api/schedulers.html
+# https://docs.ray.io/en/latest/tune/api/doc/ray.tune.schedulers.AsyncHyperBandScheduler.html
+scheduler = ASHAScheduler()
 
 # https://docs.ray.io/en/latest/tune/api/suggestion.html
-search_alg = OptunaSearch(
-    metric="mape", mode="min"
-)  # SkOptSearch(metric="mape", mode="min")
+search_alg = OptunaSearch()  # SkOptSearch()
