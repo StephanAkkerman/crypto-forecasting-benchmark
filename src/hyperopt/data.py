@@ -2,6 +2,17 @@ import os
 import pandas as pd
 from darts import TimeSeries
 
+large_cap = ["BTC", "ETH", "BNB", "XRP", "ADA", "DOGE", "MATIC"]
+mid_cap = ["LINK", "ETC", "XLM", "LTC", "TRX", "ATOM", "XMR"]
+small_cap = ["VET", "ALGO", "EOS", "CHZ", "IOTA", "NEO", "XTZ"]
+
+all_coins = large_cap + mid_cap + small_cap
+
+timeframes = ["1m", "15m", "4h", "1d"]
+
+# TODO add models
+models = []
+
 
 def read_csv(coin: str, timeframe: str, col_names: list = ["close"]):
     # Get the current directory

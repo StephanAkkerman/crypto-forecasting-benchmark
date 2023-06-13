@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 /.vscode
-/hyperopt_results
+/ray_results
 
 # C extensions
 *.so
