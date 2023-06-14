@@ -8,15 +8,18 @@ from ray.tune.search.optuna import OptunaSearch
 from ray.tune.search.skopt import SkOptSearch
 from ray.tune.search.bayesopt import BayesOptSearch
 
+model_unspecific = {
+    "input_chunk_length": tune.choice([1, 5, 10, 15, 20, 30, 40, 50]),
+    "n_epochs": tune.choice([10, 25, 50, 100]),
+    "batch_size": tune.choice([16, 32, 64, 128]),
+    "optimizer_kwargs": {"lr": tune.loguniform(1e-4, 1e-1)},
+    "dropout": tune.uniform(0, 0.5),
+}
+
 # define the hyperparameter space
 config = {
     "ARIMA": {},  # auto arima is used
     "NBEATS": {
-        "input_chunk_length": tune.choice([1, 5, 10, 15, 20, 30, 40, 50]),
-        "n_epochs": tune.choice([10, 25, 50, 100]),
-        "batch_size": tune.choice([16, 32, 64, 128]),
-        "optimizer_kwargs": {"lr": tune.loguniform(1e-4, 1e-1)},
-        "dropout": tune.uniform(0, 0.5),
         "num_layers": tune.choice([2, 3, 4, 5]),
         "num_blocks": tune.choice([1, 2, 3, 4, 5]),
     },
