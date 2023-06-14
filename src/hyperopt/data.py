@@ -10,8 +10,21 @@ all_coins = large_cap + mid_cap + small_cap
 
 timeframes = ["1m", "15m", "4h", "1d"]
 
-# TODO add models
-models = []
+models = [
+    "ARIMA",
+    "RNN",
+    "LSTM",
+    "GRU",
+    "TCN",
+    "NBEATS",
+    "TFT",
+    "RANDOM FOREST",
+    "XGBOOST",
+    "LIGHTGBM",
+    "NHITS",
+    "TBATS",
+    "PROPHET",
+]
 
 
 def read_csv(coin: str, timeframe: str, col_names: list = ["close"]):

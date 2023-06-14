@@ -1,13 +1,26 @@
 import os
-import shutil
-from ray import tune
-from darts.models import NBEATSModel
-from darts.metrics import rmse, mae
 import matplotlib.pyplot as plt
+from ray import tune
+from darts.metrics import rmse, mae
+
+# Models
+from darts.models import (
+    StatsForecastAutoARIMA,
+    RNNModel,
+    TCNModel,
+    NBEATSModel,
+    TFTModel,
+    RandomForest,
+    XGBModel,
+    LightGBMModel,
+    NHiTSModel,
+    TBATS,
+    Prophet,
+)
 
 # Local files
 from config import config, search_alg, get_reporter, scheduler
-from data import get_train_test, all_coins, timeframes
+from data import get_train_test, all_coins, timeframes, models
 
 
 def plot_results(val, pred):
@@ -21,6 +34,29 @@ def plot_results(val, pred):
     plt.title("Test Set vs. Forecast")
     plt.show()
     plt.close()
+
+
+def get_model(full_model_name: str, model_args: dict):
+    model_name = full_model_name.split("_")[0]
+
+    if model_name.split("_")[0] not in models:
+        raise ValueError(f"Model {model_name} not found in {models}")
+
+    default_args = {
+        "output_chunk_length": 1,  # 1 step ahead forecasting
+        "pl_trainer_kwargs": {
+            "enable_progress_bar": False,
+            "accelerator": "auto",
+        },
+    }
+
+    # add default args to model_args
+    model_args.update(default_args)
+
+    if model_name == "ARIMA":
+        return StatsForecastAutoARIMA(model_name=full_model_name, **model_args)
+    elif model_name == "NBEATS":
+        return NBEATSModel(model_name=full_model_name, **model_args)
 
 
 # n_epochs = 10 , MAE 0.036, RMSE 0.045, 11 minutes
@@ -38,16 +74,7 @@ def train_model(
     if save_checkpoints:
         model_args.update({"save_checkpoints": True, "force_reset": True})
 
-    # Create the model using model_args from Ray Tune
-    model = NBEATSModel(
-        output_chunk_length=1,  # 1 step ahead forecasting
-        pl_trainer_kwargs={
-            "enable_progress_bar": False,
-            "accelerator": "auto",
-        },
-        model_name=model_name,
-        **model_args,
-    )
+    model = get_model(model_name, model_args)
 
     val_len = int(0.1 * len(train_series[0]))
     val = train_series[period][-val_len:]
@@ -143,8 +170,8 @@ def hyperopt_dataset(model_name: str, coin: str, time_frame: str, num_samples: i
     train_series, _ = get_train_test(coin=coin, time_frame=time_frame)
 
     # Do for all periods
-    # for period in range(0, 9):
-    hyperopt(train_series, model_name, 0, coin, time_frame, num_samples)
+    for period in range(0, 5):
+        hyperopt(train_series, model_name, period, coin, time_frame, num_samples)
 
 
 def hyperopt_full():

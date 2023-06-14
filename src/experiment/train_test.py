@@ -8,7 +8,7 @@ from data.vars import all_coins
 
 
 # Load your data (replace this with your actual data)
-def get_train_test(coin="BTC", time_frame="1d", n_periods=9, test_size_percentage=0.25):
+def get_train_test(coin="BTC", time_frame="1d", n_periods=5, test_size_percentage=0.25):
     # Read data from a CSV file
     data = read_csv(coin, time_frame, ["log returns"]).dropna()
     data["date"] = data.index
@@ -40,7 +40,7 @@ def get_train_test(coin="BTC", time_frame="1d", n_periods=9, test_size_percentag
 
 def plot_periods(
     timeframe="1d",
-    n_periods=9,
+    n_periods=5,
     test_size_percentage=0.25,
     val_size_percentage=0.1,
     col_name="volatility",
@@ -54,7 +54,7 @@ def plot_periods(
     timeframe : str, optional
         The time frame to use, by default "1d"
     n_periods : int, optional
-        The number of periods to plot, by default 9
+        The number of periods to plot, by default 5
     test_size_percentage : float, optional
         The percentage of the data to use for testing, by default 0.25
     """
@@ -100,7 +100,9 @@ def plot_periods(
     # print("Train size:", train_size)
     # print("Test size:", test_size)
 
-    line_start = 1.7
+    ymin, ymax = ax.get_ylim()
+
+    line_start = ymax * 2
     for i in range(n_periods):
         # The train start shifts by the test size each period
         train_start = i * test_size
@@ -149,7 +151,7 @@ def plot_periods(
             color="red",
             linewidth=4,
         )
-        line_start -= 0.1
+        line_start -= ymax * 0.1
 
     # Show legends only for the average volatility and overall average volatility lines
     ax.legend(handles=[avg_line[0], overall_avg_line], loc="best")
