@@ -47,14 +47,14 @@ def analysis():
 
 
 def models():
-    forecast.generate_forecasts("autoarima", "BTC", "1d", n_periods=9, show_plot=True)
+    forecast.all_forecasts("ARIMA")
     # 9 periods: 490 sec, 0.037 RMSE
     # 5 periods: 432 sec, 0.035 RMSE
 
 
 if __name__ == "__main__":
-    # elapsed_time = timeit.timeit(models, number=1)
-    # print(f"Time elapsed: {elapsed_time:.2f} seconds")
+    elapsed_time = timeit.timeit(models, number=1)
+    print(f"Time elapsed: {elapsed_time:.2f} seconds")
     # train_test.plot_periods(timeframe="1d", n_periods=5)
-    train, test = train_test.get_train_test()
-    print(len(train[0]))
+    # train, test = train_test.get_train_test()
+    # print(len(train[0]))

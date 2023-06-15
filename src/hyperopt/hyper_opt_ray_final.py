@@ -5,6 +5,7 @@ from darts.metrics import rmse, mae
 
 # Models
 from darts.models import (
+    AutoARIMA,
     StatsForecastAutoARIMA,
     RNNModel,
     TCNModel,
@@ -155,8 +156,17 @@ def hyperopt(
 
 
 def train_ARIMA(train_series, period):
-    model = StatsForecastAutoARIMA(start_p=0)
-
+    model = StatsForecastAutoARIMA(
+        start_p=0,
+        start_q=0,
+        start_P=0,
+        start_Q=0,
+        max_p=5,
+        max_d=5,
+        max_q=5,
+        max_P=5,
+        max_Q=5,
+    )
     val_len = int(0.1 * len(train_series[0]))
     val = train_series[period][-val_len:]
 
@@ -170,10 +180,9 @@ def train_ARIMA(train_series, period):
         forecast_horizon=1,  # 1 step ahead forecasting
         stride=1,  # 1 step ahead forecasting
         retrain=True,
+        train_length=len(train_series[period]) - val_len,
         verbose=False,
     )
-
-    print(model.model.model_.summary())
 
     # Get best model parameters
     p, d, q, P, D, Q, constant = model.model.model_["arma"]

@@ -8,24 +8,31 @@ from data.vars import all_coins
 
 
 # Load your data (replace this with your actual data)
-def get_train_test(coin="BTC", time_frame="1d", n_periods=5, test_size_percentage=0.25):
+def get_train_test(
+    coin="BTC",
+    time_frame="1d",
+    n_periods=5,
+    test_size_percentage=0.25,
+    col="log returns",
+):
     # Read data from a CSV file
-    data = read_csv(coin, time_frame, ["log returns"]).dropna()
+    data = read_csv(coin, time_frame, [col]).dropna()
     data["date"] = data.index
 
     # Create a Darts TimeSeries from the DataFrame
-    time_series = TimeSeries.from_dataframe(data, "date", "log returns")
+    time_series = TimeSeries.from_dataframe(data, "date", col)
 
     # Set parameters for sliding window and periods
     test_size = int(len(time_series) / (1 / test_size_percentage - 1 + n_periods))
     train_size = int(test_size * (1 / test_size_percentage - 1))
 
-    print("Train size:", train_size)
-    print("Test size:", test_size)
+    # print("Train size:", train_size)
+    # print("Test size:", test_size)
 
     # Save the training and test sets as lists of TimeSeries
     train_set = []
     test_set = []
+    full_set = []
 
     for i in range(n_periods):
         # The train start shifts by the test size each period
@@ -34,8 +41,9 @@ def get_train_test(coin="BTC", time_frame="1d", n_periods=5, test_size_percentag
 
         train_set.append(time_series[train_start:train_end])
         test_set.append(time_series[train_end : train_end + test_size])
+        full_set.append(time_series[train_start : train_end + test_size])
 
-    return train_set, test_set
+    return train_set, test_set, full_set
 
 
 def plot_periods(

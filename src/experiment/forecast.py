@@ -1,4 +1,6 @@
+import os
 from tqdm import tqdm
+import pandas as pd
 
 # Models
 from darts.models import (
@@ -18,34 +20,28 @@ from darts.models import (
 # Local imports
 from experiment.train_test import get_train_test
 from experiment.eval import eval_model
-
-
-def one_step_forecast(model_name, train, test) -> list:
-    model = get_model(model_name)
-
-    if model is None:
-        return
-
-    forecast = []
-
-    # Loop over each period in the test set
-    for t in tqdm(range(len(test))):
-        model.fit(train)
-        # Only use one, for one-step-ahead forecasting
-        prediction = model.predict(n=1)
-        forecast.append(prediction.first_value())
-        # Add the current test value to the train set for the next loop
-        train = train.append(test[t])
-
-    return forecast
+from hyperopt.data import models, all_coins, timeframes
 
 
 def get_model(model_name: str):
-    if model_name == "arima":  # Basically hyperparameter tuning for ARIMA
-        # https://nixtla.github.io/statsforecast/models.html#arima-methods
-        model = StatsForecastAutoARIMA()
+    if model_name not in models:
+        raise ValueError(f"Model {model_name} not found in {models}")
 
-    elif model_name == "rnn":
+    if model_name == "ARIMA":  # Basically hyperparameter tuning for ARIMA
+        # https://nixtla.github.io/statsforecast/models.html#arima-methods
+        model = StatsForecastAutoARIMA(
+            start_p=0,
+            start_q=0,
+            start_P=0,
+            start_Q=0,
+            max_p=5,
+            max_d=5,
+            max_q=5,
+            max_P=5,
+            max_Q=5,
+        )
+
+    elif model_name == "RNN":
         model = RNNModel(
             input_chunk_length=30,
             training_length=248,
@@ -86,29 +82,73 @@ def get_model(model_name: str):
         model = TBATS()
     elif model_name == "prophet":
         model = Prophet()
-    # TODO add DeepAR
-    else:
-        print("Invalid model name")
-        return
 
     return model
 
 
+def all_forecasts(model_name):
+    model_name = model_name.upper()
+
+    for coin in all_coins:
+        create_dirs(model_name, coin)
+
+        print(f"Generating forecasts for {coin}...")
+        for time_frame in timeframes:
+            generate_forecasts(
+                model_name, coin, time_frame, n_periods=5, show_plot=False
+            )
+
+
+def create_dirs(model_name, coin):
+    # Add the folders if they don't exist
+    if not os.path.exists(f"data/models/{model_name}/{coin}"):
+        if not os.path.exists(f"data/models/{model_name}"):
+            if not os.path.exists("data/models"):
+                os.makedirs("data/models")
+            os.makedirs(f"data/models/{model_name}")
+        os.makedirs(f"data/models/{model_name}/{coin}")
+        os.makedirs(f"data/models/{model_name}/{coin}/plots")
+
+
 def generate_forecasts(
-    model_name: str, coin: str, time_frame: str, n_periods=9, show_plot=True
+    model_name: str, coin: str, time_frame: str, n_periods=5, show_plot=True
 ):
-    model_name = model_name.lower()
+    model_name = model_name.upper()
 
     # Get the training and testing data for each period
-    trains, tests = get_train_test(
-        coin=coin, time_frame=time_frame, n_periods=n_periods
+    train_set, test_set, time_series = get_train_test(
+        coin=coin,
+        time_frame=time_frame,
+        n_periods=n_periods,
     )
 
-    # Store the one-step-ahead forecasts for each period
+    model = get_model(model_name)
+
     predictions = []
+    params = []
 
-    for i, (train, test) in enumerate(zip(trains, tests)):
-        print(f"Training on period {i + 1}...")
-        predictions.append(one_step_forecast(model_name, train, test))
+    for period in tqdm(range(n_periods)):
+        model.fit(series=time_series[period])
 
-    eval_model(model_name, coin, time_frame, trains, tests, predictions, show_plot)
+        pred = model.historical_forecasts(
+            time_series[period],
+            start=len(time_series[period]) - len(test_set[period]),
+            forecast_horizon=1,  # 1 step ahead forecasting
+            stride=1,  # 1 step ahead forecasting
+            retrain=True,
+            train_length=len(time_series[period]) - len(test_set[period]),
+            verbose=False,
+        )
+
+        predictions.append(pred)
+        params.append(model.model.model_["arma"])
+
+    # Save params
+    params_df = pd.DataFrame(params, columns=["p", "d", "q", "P", "D", "Q"])
+    params_df.to_csv(
+        f"data/models/{model_name}/{coin}/{time_frame}_params.csv", index=False
+    )
+
+    eval_model(
+        model_name, coin, time_frame, train_set, test_set, predictions, show_plot
+    )
