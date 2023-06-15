@@ -89,11 +89,11 @@ def get_model(model_name: str):
 def all_forecasts(model_name):
     model_name = model_name.upper()
 
-    for coin in all_coins:
+    for coin in tqdm(all_coins):
         create_dirs(model_name, coin)
 
         print(f"Generating forecasts for {coin}...")
-        for time_frame in timeframes:
+        for time_frame in tqdm(timeframes):
             generate_forecasts(
                 model_name, coin, time_frame, n_periods=5, show_plot=False
             )
@@ -144,7 +144,7 @@ def generate_forecasts(
         params.append(model.model.model_["arma"])
 
     # Save params
-    params_df = pd.DataFrame(params, columns=["p", "d", "q", "P", "D", "Q"])
+    params_df = pd.DataFrame(params, columns=["p", "d", "q", "P", "D", "Q", "C"])
     params_df.to_csv(
         f"data/models/{model_name}/{coin}/{time_frame}_params.csv", index=False
     )

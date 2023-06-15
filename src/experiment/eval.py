@@ -1,22 +1,22 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from darts import concatenate
-from darts.metrics import mape, mase, rmse
+from darts.metrics import mae, mase, rmse
 
 
 def eval_model(model_name, coin, time_frame, train, test, predictions, show_plots=True):
-    errors_mape = []
     errors_mase = []
     errors_rmse = []
+    errors_mae = []
 
     for i in range(len(predictions)):
         # Calculate the mean squared error
-        errors_mape.append(mape(test[i], predictions[i]))
         errors_mase.append(mase(test[i], predictions[i], train[i]))
         errors_rmse.append(rmse(test[i], predictions[i]))
+        errors_mae.append(mae(test[i], predictions[i]))
 
     results = pd.DataFrame(
-        {"MAPE": errors_mape, "MASE": errors_mase, "RMSE": errors_rmse}
+        {"MAE": errors_mae, "MASE": errors_mase, "RMSE": errors_rmse}
     )
 
     print(results)
