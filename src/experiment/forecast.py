@@ -107,14 +107,12 @@ def create_dirs(model_name, coin):
                 os.makedirs("data/models")
             os.makedirs(f"data/models/{model_name}")
         os.makedirs(f"data/models/{model_name}/{coin}")
-        os.makedirs(f"data/models/{model_name}/{coin}/plots")
+        # os.makedirs(f"data/models/{model_name}/{coin}/plots")
 
 
 def generate_forecasts(
     model_name: str, coin: str, time_frame: str, n_periods=5, show_plot=True
 ):
-    model_name = model_name.upper()
-
     # Get the training and testing data for each period
     train_set, test_set, time_series = get_train_test(
         coin=coin,

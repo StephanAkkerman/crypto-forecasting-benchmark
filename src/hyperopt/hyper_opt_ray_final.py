@@ -3,10 +3,15 @@ import matplotlib.pyplot as plt
 from ray import tune
 from darts.metrics import rmse, mae
 
+# https://docs.ray.io/en/latest/tune/api/suggestion.html
+from ray.tune.search.skopt import SkOptSearch
+
+# https://docs.ray.io/en/latest/tune/api/schedulers.html
+# https://docs.ray.io/en/latest/tune/api/doc/ray.tune.schedulers.AsyncHyperBandScheduler.html
+from ray.tune.schedulers import ASHAScheduler
+
 # Models
 from darts.models import (
-    AutoARIMA,
-    StatsForecastAutoARIMA,
     RNNModel,
     TCNModel,
     NBEATSModel,
@@ -20,7 +25,7 @@ from darts.models import (
 )
 
 # Local files
-from config import config, search_alg, get_reporter, scheduler, model_unspecific
+from config import config, get_reporter, model_unspecific, default_args
 from data import get_train_test, all_coins, timeframes, models
 
 
@@ -43,18 +48,9 @@ def get_model(full_model_name: str, model_args: dict):
     if model_name not in models:
         raise ValueError(f"Model {model_name} not found in {models}")
 
-    # These are the default args for all models
-    default_args = {
-        "output_chunk_length": 1,  # 1 step ahead forecasting
-        "pl_trainer_kwargs": {
-            "enable_progress_bar": False,
-            "accelerator": "auto",
-        },
-        "model_name": model_name,
-    }
-
     # add default args to model_args
     model_args.update(default_args)
+    model_args.update({"model_name": model_name})
 
     if model_name == "NBEATS":
         return NBEATSModel(**model_args)
@@ -138,11 +134,11 @@ def hyperopt(
         resources_per_trial={"cpu": 12, "gpu": 1},  # CPU number is the number of cores
         config=search_space,
         num_samples=num_samples,  # the number of combinations to try
-        scheduler=scheduler,
+        scheduler=ASHAScheduler(),
         metric="rmse",
         mode="min",  # "min" or "max
         progress_reporter=get_reporter(model_name),
-        search_alg=search_alg,
+        search_alg=SkOptSearch(),
         verbose=2,  # 0: silent, 1: only status updates, 2: status and trial results 3: most detailed
         local_dir="ray_results",
         name=f"{model_name}_{coin}_{time_frame}_{period}",  # folder in local_dir
@@ -151,52 +147,23 @@ def hyperopt(
 
     # Save the results
     analysis.results_df.to_csv(
-        f"hyperopt_results/{model_name}_{coin}_{time_frame}_{period}.csv", index=False
+        f"hyperopt_results/{model_name}/{coin}/{time_frame}_{period}.csv", index=False
     )
 
 
-def train_ARIMA(train_series, period):
-    model = StatsForecastAutoARIMA(
-        start_p=0,
-        start_q=0,
-        start_P=0,
-        start_Q=0,
-        max_p=5,
-        max_d=5,
-        max_q=5,
-        max_P=5,
-        max_Q=5,
-    )
-    val_len = int(0.1 * len(train_series[0]))
-    val = train_series[period][-val_len:]
-
-    # Train the model
-    model.fit(series=train_series[period][:-val_len])
-
-    # Evaluate the model
-    pred = model.historical_forecasts(
-        series=train_series[period],
-        start=len(train_series[period]) - val_len,
-        forecast_horizon=1,  # 1 step ahead forecasting
-        stride=1,  # 1 step ahead forecasting
-        retrain=True,
-        train_length=len(train_series[period]) - val_len,
-        verbose=False,
-    )
-
-    # Get best model parameters
-    p, d, q, P, D, Q, constant = model.model.model_["arma"]
-    print(
-        f"Best model parameters: p={p}, d={d}, q={q}, P={P}, D={D}, Q={Q}, c={constant}"
-    )
-
-    # Calculate the metrics
-    rmse_val = rmse(val, pred)
-
-    print("RMSE:", rmse_val)
+def create_dirs(model_name, coin):
+    # Add the folders if they don't exist
+    if not os.path.exists(f"hyperopt_results/{model_name}/{coin}"):
+        if not os.path.exists(f"hyperopt_results/{model_name}"):
+            if not os.path.exists("hyperopt_results"):
+                os.makedirs("hyperopt_results")
+            os.makedirs(f"hyperopt_results/{model_name}")
+        os.makedirs(f"hyperopt_results/{model_name}/{coin}")
 
 
-def hyperopt_dataset(model_name: str, coin: str, time_frame: str, num_samples: int):
+def hyperopt_dataset(
+    model_name: str, coin: str, time_frame: str, num_samples: int, n_periods: int = 5
+):
     """
     Performs hyperparameter optimization for a given dataset.
 
@@ -215,13 +182,12 @@ def hyperopt_dataset(model_name: str, coin: str, time_frame: str, num_samples: i
     # load data
     train_series, _ = get_train_test(coin=coin, time_frame=time_frame)
 
-    if model_name == "ARIMA":
-        train_ARIMA(train_series, 0)
+    # Create the folders
+    create_dirs(model_name, coin)
 
-    # Do for all periods
-    # for period in range(0, 5):
-    else:
-        hyperopt(train_series, model_name, 0, coin, time_frame, num_samples)
+    # Do for three periods
+    for period in range(0, n_periods, 2):
+        hyperopt(train_series, model_name, period, coin, time_frame, num_samples)
 
 
 def hyperopt_full():
@@ -232,4 +198,4 @@ def hyperopt_full():
 
 
 if __name__ == "__main__":
-    hyperopt_dataset("ARIMA", "BTC", "1d", 1)
+    hyperopt_dataset("NBEATS", "BTC", "1d", 10, 5)

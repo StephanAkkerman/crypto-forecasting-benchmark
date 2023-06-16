@@ -54,7 +54,7 @@ def make_plot(
     plt.ylabel("Value")
     plt.legend()
     plt.title("Test Set vs. Forecast")
-    plt.savefig(plot_file_loc)
+    # plt.savefig(plot_file_loc)
     if show_plots:
         plt.show()
     plt.close()
