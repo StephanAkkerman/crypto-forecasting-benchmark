@@ -16,3 +16,5 @@ darts==0.24.0
 pymannkendall==1.4.3
 binance==0.3
 scikit_learn==1.2.2
+tabulate
+scikit-optimize

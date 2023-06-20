@@ -20,7 +20,7 @@ from darts.models import (
 # Local imports
 from experiment.train_test import get_train_test
 from experiment.eval import eval_model
-from hyperopt.data import models, all_coins, timeframes
+from hyperopt.train_test import models, all_coins, timeframes
 
 
 def get_model(model_name: str):

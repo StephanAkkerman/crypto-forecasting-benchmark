@@ -1,6 +1,8 @@
 from ray import tune
 from ray.tune import CLIReporter
 
+val_percentage = 0.1
+
 # These are the default args for all models
 default_args = {
     "output_chunk_length": 1,  # 1 step ahead forecasting
@@ -13,14 +15,13 @@ default_args = {
 # Except for autoARIMA
 model_unspecific = {
     "input_chunk_length": tune.choice([1, 5, 10, 15, 20, 30, 40, 50]),
-    "n_epochs": tune.choice([10, 25, 50, 100]),
+    "n_epochs": tune.choice([25, 50, 75, 100]),
     "batch_size": tune.choice([16, 32, 64, 128]),
-    # "optimizer_kwargs": {"lr": tune.loguniform(1e-4, 1e-1)},
     "dropout": tune.uniform(0, 0.5),
 }
 
 # define the hyperparameter space
-config = {
+model_config = {
     "ARIMA": {},  # auto arima is used
     "NBEATS": {
         "num_layers": tune.choice([2, 3, 4, 5]),
@@ -41,6 +42,6 @@ test_config = {
 
 def get_reporter(model_name):
     return CLIReporter(
-        parameter_columns=list(config[model_name].keys()),
+        parameter_columns=list(model_config[model_name].keys()),
         metric_columns=["loss", "mae", "rmse"],
     )
