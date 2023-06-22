@@ -24,8 +24,9 @@ model_unspecific = {
 model_config = {
     ## Regression Models
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.random_forest.html
+    # https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor
     "RandomForest": {
-        "n_estimators": tune.choice([10, 50, 100, 200, 500]),
+        "n_estimators": tune.choice([10, 100, 250, 500, 1000]),
         "max_depth": tune.choice([None, 2, 4, 8, 10, 12]),
     },
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.xgboost.html
@@ -41,7 +42,14 @@ model_config = {
     },
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.lgbm.html
     # https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMRegressor.html
-    "LightGBM": {},
+    "LightGBM": {
+        "num_leaves": tune.choice([31, 100, 200, 400, 600]),
+        "n_estimators": tune.choice([50, 80, 100, 150]),
+        "max_depth": tune.choice([-1, 0, 40, 80]),
+        "min_child_samples": tune.choice([20, 35, 50, 65]),
+        "reg_alpha": tune.uniform(0, 10),  # L1 regularization
+        "reg_lambda": tune.uniform(0, 0.1),  # L2 regularization
+    },
     ## Machine Learning Models
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.nbeats.html
     "NBEATS": {
@@ -79,11 +87,28 @@ model_config = {
         "hidden_continuous_size": tune.choice([2, 4, 8, 10, 12]),
     },
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.nhits.html
-    "NHiTS": {},
+    "NHiTS": {
+        "num_stacks": tune.choice([2, 3, 4]),
+        "num_blocks": tune.choice([1, 2, 3, 50, 10]),
+        "num_layers": tune.choice([1, 2, 3, 4]),
+        "layer_widths": tune.choice([256, 512, 1024]),
+    },
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.tbats_model.html
-    "TBATS": {},
+    # https://github.com/intive-DataScience/tbats
+    "TBATS": {
+        "use_box_cox": tune.choice([True, False]),
+        "use_trend": tune.choice([True, False]),
+        "seasonal_periods": tune.choice([None, 7, 30]),
+        "use_arma_errors": tune.choice([True, False]),
+    },
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.prophet_model.html
-    "Prophet": {},
+    # https://github.com/facebook/prophet/blob/main/python/prophet/forecaster.py
+    # https://facebook.github.io/prophet/docs/diagnostics.html
+    "Prophet": {
+        "growth": tune.choice(["linear", "logistic"]),
+        "changepoint_prior_scale": tune.choice([0.001, 0.01, 0.1, 0.5, 1]),
+        "seasonality_prior_scale": tune.choice([0.01, 0.1, 1.0, 10.0]),
+    },
 }
 
 
