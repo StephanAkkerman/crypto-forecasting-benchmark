@@ -3,7 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 /.vscode
+
+# custom files
 /ray_results
+job.slurm
+ssh_command.txt
+
 
 # C extensions
 *.so

@@ -56,18 +56,15 @@ def save_plot(save_loc: str):
 
     # Read all .csv files in file_loc
     for file in csv_files:
-        file_name = file.split("\\")[-1]
-        rmse = file_name.split("_")[0]
-
-        data = pd.read_csv(file)
-
         # Set the validation data
-        if file_name == "val.csv":
-            val_data = data
+        if file.endswith("val.csv"):
+            val_data = pd.read_csv(file)
 
         # If the file is a prediction file
-        elif file_name.endswith("pred.csv"):
-            predictions.append((data, rmse))
+        elif file.endswith("pred.csv"):
+            rmse = file.split("_")[0]
+            rmse = rmse[rmse.find("0.") :]
+            predictions.append((pd.read_csv(file), rmse))
 
     # Plot the results
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -117,6 +114,28 @@ def get_model(full_model_name: str, model_args: dict):
 
     if model_name == "NBEATS":
         return NBEATSModel(**model_args)
+    elif model_name == "RNN":
+        return RNNModel(**model_args)
+    elif model_name == "LSTM":
+        return RNNModel(**model_args, model="LSTM")
+    elif model_name == "GRU":
+        return RNNModel(**model_args, model="GRU")
+    elif model_name == "TCN":
+        return TCNModel(**model_args)
+    elif model_name == "TFT":
+        return TFTModel(**model_args)
+    elif model_name == "RandomForest":
+        return RandomForest
+    elif model_name == "XGB":
+        return XGBModel(**model_args)
+    elif model_name == "LightGBM":
+        return LightGBMModel(**model_args)
+    elif model_name == "NHiTS":
+        return NHiTSModel(**model_args)
+    elif model_name == "TBATS":
+        return TBATS(**model_args)
+    elif model_name == "Prophet":
+        return Prophet(**model_args)
 
 
 def train_model(
@@ -168,7 +187,7 @@ def train_model(
     tune.report(rmse=rmse_val, mae=mae(val, pred))
 
     # save predictions as file
-    pred.pd_dataframe().to_csv(os.path.join(data_loc, f"{round(rmse_val, 4)}_pred.csv"))
+    pred.pd_dataframe().to_csv(os.path.join(data_loc, f"{rmse_val}_pred.csv"))
     val.pd_dataframe().to_csv(os.path.join(data_loc, "val.csv"))
 
 
@@ -220,7 +239,7 @@ def hyperopt(
     # https://docs.ray.io/en/latest/tune/key-concepts.html#analysis
     analysis = tune.run(
         train_fn_with_parameters,
-        resources_per_trial={"cpu": 12, "gpu": 1},  # CPU number is the number of cores
+        resources_per_trial={"cpu": 32, "gpu": 1},  # CPU number is the number of cores
         config=search_space,
         num_samples=num_samples,  # the number of combinations to try
         scheduler=ASHAScheduler(),
@@ -236,7 +255,12 @@ def hyperopt(
 
     # Save the results
     analysis.results_df.to_csv(f"{folder_loc}/period{period}_results.csv", index=False)
-    save_plot(save_loc)
+
+    # Creating the plot can always be done later
+    try:
+        save_plot(save_loc)
+    except Exception as e:
+        print("Could not save plot, because error: ", e)
 
 
 def create_dirs(model_name: str, coin: str):
@@ -304,4 +328,4 @@ def hyperopt_full(model_name: str, num_samples: int):
 
 
 if __name__ == "__main__":
-    hyperopt_full("NBEATS", 20)
+    hyperopt_full(model_name="NBEATS", num_samples=20)
