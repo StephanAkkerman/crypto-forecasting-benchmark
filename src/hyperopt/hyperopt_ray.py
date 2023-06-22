@@ -329,8 +329,9 @@ def hyperopt_full(model_name: str, num_samples: int):
         The number of samples to be used.
     """
     for coin in all_coins:
-        for tf in timeframes:
-            hyperopt_dataset(model_name, coin, tf, num_samples)
+        if coin not in ["BTC", "ETH"]:  # cluster already did that!!
+            for tf in timeframes:
+                hyperopt_dataset(model_name, coin, tf, num_samples)
 
 
 if __name__ == "__main__":

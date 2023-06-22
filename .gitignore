@@ -6,7 +6,6 @@ __pycache__/
 
 # custom files
 /ray_results
-job.slurm
 ssh_command.txt
 
 
