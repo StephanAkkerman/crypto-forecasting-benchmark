@@ -39,48 +39,6 @@ from config import (
 from train_test import get_train_test, all_coins, timeframes, models
 
 
-def save_plot(save_loc: str):
-    """
-    Create a plot of the forecast and save it to save_loc.
-
-    Parameters
-    ----------
-    save_loc : str
-        The location to save the plot to.
-    """
-
-    # Get all .csv files in save_loc
-    csv_files = glob.glob(os.path.join(save_loc, "*.csv"))
-
-    predictions = []
-
-    # Read all .csv files in file_loc
-    for file in csv_files:
-        # Set the validation data
-        if file.endswith("val.csv"):
-            val_data = pd.read_csv(file)
-
-        # If the file is a prediction file
-        elif file.endswith("pred.csv"):
-            rmse = file.split("_")[0]
-            rmse = rmse[rmse.find("0.") :]
-            predictions.append((pd.read_csv(file), rmse))
-
-    # Plot the results
-    fig, ax = plt.subplots(figsize=(12, 6))
-    # Loop over items in dict
-    for df, rmse in predictions:
-        df["log returns"].plot(ax=ax, label=f"RMSE: {rmse}")
-    # plt.plot(val_data, label="Test Set")
-    val_data["log returns"].plot(ax=ax, label="Test Set")
-    plt.xlabel("Time")
-    plt.ylabel("Value")
-    plt.legend()
-    plt.title("Test Set vs. Forecast")
-    plt.savefig(f"{save_loc}/forecast.png")
-    plt.close()
-
-
 def get_model(full_model_name: str, model_args: dict):
     """
     Gets the model from the full_model_name and model_args.
@@ -242,8 +200,8 @@ def hyperopt(
     analysis = tune.run(
         train_fn_with_parameters,
         resources_per_trial={
-            "cpu": 8,
-            "gpu": 0.25,
+            "cpu": 8,  # 1 for all 20 at once
+            "gpu": 0.25,  # 0.05 for all 20 at once
             "accelator_type:A100": 1,
         },  # CPU number is the number of cores
         config=search_space,
@@ -261,12 +219,6 @@ def hyperopt(
 
     # Save the results
     analysis.results_df.to_csv(f"{folder_loc}/period{period}_results.csv", index=False)
-
-    # Creating the plot can always be done later
-    try:
-        save_plot(save_loc)
-    except Exception as e:
-        print("Could not save plot, because error: ", e)
 
 
 def create_dirs(model_name: str, coin: str):

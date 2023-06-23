@@ -34,8 +34,8 @@ model_config = {
     # https://xgboost.readthedocs.io/en/stable/python/python_api.html#xgboost.XGBRegressor
     "XGB": {
         "subsample": tune.uniform(0.8, 1),
-        "max_leaves": tune.choice([10, 25, 50, 100, 200]),
-        "max_depth": tune.choice([5, 10, 20, 30]),
+        "max_leaves": tune.choice([0, 10, 25, 50, 100, 200]),
+        "max_depth": tune.choice([None, 5, 10, 20, 30]),
         "gamma": tune.uniform(0, 0.02),
         "colsample_bytree": tune.uniform(0.8, 1),
         "min_child_weight": tune.choice([0, 2, 5, 7, 10]),
