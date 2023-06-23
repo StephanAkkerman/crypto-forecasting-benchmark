@@ -125,12 +125,14 @@ def create_plots(model_name):
             save_plot(model_name, coin, time_frame)
 
 
+def result_analysis(model_name, coin, time_frame):
+    best_hyperparameters(model_name, coin, time_frame)
+    save_plot(model_name, coin, time_frame, save=False)
+
+
 if __name__ == "__main__":
     model_name = "NBEATS"
     coin = "ETH"
     time_frame = "1d"
 
-    create_plots(model_name)
-
-    # best_hyperparameters(model_name, coin, time_frame)
-    # save_plot(model_name, coin, time_frame, save=False)
+    result_analysis(model_name, coin, time_frame)
