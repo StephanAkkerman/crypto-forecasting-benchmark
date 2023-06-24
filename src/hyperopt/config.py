@@ -18,7 +18,7 @@ model_unspecific = {
     "input_chunk_length": tune.choice([1, 3, 6, 9, 12, 24]),
     "n_epochs": tune.choice([25, 50, 75, 100]),
     "batch_size": tune.choice([16, 32, 64, 128, 256]),
-    "dropout": tune.uniform(0, 0.5),
+    "dropout": tune.uniform(0.01, 0.5),
 }
 
 # define the hyperparameter space
