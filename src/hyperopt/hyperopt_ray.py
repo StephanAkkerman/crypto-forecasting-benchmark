@@ -1,10 +1,8 @@
 import os
-import glob
-import matplotlib.pyplot as plt
-import pandas as pd
 
+import torch
+import ray
 from ray import tune
-from darts.metrics import rmse, mae
 
 # https://docs.ray.io/en/latest/tune/api/suggestion.html
 from ray.tune.search.skopt import SkOptSearch
@@ -12,6 +10,7 @@ from ray.tune.search.skopt import SkOptSearch
 # https://docs.ray.io/en/latest/tune/api/schedulers.html
 # https://docs.ray.io/en/latest/tune/api/doc/ray.tune.schedulers.AsyncHyperBandScheduler.html
 from ray.tune.schedulers import ASHAScheduler
+from darts.metrics import rmse, mae
 
 # Models
 from darts.models import (
@@ -196,16 +195,16 @@ def hyperopt(
     if model_name not in ["RandomForest", "XGB", "LightGBM", "Prophet"]:
         search_space.update(model_unspecific)
 
+    parallel_trials = 5
+    cores = 32
+
     # https://docs.ray.io/en/latest/tune/key-concepts.html#analysis
     analysis = tune.run(
         train_fn_with_parameters,
         resources_per_trial={
-            # 10 trials at once
-            "cpu": 3,  # 1 for all 20 at once
-            "gpu": 0.1,  # 0.05 for all 20 at once
-            "custom_resources": {
-                "accelerator_type:A100": 0.1  # Should be the same value as gpu
-            },
+            "cpu": cores // parallel_trials,
+            "gpu": 1 / parallel_trials,
+            # "custom_resources": {"accelerator_type:A100": 1 / parallel_trials},
         },
         config=search_space,
         num_samples=num_samples,  # the number of combinations to try
@@ -222,6 +221,9 @@ def hyperopt(
 
     # Save the results
     analysis.results_df.to_csv(f"{folder_loc}/period{period}_results.csv", index=False)
+
+    ray.shutdown()
+    ray.init()
 
 
 def create_dirs(model_name: str, coin: str):
@@ -286,8 +288,11 @@ def hyperopt_full(model_name: str, num_samples: int):
     for coin in all_coins:
         if coin not in ["BTC", "ETH"]:  # cluster already did that!!
             for tf in timeframes:
+                if coin == "BNB" and tf in ["1m", "15m", "4h"]:
+                    continue
                 hyperopt_dataset(model_name, coin, tf, num_samples)
 
 
 if __name__ == "__main__":
+    torch.set_float32_matmul_precision("high")
     hyperopt_full(model_name="NBEATS", num_samples=20)
