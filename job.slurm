@@ -26,4 +26,4 @@
 source /science-nfs-sys/vsm01/users/6397514/Code/envs/thesis_env/bin/activate
 cd /science-nfs-sys/vsm01/users/6397514/Code/Crypto_Forecasting
 
-srun python3 src/hyperopt/hyperopt_ray.py
+python3 src/hyperopt/hyperopt_ray.py
