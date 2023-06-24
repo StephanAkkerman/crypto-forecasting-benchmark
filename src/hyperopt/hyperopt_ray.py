@@ -200,8 +200,9 @@ def hyperopt(
     analysis = tune.run(
         train_fn_with_parameters,
         resources_per_trial={
-            "cpu": 1,  # 1 for all 20 at once
-            "gpu": 0.05,  # 0.05 for all 20 at once
+            "cpu": 3,  # 1 for all 20 at once
+            "gpu": 0.1,  # 0.05 for all 20 at once
+            "custom_resources": {"accelerator_type:A100": 1}
             # "accelator_type:A100": 1,
         },  # CPU number is the number of cores
         config=search_space,

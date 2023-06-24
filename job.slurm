@@ -9,7 +9,7 @@
 
 ### File / path where STDOUT & STDERR will be written
 ###    %J is the job ID, %I is the array ID
-#SBATCH --output /science-nfs-sys/vsm01/users/6397514/Code/Crypto_Forecasting/output.txt
+#SBATCH --output /science-nfs-sys/vsm01/users/6397514/Code/Crypto_Forecasting/output_%j.txt
 #SBATCH --error /science-nfs-sys/vsm01/users/6397514/Code/Crypto_Forecasting/error.txt
 
 ### Request the time you need for execution in minutes

@@ -132,7 +132,7 @@ def result_analysis(model_name, coin, time_frame):
 
 if __name__ == "__main__":
     model_name = "NBEATS"
-    coin = "ETH"
-    time_frame = "1d"
+    coin = "BNB"
+    time_frame = "1m"
 
     result_analysis(model_name, coin, time_frame)
