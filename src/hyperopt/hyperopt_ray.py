@@ -195,6 +195,7 @@ def hyperopt(
     if model_name not in ["RandomForest", "XGB", "LightGBM", "Prophet"]:
         search_space.update(model_unspecific)
 
+    # Maybe make this nicer
     parallel_trials = 5
     cores = 32
 
@@ -204,7 +205,7 @@ def hyperopt(
         resources_per_trial={
             "cpu": cores // parallel_trials,
             "gpu": 1 / parallel_trials,
-            # "custom_resources": {"accelerator_type:A100": 1 / parallel_trials},
+            "custom_resources": {"accelerator_type:A100": 1 / parallel_trials},
         },
         config=search_space,
         num_samples=num_samples,  # the number of combinations to try
@@ -294,5 +295,4 @@ def hyperopt_full(model_name: str, num_samples: int):
 
 
 if __name__ == "__main__":
-    torch.set_float32_matmul_precision("high")
     hyperopt_full(model_name="NBEATS", num_samples=20)
