@@ -196,16 +196,16 @@ def hyperopt(
         search_space.update(model_unspecific)
 
     # Maybe make this nicer
-    # parallel_trials = 5
+    parallel_trials = 3
     cores = 32
 
     # https://docs.ray.io/en/latest/tune/key-concepts.html#analysis
     analysis = tune.run(
         train_fn_with_parameters,
         resources_per_trial={
-            "cpu": cores,  # // parallel_trials,
-            "gpu": 1,  # / parallel_trials,
-            "custom_resources": {"accelerator_type:A100": 1},
+            "cpu": cores // parallel_trials,
+            "gpu": 1 / parallel_trials,
+            "custom_resources": {"accelerator_type:A100": 1 / parallel_trials},
         },
         config=search_space,
         num_samples=num_samples,  # the number of combinations to try
@@ -284,10 +284,20 @@ def hyperopt_full(model_name: str, num_samples: int):
         The number of samples to be used.
     """
     for coin in all_coins:
-        if coin not in ["BTC", "ETH", "BNB"]:  # cluster already did that!!
+        if coin not in [
+            "ADA",
+            "BNB",
+            "BTC",
+            "DOGE",
+            "ETC",
+            "ETH",
+            "LINK",
+            "MATIC",
+            "XRP",
+            "LTC",
+            "XLM",
+        ]:  # cluster already did that!!
             for tf in timeframes:
-                if coin == "XRP" and tf in ["1m", "15m"]:
-                    continue
                 hyperopt_dataset(model_name, coin, tf, num_samples)
 
 
