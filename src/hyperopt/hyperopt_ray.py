@@ -1,7 +1,6 @@
 import os
 
-import torch
-import ray
+import gc
 from ray import tune
 
 # https://docs.ray.io/en/latest/tune/api/suggestion.html
@@ -147,6 +146,10 @@ def train_model(
     pred.pd_dataframe().to_csv(os.path.join(data_loc, f"{rmse_val}_pred.csv"))
     val.pd_dataframe().to_csv(os.path.join(data_loc, "val.csv"))
 
+    # Delete objects to free up memory
+    del model
+    del pred
+
 
 def hyperopt(
     train_series: list,
@@ -196,7 +199,7 @@ def hyperopt(
         search_space.update(model_unspecific)
 
     # Maybe make this nicer
-    parallel_trials = 3
+    parallel_trials = 5
     cores = 32
 
     # https://docs.ray.io/en/latest/tune/key-concepts.html#analysis
@@ -222,6 +225,12 @@ def hyperopt(
 
     # Save the results
     analysis.results_df.to_csv(f"{folder_loc}/period{period}_results.csv", index=False)
+
+    # Delete objects to free up memory
+    del analysis
+    gc.collect()
+
+    # Could try: https://stackoverflow.com/questions/39758094/clearing-tensorflow-gpu-memory-after-model-execution
 
 
 def create_dirs(model_name: str, coin: str):
@@ -283,22 +292,11 @@ def hyperopt_full(model_name: str, num_samples: int):
     num_samples : int
         The number of samples to be used.
     """
-    for coin in all_coins:
-        if coin not in [
-            "ADA",
-            "BNB",
-            "BTC",
-            "DOGE",
-            "ETC",
-            "ETH",
-            "LINK",
-            "MATIC",
-            "XRP",
-            "LTC",
-            "XLM",
-        ]:  # cluster already did that!!
-            for tf in timeframes:
-                hyperopt_dataset(model_name, coin, tf, num_samples)
+    not_yet_done = "IOTA"
+
+    for coin in all_coins[all_coins.index(not_yet_done) :]:
+        for tf in timeframes:
+            hyperopt_dataset(model_name, coin, tf, num_samples)
 
 
 if __name__ == "__main__":
