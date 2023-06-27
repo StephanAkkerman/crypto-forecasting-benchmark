@@ -2,14 +2,11 @@ from ray import tune
 from ray.tune import CLIReporter
 
 val_percentage = 0.1
+parallel_trials = 5
 
 # These are the default args for all models
 default_args = {
     "output_chunk_length": 1,  # 1 step ahead forecasting
-    "pl_trainer_kwargs": {
-        "enable_progress_bar": False,
-        "accelerator": "auto",
-    },
 }
 
 # Except for autoARIMA
@@ -19,6 +16,11 @@ model_unspecific = {
     "n_epochs": tune.choice([25, 50, 75, 100]),
     "batch_size": tune.choice([16, 32, 64, 128, 256]),
     "dropout": tune.uniform(0.01, 0.5),
+    # PyTorch Lightning Trainer
+    "pl_trainer_kwargs": {
+        "enable_progress_bar": False,
+        "accelerator": "auto",
+    },
 }
 
 # define the hyperparameter space
@@ -27,6 +29,7 @@ model_config = {
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.random_forest.html
     # https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor
     "RandomForest": {
+        "lags": tune.choice([1, 7, 14, 30]),
         "n_estimators": tune.choice([10, 100, 250, 500, 1000]),
         "max_depth": tune.choice([None, 2, 4, 8, 10, 12]),
     },

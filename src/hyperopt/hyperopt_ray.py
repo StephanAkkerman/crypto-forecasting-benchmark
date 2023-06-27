@@ -1,6 +1,8 @@
 import os
-
 import gc
+import multiprocessing
+
+import torch
 from ray import tune
 
 # https://docs.ray.io/en/latest/tune/api/suggestion.html
@@ -32,6 +34,7 @@ from config import (
     get_reporter,
     model_unspecific,
     default_args,
+    parallel_trials,
 )
 
 from train_test import get_train_test, all_coins, timeframes, models
@@ -66,7 +69,10 @@ def get_model(full_model_name: str, model_args: dict):
 
     # add default args to model_args
     model_args.update(default_args)
-    model_args.update({"model_name": model_name})
+
+    # These models do not support model_name parameter
+    if model_name not in ["RandomForest"]:
+        model_args.update({"model_name": model_name})
 
     # Maybe replace all_models with this as a dict
     if model_name == "NBEATS":
@@ -82,7 +88,7 @@ def get_model(full_model_name: str, model_args: dict):
     elif model_name == "TFT":
         return TFTModel(**model_args)
     elif model_name == "RandomForest":
-        return RandomForest
+        return RandomForest(**model_args)
     elif model_name == "XGB":
         return XGBModel(**model_args)
     elif model_name == "LightGBM":
@@ -127,7 +133,7 @@ def train_model(
     val = train_series[period][-val_len:]
 
     # Train the model
-    model.fit(series=train_series[period][:-val_len], verbose=False)
+    model.fit(series=train_series[period][:-val_len])  # verbose=False
 
     # Evaluate the model
     pred = model.historical_forecasts(
@@ -159,6 +165,7 @@ def hyperopt(
     coin: str,
     time_frame: str,
     num_samples: int,
+    resources_per_trial: dict,
 ):
     """
     This function will optimize the hyperparameters of the model.
@@ -196,21 +203,14 @@ def hyperopt(
     # Add the unspecifc parameters
     search_space = model_config[model_name]
 
+    # Do not add model unspecific parameters to regression models
     if model_name not in ["RandomForest", "XGB", "LightGBM", "Prophet"]:
         search_space.update(model_unspecific)
-
-    # Maybe make this nicer
-    parallel_trials = 5
-    cores = 32
 
     # https://docs.ray.io/en/latest/tune/key-concepts.html#analysis
     analysis = tune.run(
         train_fn_with_parameters,
-        resources_per_trial={
-            "cpu": cores // parallel_trials,
-            "gpu": 1 / parallel_trials,
-            "custom_resources": {"accelerator_type:A100": 1 / parallel_trials},
-        },
+        resources_per_trial=resources_per_trial,
         config=search_space,
         num_samples=num_samples,  # the number of combinations to try
         scheduler=ASHAScheduler(),
@@ -232,6 +232,32 @@ def hyperopt(
     gc.collect()
 
     # Could try: https://stackoverflow.com/questions/39758094/clearing-tensorflow-gpu-memory-after-model-execution
+
+
+def get_resources() -> dict:
+    cores = multiprocessing.cpu_count()
+
+    resources_per_trial = {
+        "cpu": cores // parallel_trials,
+    }
+
+    # Get the name of the current device
+    try:
+        device_name = torch.cuda.get_device_name(torch.cuda.current_device())
+        resources_per_trial.update({"gpu": 1 / parallel_trials})
+    except Exception:
+        print("No GPU found, using CPU instead")
+
+    # If the name is A100
+    if "A100" in device_name:
+        # Add the A100 accelerator
+        resources_per_trial.update(
+            {
+                "custom_resources": {"accelerator_type:A100": 1 / parallel_trials},
+            }
+        )
+
+    return resources_per_trial
 
 
 def create_dirs(model_name: str, coin: str):
@@ -256,7 +282,13 @@ def create_dirs(model_name: str, coin: str):
             os.makedirs(f"hyperopt_results/{model_name}/{coin}/{tf}")
 
 
-def hyperopt_dataset(model_name: str, coin: str, time_frame: str, num_samples: int):
+def hyperopt_dataset(
+    model_name: str,
+    coin: str,
+    time_frame: str,
+    num_samples: int,
+    resources_per_trial: dict,
+):
     """
     Performs hyperparameter optimization for a given dataset.
 
@@ -279,7 +311,9 @@ def hyperopt_dataset(model_name: str, coin: str, time_frame: str, num_samples: i
     create_dirs(model_name, coin)
 
     # Perform hyperparameter optimization for period 0
-    hyperopt(train_series, model_name, 0, coin, time_frame, num_samples)
+    hyperopt(
+        train_series, model_name, 0, coin, time_frame, num_samples, resources_per_trial
+    )
 
 
 def hyperopt_full(model_name: str, num_samples: int):
@@ -295,9 +329,17 @@ def hyperopt_full(model_name: str, num_samples: int):
     """
     # not_yet_done = "IOTA"
     # for coin in all_coins[all_coins.index(not_yet_done) :]:
+    resources = get_resources()
+
+    print(
+        f"Starting {num_samples} hyperparameter optimization trials, running {parallel_trials} in parallel with the following resources per trial:\n",
+        resources,
+    )
+
+    # Loop over all coins and timeframes
     for coin in all_coins:
         for tf in timeframes:
-            hyperopt_dataset(model_name, coin, tf, num_samples)
+            hyperopt_dataset(model_name, coin, tf, num_samples, resources)
 
 
 if __name__ == "__main__":
