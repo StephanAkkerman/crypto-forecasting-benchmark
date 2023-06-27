@@ -35,9 +35,11 @@ from config import (
     model_unspecific,
     default_args,
     parallel_trials,
+    all_coins,
+    timeframes,
 )
 
-from train_test import get_train_test, all_coins, timeframes, models
+from train_test import get_train_test
 
 
 def get_model(full_model_name: str, model_args: dict):
@@ -64,41 +66,37 @@ def get_model(full_model_name: str, model_args: dict):
 
     model_name = full_model_name.split("_")[0]
 
-    if model_name not in models:
-        raise ValueError(f"Model {model_name} not found in {models}")
-
     # add default args to model_args
-    model_args.update(default_args)
+    if model_name not in ["Prophet", "TBATS"]:
+        model_args.update(default_args)
 
-    # These models do not support model_name parameter
-    if model_name not in ["RandomForest"]:
-        model_args.update({"model_name": model_name})
-
-    # Maybe replace all_models with this as a dict
-    if model_name == "NBEATS":
-        return NBEATSModel(**model_args)
-    elif model_name == "RNN":
-        return RNNModel(**model_args)
-    elif model_name == "LSTM":
-        return RNNModel(**model_args, model="LSTM")
-    elif model_name == "GRU":
-        return RNNModel(**model_args, model="GRU")
-    elif model_name == "TCN":
-        return TCNModel(**model_args)
-    elif model_name == "TFT":
-        return TFTModel(**model_args)
-    elif model_name == "RandomForest":
+    # The first 5 models are not classic ML models
+    if model_name == "RandomForest":
         return RandomForest(**model_args)
     elif model_name == "XGB":
         return XGBModel(**model_args)
     elif model_name == "LightGBM":
         return LightGBMModel(**model_args)
-    elif model_name == "NHiTS":
-        return NHiTSModel(**model_args)
-    elif model_name == "TBATS":
-        return TBATS(**model_args)
     elif model_name == "Prophet":
         return Prophet(**model_args)
+    elif model_name == "TBATS":
+        return TBATS(**model_args)
+    elif model_name == "NBEATS":
+        return NBEATSModel(**model_args, model_name=model_name)
+    elif model_name == "RNN":
+        return RNNModel(**model_args, model_name=model_name)
+    elif model_name == "LSTM":
+        return RNNModel(**model_args, model_name=model_name, model="LSTM")
+    elif model_name == "GRU":
+        return RNNModel(**model_args, model_name=model_name, model="GRU")
+    elif model_name == "TCN":
+        return TCNModel(**model_args, model_name=model_name)
+    elif model_name == "TFT":
+        return TFTModel(**model_args, model_name=model_name)
+    elif model_name == "NHiTS":
+        return NHiTSModel(**model_args, model_name=model_name)
+    else:
+        raise ValueError(f"Model {model_name} is not supported.")
 
 
 def train_model(
@@ -135,13 +133,17 @@ def train_model(
     # Train the model
     model.fit(series=train_series[period][:-val_len])  # verbose=False
 
+    retrain = False
+    if model_name.startswith("Prophet"):
+        retrain = True
+
     # Evaluate the model
     pred = model.historical_forecasts(
         series=train_series[period],
         start=len(train_series[period]) - val_len,
         forecast_horizon=1,  # 1 step ahead forecasting
         stride=1,  # 1 step ahead forecasting
-        retrain=False,
+        retrain=retrain,
         verbose=False,
     )
 
@@ -204,7 +206,7 @@ def hyperopt(
     search_space = model_config[model_name]
 
     # Do not add model unspecific parameters to regression models
-    if model_name not in ["RandomForest", "XGB", "LightGBM", "Prophet"]:
+    if model_name not in ["RandomForest", "XGB", "LightGBM", "Prophet", "TBATS"]:
         search_space.update(model_unspecific)
 
     # https://docs.ray.io/en/latest/tune/key-concepts.html#analysis
@@ -343,4 +345,4 @@ def hyperopt_full(model_name: str, num_samples: int):
 
 
 if __name__ == "__main__":
-    hyperopt_full(model_name="RandomForest", num_samples=20)
+    hyperopt_full(model_name="TBATS", num_samples=20)
