@@ -68,6 +68,7 @@ def get_model(full_model_name: str, model_args: dict):
     model_args.update(default_args)
     model_args.update({"model_name": model_name})
 
+    # Maybe replace all_models with this as a dict
     if model_name == "NBEATS":
         return NBEATSModel(**model_args)
     elif model_name == "RNN":
@@ -292,12 +293,12 @@ def hyperopt_full(model_name: str, num_samples: int):
     num_samples : int
         The number of samples to be used.
     """
-    not_yet_done = "IOTA"
-
-    for coin in all_coins[all_coins.index(not_yet_done) :]:
+    # not_yet_done = "IOTA"
+    # for coin in all_coins[all_coins.index(not_yet_done) :]:
+    for coin in all_coins:
         for tf in timeframes:
             hyperopt_dataset(model_name, coin, tf, num_samples)
 
 
 if __name__ == "__main__":
-    hyperopt_full(model_name="NBEATS", num_samples=20)
+    hyperopt_full(model_name="RandomForest", num_samples=20)

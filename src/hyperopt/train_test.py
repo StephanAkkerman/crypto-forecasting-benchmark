@@ -18,12 +18,12 @@ models = [
     "TCN",
     "NBEATS",
     "TFT",
-    "RANDOM FOREST",
-    "XGBOOST",
-    "LIGHTGBM",
-    "NHITS",
+    "RandomForest",
+    "XGB",
+    "LightGBM",
+    "NHiTS",
     "TBATS",
-    "PROPHET",
+    "Prophet",
 ]
 
 
