@@ -73,6 +73,14 @@ model_config = {
         "seasonality_prior_scale": tune.choice([0.01, 0.1, 1.0, 10.0]),
         "seasonality_mode": tune.choice(["additive", "multiplicative"]),
     },
+    # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.tbats_model.html
+    # https://github.com/intive-DataScience/tbats
+    "TBATS": {
+        "use_box_cox": tune.choice([True, False]),
+        "use_trend": tune.choice([True, False]),
+        "seasonal_periods": tune.choice([None, "freq"]),
+        "use_arma_errors": tune.choice([True, False]),
+    },
     ## Machine Learning Models
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.nbeats.html
     "NBEATS": {
@@ -118,14 +126,6 @@ model_config = {
         "num_blocks": tune.choice([1, 2, 3, 5, 10]),
         "num_layers": tune.choice([1, 2, 3, 4]),
         "layer_widths": tune.choice([256, 512, 1024]),
-    },
-    # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.tbats_model.html
-    # https://github.com/intive-DataScience/tbats
-    "TBATS": {
-        "use_box_cox": tune.choice([True, False]),
-        "use_trend": tune.choice([True, False]),
-        "seasonal_periods": tune.choice([None, 7, 30]),
-        "use_arma_errors": tune.choice([True, False]),
     },
 }
 

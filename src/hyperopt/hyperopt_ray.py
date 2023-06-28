@@ -133,7 +133,7 @@ def train_model(
     model.fit(series=train_series[period][:-val_len])  # verbose=False
 
     retrain = False
-    if model_name.startswith("Prophet"):
+    if model_name.startswith("Prophet") or model_name.startswith("TBATS"):
         retrain = True
 
     # Evaluate the model
@@ -233,6 +233,8 @@ def hyperopt(
     gc.collect()
 
     # Could try: https://stackoverflow.com/questions/39758094/clearing-tensorflow-gpu-memory-after-model-execution
+
+    # if gpu enabled in resources, show gpu memory usage
 
 
 def get_resources(parallel_trials: int) -> dict:
@@ -344,4 +346,4 @@ def hyperopt_full(model_name: str, num_samples: int, parallel_trials: int):
 
 
 if __name__ == "__main__":
-    hyperopt_full(model_name="XGB", num_samples=20, parallel_trials=20)
+    hyperopt_full(model_name="TBATS", num_samples=20, parallel_trials=3)
