@@ -233,8 +233,18 @@ def hyperopt(
     gc.collect()
 
     # Could try: https://stackoverflow.com/questions/39758094/clearing-tensorflow-gpu-memory-after-model-execution
-
     # if gpu enabled in resources, show gpu memory usage
+    if "gpu" in resources_per_trial:
+        print("### GPU INFO ###")
+        device_id = torch.cuda.current_device()
+
+        # Returns the current GPU memory usage by tensors in bytes for a given device
+        print(
+            f"GPU Memory Allocated: {torch.cuda.memory_allocated(device_id)/1024**2} MB"
+        )
+
+        # Returns the current GPU memory managed by the caching allocator in bytes for a given device
+        print(f"GPU Memory Cached: {torch.cuda.memory_reserved(device_id)/1024**2} MB")
 
 
 def get_resources(parallel_trials: int) -> dict:
@@ -346,4 +356,4 @@ def hyperopt_full(model_name: str, num_samples: int, parallel_trials: int):
 
 
 if __name__ == "__main__":
-    hyperopt_full(model_name="TBATS", num_samples=20, parallel_trials=3)
+    hyperopt_full(model_name="LightGBM", num_samples=20, parallel_trials=20)
