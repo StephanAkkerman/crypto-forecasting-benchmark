@@ -34,7 +34,6 @@ from config import (
     get_reporter,
     model_unspecific,
     default_args,
-    parallel_trials,
     all_coins,
     timeframes,
 )
@@ -236,7 +235,7 @@ def hyperopt(
     # Could try: https://stackoverflow.com/questions/39758094/clearing-tensorflow-gpu-memory-after-model-execution
 
 
-def get_resources() -> dict:
+def get_resources(parallel_trials: int) -> dict:
     cores = multiprocessing.cpu_count()
 
     resources_per_trial = {
@@ -318,7 +317,7 @@ def hyperopt_dataset(
     )
 
 
-def hyperopt_full(model_name: str, num_samples: int):
+def hyperopt_full(model_name: str, num_samples: int, parallel_trials: int):
     """
     Hyperparameter optimization for all datasets, for a given model.
 
@@ -331,10 +330,10 @@ def hyperopt_full(model_name: str, num_samples: int):
     """
     # not_yet_done = "IOTA"
     # for coin in all_coins[all_coins.index(not_yet_done) :]:
-    resources = get_resources()
+    resources = get_resources(parallel_trials)
 
     print(
-        f"Starting {num_samples} hyperparameter optimization trials, running {parallel_trials} in parallel with the following resources per trial:\n",
+        f"Starting {num_samples} hyperparameter optimization trials, running {parallel_trials} trials in parallel with the following resources per trial:\n",
         resources,
     )
 
@@ -345,4 +344,4 @@ def hyperopt_full(model_name: str, num_samples: int):
 
 
 if __name__ == "__main__":
-    hyperopt_full(model_name="TBATS", num_samples=20)
+    hyperopt_full(model_name="XGB", num_samples=20, parallel_trials=20)

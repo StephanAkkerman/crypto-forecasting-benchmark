@@ -10,7 +10,6 @@ all_coins = large_cap + mid_cap + small_cap
 timeframes = ["1m", "15m", "4h", "1d"]
 
 val_percentage = 0.1
-parallel_trials = 5
 
 # These are the default args for all models
 default_args = {
