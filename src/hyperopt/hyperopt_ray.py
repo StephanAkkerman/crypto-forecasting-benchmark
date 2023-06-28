@@ -356,4 +356,5 @@ def hyperopt_full(model_name: str, num_samples: int, parallel_trials: int):
 
 
 if __name__ == "__main__":
-    hyperopt_full(model_name="LightGBM", num_samples=20, parallel_trials=20)
+    for model in ["Prophet", "TBATS", "RNN", "LSTM", "GRU", "TCN", "TFT", "NHiTS"]:
+        hyperopt_full(model_name=model, num_samples=20, parallel_trials=20)

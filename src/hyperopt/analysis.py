@@ -130,6 +130,12 @@ def result_analysis(model_name, coin, time_frame):
     save_plot(model_name, coin, time_frame, save=False)
 
 
+def model_analysis(model_name):
+    # Get the best hyperparameters for each coin and time frame
+    # Creating a overview of best hyperparameters, grouped by timeframe or coin
+    pass
+
+
 if __name__ == "__main__":
     model_name = "NBEATS"
     coin = "BNB"
