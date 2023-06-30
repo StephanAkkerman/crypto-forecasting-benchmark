@@ -1,3 +1,4 @@
+import random
 from ray import tune
 from ray.tune import CLIReporter
 
@@ -10,6 +11,7 @@ all_coins = large_cap + mid_cap + small_cap
 timeframes = ["1m", "15m", "4h", "1d"]
 
 val_percentage = 0.1
+input_chunk_length = [1, 3, 6, 9, 12, 24]
 
 # These are the default args for all models
 default_args = {
@@ -19,7 +21,7 @@ default_args = {
 # Except for regression models
 model_unspecific = {
     # Lookback period
-    "input_chunk_length": tune.choice([1, 3, 6, 9, 12, 24]),
+    "input_chunk_length": tune.choice(input_chunk_length),
     "n_epochs": tune.choice([25, 50, 75, 100]),
     "batch_size": tune.choice([16, 32, 64, 128, 256]),
     "dropout": tune.uniform(0.01, 0.5),
@@ -106,8 +108,14 @@ model_config = {
         "training_length": tune.choice([25, 50, 75, 100]),
     },
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.tcn_model.html
+    # kernel_size < input_chunk_length
     "TCN": {
         "kernel_size": tune.choice([2, 3, 5, 7, 9]),
+        "input_chunk_length": tune.sample_from(
+            lambda spec: random.choice(
+                [i for i in input_chunk_length if i > spec.config.kernel_size]
+            )
+        ),
         "num_filters": tune.choice([3, 8, 11, 16, 24, 32]),
         "dilation_base": tune.choice([2, 4, 8, 16, 32]),
         "num_layers": tune.choice([None, 8, 12, 16, 20]),
