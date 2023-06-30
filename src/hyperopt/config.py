@@ -121,7 +121,6 @@ model_config = {
         ),
         # Only small batch sizes
         "batch_size": tune.choice([16, 32, 64]),
-        "input_chunk_length": tune.choice(input_chunk_length),
         "n_epochs": tune.choice([25, 50, 75, 100]),
         "dropout": tune.uniform(0.01, 0.5),
         "pl_trainer_kwargs": {
