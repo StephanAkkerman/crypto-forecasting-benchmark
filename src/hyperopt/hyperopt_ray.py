@@ -1,5 +1,6 @@
 import os
 import gc
+import json
 import multiprocessing
 
 import torch
@@ -104,6 +105,7 @@ def train_model(
     data_loc: str,
     period: int,
     train_series: list,
+    save_results: bool = True,
 ):
     """
     Train the model and report the results.
@@ -121,6 +123,19 @@ def train_model(
     train_series : list
         The training data.
     """
+
+    # Load previously used configurations
+    config_file = os.path.join(data_loc, "config.json")
+    if os.path.exists(config_file):
+        with open(config_file, "r") as f:
+            used_configs = json.load(f)
+    else:
+        used_configs = []
+
+    # If the current configuration has been used before, skip this trial
+    if model_args in used_configs:
+        tune.report(skip=True, rmse=999)  # This will mark the trial as completed
+        return
 
     # Get the model object
     model = get_model(model_name, model_args)
@@ -151,12 +166,18 @@ def train_model(
     tune.report(rmse=rmse_val, mae=mae(val, pred))
 
     # save predictions as file
-    pred.pd_dataframe().to_csv(os.path.join(data_loc, f"{rmse_val}_pred.csv"))
-    val.pd_dataframe().to_csv(os.path.join(data_loc, "val.csv"))
+    if save_results:
+        pred.pd_dataframe().to_csv(os.path.join(data_loc, f"{rmse_val}_pred.csv"))
+        val.pd_dataframe().to_csv(os.path.join(data_loc, "val.csv"))
 
     # Delete objects to free up memory
     del model
     del pred
+
+    # Save the configuration after a successful trial
+    used_configs.append(model_args)
+    with open(config_file, "w") as f:
+        json.dump(used_configs, f)
 
 
 def hyperopt(
@@ -167,6 +188,7 @@ def hyperopt(
     time_frame: str,
     num_samples: int,
     resources_per_trial: dict,
+    save_results: bool = True,
 ):
     """
     This function will optimize the hyperparameters of the model.
@@ -193,12 +215,17 @@ def hyperopt(
     # Save the images in here
     save_loc = os.path.join(os.getcwd(), folder_loc)
 
+    # Delete previous config.json files in save_loc
+    if "config.json" in os.listdir(save_loc):
+        os.remove(os.path.join(save_loc, "config.json"))
+
     train_fn_with_parameters = tune.with_parameters(
         train_model,
         model_name=f"{model_name}_{coin}_{time_frame}_{period}",
         data_loc=save_loc,
         period=period,
         train_series=train_series,
+        save_results=save_results,
     )
 
     # Add the unspecifc parameters
@@ -226,7 +253,10 @@ def hyperopt(
     )
 
     # Save the results
-    analysis.results_df.to_csv(f"{folder_loc}/period{period}_results.csv", index=False)
+    if save_results:
+        analysis.results_df.to_csv(
+            f"{folder_loc}/period{period}_results.csv", index=False
+        )
 
     # Delete objects to free up memory
     del analysis
@@ -301,6 +331,7 @@ def hyperopt_dataset(
     time_frame: str,
     num_samples: int,
     resources_per_trial: dict,
+    save_results: bool,
 ):
     """
     Performs hyperparameter optimization for a given dataset.
@@ -325,11 +356,20 @@ def hyperopt_dataset(
 
     # Perform hyperparameter optimization for period 0
     hyperopt(
-        train_series, model_name, 0, coin, time_frame, num_samples, resources_per_trial
+        train_series,
+        model_name,
+        0,
+        coin,
+        time_frame,
+        num_samples,
+        resources_per_trial,
+        save_results,
     )
 
 
-def hyperopt_full(model_name: str, num_samples: int, parallel_trials: int):
+def hyperopt_full(
+    model_name: str, num_samples: int, parallel_trials: int, save_results: bool
+):
     """
     Hyperparameter optimization for all datasets, for a given model.
 
@@ -342,6 +382,10 @@ def hyperopt_full(model_name: str, num_samples: int, parallel_trials: int):
     """
     # not_yet_done = "IOTA"
     # for coin in all_coins[all_coins.index(not_yet_done) :]:
+    if parallel_trials > num_samples:
+        parallel_trials = num_samples
+        print("parallel_trials > num_samples, setting parallel_trials = num_samples")
+
     resources = get_resources(parallel_trials)
 
     print(
@@ -352,9 +396,11 @@ def hyperopt_full(model_name: str, num_samples: int, parallel_trials: int):
     # Loop over all coins and timeframes
     for coin in all_coins:
         for tf in timeframes:
-            hyperopt_dataset(model_name, coin, tf, num_samples, resources)
+            hyperopt_dataset(model_name, coin, tf, num_samples, resources, save_results)
 
 
 if __name__ == "__main__":
     for model in ["Prophet"]:
-        hyperopt_full(model_name=model, num_samples=20, parallel_trials=10)
+        hyperopt_full(
+            model_name=model, num_samples=2, parallel_trials=2, save_results=False
+        )
