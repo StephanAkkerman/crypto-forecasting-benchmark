@@ -235,6 +235,9 @@ def hyperopt(
     if model_name not in ["RandomForest", "XGB", "LightGBM", "Prophet", "TBATS"]:
         search_space.update(model_unspecific)
 
+    if model_name == "TCN":
+        search_space["input_chunk_length"] = 1
+
     # https://docs.ray.io/en/latest/tune/key-concepts.html#analysis
     analysis = tune.run(
         train_fn_with_parameters,
@@ -400,7 +403,7 @@ def hyperopt_full(
 
 
 if __name__ == "__main__":
-    for model in ["Prophet"]:
+    for model in ["TCN"]:
         hyperopt_full(
             model_name=model, num_samples=2, parallel_trials=2, save_results=False
         )
