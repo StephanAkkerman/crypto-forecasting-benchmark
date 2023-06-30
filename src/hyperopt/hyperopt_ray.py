@@ -403,7 +403,9 @@ if __name__ == "__main__":
     for model in ["TCN", "TFT", "NHiTS"]:
         parallel_trials = 10
         # These models use a lot of GPU resources
-        if model in ["TCN", "NBEATS"]:
+        if model == "TCN":
+            parallel_trials = 1
+        elif model in ["NBEATS"]:
             parallel_trials = 3
         # These model do not need a lot of GPU resources
         elif model in ["RandomForest", "XGB", "LightGBM", "Prophet"]:
