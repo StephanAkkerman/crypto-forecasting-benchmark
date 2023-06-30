@@ -111,14 +111,23 @@ model_config = {
     # kernel_size < input_chunk_length
     "TCN": {
         "kernel_size": tune.choice([2, 3, 5, 7, 9]),
+        "num_filters": tune.choice([3, 8, 11, 16, 24, 32]),
+        "dilation_base": tune.choice([2, 4, 8, 16, 32]),
+        "num_layers": tune.choice([None, 8, 12, 16, 20]),
         "input_chunk_length": tune.sample_from(
             lambda spec: random.choice(
                 [i for i in input_chunk_length if i > spec.config.kernel_size]
             )
         ),
-        "num_filters": tune.choice([3, 8, 11, 16, 24, 32]),
-        "dilation_base": tune.choice([2, 4, 8, 16, 32]),
-        "num_layers": tune.choice([None, 8, 12, 16, 20]),
+        # Only small batch sizes
+        "batch_size": tune.choice([16, 32, 64]),
+        "input_chunk_length": tune.choice(input_chunk_length),
+        "n_epochs": tune.choice([25, 50, 75, 100]),
+        "dropout": tune.uniform(0.01, 0.5),
+        "pl_trainer_kwargs": {
+            "enable_progress_bar": False,
+            "accelerator": "auto",
+        },
     },
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.tft_model.html
     "TFT": {

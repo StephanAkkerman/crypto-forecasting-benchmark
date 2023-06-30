@@ -232,12 +232,7 @@ def hyperopt(
     search_space = model_config[model_name]
 
     # Do not add model unspecific parameters to regression models
-    if model_name == "TCN":
-        # Skip the input_chunk_length of model_unspecific
-        search_space.update(
-            {k: v for k, v in model_unspecific.items() if k != "input_chunk_length"}
-        )
-    elif model_name not in ["RandomForest", "XGB", "LightGBM", "Prophet", "TBATS"]:
+    if model_name not in ["RandomForest", "XGB", "LightGBM", "Prophet", "TBATS", "TCN"]:
         search_space.update(model_unspecific)
 
     # https://docs.ray.io/en/latest/tune/key-concepts.html#analysis
@@ -409,7 +404,7 @@ if __name__ == "__main__":
         parallel_trials = 10
         # These models use a lot of GPU resources
         if model in ["TCN", "NBEATS"]:
-            parallel_trials = 5
+            parallel_trials = 3
         # These model do not need a lot of GPU resources
         elif model in ["RandomForest", "XGB", "LightGBM", "Prophet"]:
             parallel_trials = 20
