@@ -11,7 +11,7 @@ from config import (
     results_folder,
 )
 
-from search_space import model_config, model_unspecific,
+from search_space import model_config, model_unspecific
 
 
 def get_resources(model_name, parallel_trials) -> dict:
