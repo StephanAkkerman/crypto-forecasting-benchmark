@@ -34,9 +34,9 @@ from config import (
     num_samples,
     results_folder,
     parallel_trials,
-    default_args,
     hyperopt_period,
 )
+from search_space import default_args
 
 from train_test import get_train_test
 from utils import (

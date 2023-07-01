@@ -9,9 +9,9 @@ from config import (
     timeframes,
     num_samples,
     results_folder,
-    model_config,
-    model_unspecific,
 )
+
+from search_space import model_config, model_unspecific,
 
 
 def get_resources(model_name, parallel_trials) -> dict:
