@@ -2,8 +2,10 @@ import os
 import pandas as pd
 from darts import TimeSeries
 
+from config import test_percentage, n_periods
 
-def read_csv(coin: str, timeframe: str, col_names: list = ["close"]):
+
+def read_csv(coin: str, timeframe: str, col_names: list = ["log returns"]):
     # Get the current directory
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,8 +27,7 @@ def read_csv(coin: str, timeframe: str, col_names: list = ["close"]):
     return df[col_names]
 
 
-# Load your data (replace this with your actual data)
-def get_train_test(coin="BTC", time_frame="1d", n_periods=9, test_size_percentage=0.25):
+def get_train_test(coin="BTC", time_frame="1d"):
     # Read data from a CSV file
     data = read_csv(coin, time_frame, ["log returns"]).dropna()
     data["date"] = data.index
@@ -35,8 +36,8 @@ def get_train_test(coin="BTC", time_frame="1d", n_periods=9, test_size_percentag
     time_series = TimeSeries.from_dataframe(data, "date", "log returns")
 
     # Set parameters for sliding window and periods
-    test_size = int(len(time_series) / (1 / test_size_percentage - 1 + n_periods))
-    train_size = int(test_size * (1 / test_size_percentage - 1))
+    test_size = int(len(time_series) / (1 / test_percentage - 1 + n_periods))
+    train_size = int(test_size * (1 / test_percentage - 1))
 
     # Save the training and test sets as lists of TimeSeries
     train_set = []
@@ -51,39 +52,3 @@ def get_train_test(coin="BTC", time_frame="1d", n_periods=9, test_size_percentag
         test_set.append(time_series[train_end : train_end + test_size])
 
     return train_set, test_set
-
-
-def get_train_val(
-    coin="BTC",
-    time_frame="1d",
-    n_periods=9,
-    test_size_percentage=0.25,
-    val_size_percentage=0.1,
-    input_chunk_length=24,
-):
-    train_val_set = []
-
-    train_set, _ = get_train_test(coin, time_frame, n_periods, test_size_percentage)
-
-    # Calculate the validation size
-    val_len = int(val_size_percentage * len(train_set[0]))
-    end = len(train_set[0]) - val_len
-
-    for period in range(n_periods):
-        train_val_period = []
-        for v in range(val_len):
-            train = train_set[period][: end + v]
-            # Add the input_chunk_length to the validation set
-            # if -val_len + v + 1 != 0:
-            #    val = train_set[period][
-            #        -val_len + v - input_chunk_length : -val_len + v + 1
-            #    ]
-            # else:
-            #    val = train_set[period][-val_len + v - input_chunk_length :]
-            val = train_set[period][end + v - input_chunk_length : end + v + 1]
-
-            train_val_period.append((train, val))
-
-        train_val_set.append(train_val_period)
-
-    return train_val_set

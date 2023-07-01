@@ -1,1 +1,0 @@
-[{"hidden_size": 25, "lstm_layers": 2, "num_attention_heads": 1, "hidden_continuous_size": 8, "add_relative_index": true, "input_chunk_length": 24, "n_epochs": 100, "batch_size": 128, "dropout": 0.11953268619300064, "pl_trainer_kwargs": {"enable_progress_bar": false, "accelerator": "auto"}, "output_chunk_length": 1}]

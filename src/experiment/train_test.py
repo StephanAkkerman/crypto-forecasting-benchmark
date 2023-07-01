@@ -168,5 +168,6 @@ def plot_periods(
     ax.set_ylabel("Volatility")
     ax.set_xlabel("Date")
 
-    plt.savefig(f"data/plots/{test_size}test_{n_periods}periods.png")
+    # plt.savefig(f"data/plots/{test_size}test_{n_periods}periods.png")
+    print("Length of validation set:", val_size)
     plt.show()

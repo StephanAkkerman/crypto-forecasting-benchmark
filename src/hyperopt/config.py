@@ -1,24 +1,58 @@
 import random
 from ray import tune
-from ray.tune import CLIReporter
 
 large_cap = ["BTC", "ETH", "BNB", "XRP", "ADA", "DOGE", "MATIC"]
 mid_cap = ["LINK", "ETC", "XLM", "LTC", "TRX", "ATOM", "XMR"]
 small_cap = ["VET", "ALGO", "EOS", "CHZ", "IOTA", "NEO", "XTZ"]
-
 all_coins = large_cap + mid_cap + small_cap
 
 timeframes = ["1m", "15m", "4h", "1d"]
+models = [
+    "RandomForest",
+    "XGB",
+    "LightGBM",
+    "Prophet",
+    "TBATS",
+    "NBEATS",
+    "RNN",
+    "LSTM",
+    "GRU",
+    "TCN",
+    "TFT",
+    "NHiTS",
+]
 
+# If GPU is available use it
+use_GPU = True
+
+# Use 25% of the data for testing, the rest for training
+test_percentage = 0.25
+
+# Use 10% of the training data for validation
 val_percentage = 0.1
-input_chunk_length = [1, 3, 6, 9, 12, 24]
+
+# Split the data in periods of 5
+n_periods = 5
+
+# Perform hyperparameter optimization on the 0th (first) period
+hyperopt_period = 0
+
+# The number of parallel trials to run using Ray Tune
+parallel_trials = 10
+
+# The number of samples to draw from the hyperparameter space
+num_samples = 20
+
+# Results folder name
+results_folder = "hyperopt_results"
 
 # These are the default args for all models
 default_args = {
     "output_chunk_length": 1,  # 1 step ahead forecasting
 }
 
-# Except for regression models
+# These are the default args for all machine learning models
+input_chunk_length = [1, 3, 6, 9, 12, 24]
 model_unspecific = {
     # Lookback period
     "input_chunk_length": tune.choice(input_chunk_length),
@@ -83,7 +117,7 @@ model_config = {
         "seasonal_periods": tune.choice([None, "freq"]),
         "use_arma_errors": tune.choice([True, False]),
     },
-    ## Machine Learning Models
+    ### Machine Learning Models ###
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.nbeats.html
     "NBEATS": {
         "num_layers": tune.choice([2, 3, 4]),
@@ -113,14 +147,15 @@ model_config = {
         "kernel_size": tune.choice([2, 3, 5, 7, 9]),
         "num_filters": tune.choice([3, 8, 11, 16, 24, 32]),
         "dilation_base": tune.choice([2, 4, 8, 16, 32]),
-        "num_layers": tune.choice([None, 8, 12, 16, 20]),
+        # Setting num_layers high will cause CUDA OOM errors
+        "num_layers": tune.choice([None, 2, 4, 6]),
+        # Use custom input_chunk_length
         "input_chunk_length": tune.sample_from(
             lambda spec: random.choice(
                 [i for i in input_chunk_length if i > spec.config.kernel_size]
             )
         ),
-        # Only small batch sizes
-        "batch_size": tune.choice([8, 16, 32]),
+        "batch_size": tune.choice([16, 32, 64, 128, 256]),
         "n_epochs": tune.choice([25, 50, 75, 100]),
         "dropout": tune.uniform(0.01, 0.5),
         "pl_trainer_kwargs": {
@@ -144,10 +179,3 @@ model_config = {
         "layer_widths": tune.choice([256, 512, 1024]),
     },
 }
-
-
-def get_reporter(model_name):
-    return CLIReporter(
-        parameter_columns=list(model_config[model_name].keys()),
-        metric_columns=["loss", "mae", "rmse"],
-    )
