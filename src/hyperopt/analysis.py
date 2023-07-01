@@ -3,7 +3,7 @@ import glob
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from train_test import timeframes
+from config import timeframes
 
 
 def save_plot(model_name: str, coin: str, time_frame: str, save: bool = True):

@@ -333,7 +333,7 @@ def hyperopt_full(save_results: bool):
 
     for model in models:
         # Prophet does not work on cluster :(
-        if model == "Prophet":
+        if model in ["Prophet", "TBATS"]:
             continue
         hyperopt_model(model, save_results)
 
