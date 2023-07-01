@@ -1,0 +1,1 @@
+[{"kernel_size": 3, "num_filters": 24, "dilation_base": 4, "num_layers": null, "input_chunk_length": 9, "batch_size": 16, "n_epochs": 50, "dropout": 0.020910277759752904, "pl_trainer_kwargs": {"enable_progress_bar": false, "accelerator": "auto"}, "output_chunk_length": 1}]

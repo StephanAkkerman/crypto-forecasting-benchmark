@@ -125,12 +125,14 @@ def train_model(
     """
 
     # Load previously used configurations
-    config_file = os.path.join(data_loc, "config.json")
-    if os.path.exists(config_file):
-        with open(config_file, "r") as f:
-            used_configs = json.load(f)
-    else:
-        used_configs = []
+    used_configs = []
+    try:
+        config_file = os.path.join(data_loc, "config.json")
+        if os.path.exists(config_file):
+            with open(config_file, "r") as f:
+                used_configs = json.load(f)
+    except Exception as e:
+        print("Error loading config file:", e)
 
     # If the current configuration has been used before, skip this trial
     if model_args in used_configs:
@@ -170,14 +172,13 @@ def train_model(
         pred.pd_dataframe().to_csv(os.path.join(data_loc, f"{rmse_val}_pred.csv"))
         val.pd_dataframe().to_csv(os.path.join(data_loc, "val.csv"))
 
-    # Delete objects to free up memory
-    del model
-    del pred
-
     # Save the configuration after a successful trial
-    used_configs.append(model_args)
-    with open(config_file, "w") as f:
-        json.dump(used_configs, f)
+    try:
+        used_configs.append(model_args)
+        with open(config_file, "w") as f:
+            json.dump(used_configs, f)
+    except Exception as e:
+        print(f"Could not save the configuration file: {e}")
 
 
 def hyperopt(
@@ -257,24 +258,6 @@ def hyperopt(
         analysis.results_df.to_csv(
             f"{folder_loc}/period{period}_results.csv", index=False
         )
-
-    # Delete objects to free up memory
-    del analysis
-    gc.collect()
-
-    # Could try: https://stackoverflow.com/questions/39758094/clearing-tensorflow-gpu-memory-after-model-execution
-    # if gpu enabled in resources, show gpu memory usage
-    if "gpu" in resources_per_trial:
-        print("### GPU INFO ###")
-        device_id = torch.cuda.current_device()
-
-        # Returns the current GPU memory usage by tensors in bytes for a given device
-        print(
-            f"GPU Memory Allocated: {torch.cuda.memory_allocated(device_id)/1024**2} MB"
-        )
-
-        # Returns the current GPU memory managed by the caching allocator in bytes for a given device
-        print(f"GPU Memory Cached: {torch.cuda.memory_reserved(device_id)/1024**2} MB")
 
 
 def get_resources(parallel_trials: int) -> dict:
@@ -394,13 +377,24 @@ def hyperopt_full(
     )
 
     # Loop over all coins and timeframes
-    for coin in all_coins:
-        for tf in timeframes:
-            hyperopt_dataset(model_name, coin, tf, num_samples, resources, save_results)
+    if model_name == "TCN":
+        for coin in all_coins[all_coins.index("EOS") :]:
+            for tf in timeframes:
+                if coin == "EOS" and tf in ["1m", "15m", "4h"]:
+                    continue
+                hyperopt_dataset(
+                    model_name, coin, tf, num_samples, resources, save_results
+                )
+    else:
+        for coin in all_coins:
+            for tf in timeframes:
+                hyperopt_dataset(
+                    model_name, coin, tf, num_samples, resources, save_results
+                )
 
 
 if __name__ == "__main__":
-    for model in ["TCN", "TFT", "NHiTS"]:
+    for model in ["TFT", "NHiTS"]:
         parallel_trials = 10
         # These models use a lot of GPU resources
         if model == "TCN":
