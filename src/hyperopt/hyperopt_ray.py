@@ -126,13 +126,14 @@ def train_model(
 
     # Load previously used configurations
     used_configs = []
-    try:
-        config_file = os.path.join(data_loc, "config.json")
-        if os.path.exists(config_file):
-            with open(config_file, "r") as f:
+    config_file = os.path.join(data_loc, "config.json")
+    if os.path.exists(config_file):
+        with open(config_file, "r") as f:
+            try:
                 used_configs = json.load(f)
-    except Exception as e:
-        print("Error loading config file:", e)
+            except Exception as e:
+                print("Error loading config file:", e)
+                print("Config file:\n", config_file)
 
     # If the current configuration has been used before, skip this trial
     if model_args in used_configs:
@@ -377,7 +378,7 @@ def hyperopt_full(
     )
 
     # Loop over all coins and timeframes
-    if model_name == "TCN":
+    if model_name == "TFT":
         for coin in all_coins[all_coins.index("EOS") :]:
             for tf in timeframes:
                 if coin == "EOS" and tf in ["1m", "15m", "4h"]:
