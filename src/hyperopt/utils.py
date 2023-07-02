@@ -1,11 +1,14 @@
 import os
+from warnings import warn
 import multiprocessing
 
 import torch
 from ray.tune import CLIReporter
+from ray.util.accelerators import __all__ as accelerators
 
 from config import (
     use_GPU,
+    cpu_cores,
     timeframes,
     num_samples,
     results_folder,
@@ -14,10 +17,10 @@ from config import (
 from search_space import model_config, model_unspecific
 
 
-def get_resources(model_name, parallel_trials) -> dict:
+def get_resources(model_name: str, parallel_trials: int) -> dict:
     if parallel_trials > num_samples:
         parallel_trials = num_samples
-        print("parallel_trials > num_samples, setting parallel_trials = num_samples")
+        warn("parallel_trials > num_samples, setting parallel_trials = num_samples")
 
     # These models use a lot of GPU resources
     if model_name == "TCN":
@@ -28,7 +31,16 @@ def get_resources(model_name, parallel_trials) -> dict:
     elif model_name in ["RandomForest", "XGB", "LightGBM", "Prophet"]:
         parallel_trials = 20
 
+    # Utilize all CPU cores if set to -1
     cores = multiprocessing.cpu_count()
+    if cpu_cores != -1:
+        if cpu_cores > cores:
+            warn("You cannot use more cores than you have, setting cpu_cores = cores")
+        else:
+            cores = cpu_cores
+
+    if cores < num_samples:
+        warn("Cores < num_samples, no CPU cores will be used for the trials!")
 
     # CPU must be ints
     resources_per_trial = {
@@ -43,14 +55,16 @@ def get_resources(model_name, parallel_trials) -> dict:
     except Exception:
         print("No GPU found, using CPU instead")
 
-    # If the name is A100
-    if "A100" in device_name:
-        # Add the A100 accelerator
-        resources_per_trial.update(
-            {
-                "custom_resources": {"accelerator_type:A100": 1 / parallel_trials},
-            }
-        )
+    # Add accelerator type if it is available
+    for accelerator in [a.split("_")[-1] for a in accelerators]:
+        if accelerator in device_name:
+            resources_per_trial.update(
+                {
+                    "custom_resources": {
+                        f"accelerator_type:{accelerator}": 1 / parallel_trials
+                    },
+                }
+            )
 
     print(
         f"Starting {num_samples} hyperparameter optimization trials, running {parallel_trials} trials in parallel with the following resources per trial:\n",
@@ -89,7 +103,7 @@ def get_reporter(model_name):
     )
 
 
-def get_search_space(model_name):
+def get_search_space(model_name: str):
     # Add the unspecifc parameters
     search_space = model_config[model_name]
 
@@ -100,7 +114,7 @@ def get_search_space(model_name):
     return search_space
 
 
-def delete_config(save_loc):
+def delete_config(save_loc: str):
     # Delete previous config.json files in save_loc
     if "config.json" in os.listdir(save_loc):
         os.remove(os.path.join(save_loc, "config.json"))

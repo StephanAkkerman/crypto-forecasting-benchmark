@@ -37,7 +37,6 @@ from config import (
     hyperopt_period,
 )
 from search_space import default_args
-
 from train_test import get_train_test
 from utils import (
     create_dirs,
@@ -104,6 +103,19 @@ def get_model(model_name: str, model_args: dict):
 
 
 def load_config(data_loc: str):
+    """Load the configuration file if it exists.
+
+    Parameters
+    ----------
+    data_loc : str
+        The location of the config file.
+
+    Returns
+    -------
+    list | dict
+        Empty list if the config file does not exist, otherwise the list of used configs.
+    """
+
     # Load previously used configurations
     used_configs = []
     config_file = os.path.join(data_loc, "config.json")
@@ -118,8 +130,18 @@ def load_config(data_loc: str):
     return used_configs
 
 
-def save_config(data_loc, used_configs, model_args):
-    # Save the configuration after a successful trial
+def save_config(data_loc: str, used_configs: list, model_args: dict):
+    """Add the current configuration to the list of used configurations and save it to a file.
+
+    Parameters
+    ----------
+    data_loc : str
+        The location of the config file.
+    used_configs : list
+        The list of used configurations.
+    model_args : dict
+        The current configuration.
+    """
     config_file = os.path.join(data_loc, "config.json")
     try:
         used_configs.append(model_args)
@@ -129,8 +151,17 @@ def save_config(data_loc, used_configs, model_args):
         print(f"Could not save the configuration file: {e}")
 
 
-def save_trial_results(data_loc, rmse_val, pred, val):
-    # save predictions as file
+def save_trial_results(data_loc: str, rmse_val: float, pred, val):
+    """Save the results of the trial to a file.
+    data_loc : str
+        The location of the saved results.
+    rmse_val : float
+        The RMSE value of the trial.
+    pred : darts.TimeSeries
+        The predictions of the trial.
+    val : darts.TimeSeries
+        The validation data.
+    """
     pred.pd_dataframe().to_csv(os.path.join(data_loc, f"{rmse_val}_pred.csv"))
     val.pd_dataframe().to_csv(os.path.join(data_loc, "val.csv"))
 
@@ -304,9 +335,13 @@ def hyperopt_dataset(
         analysis.results_df.to_csv(f"{folder_loc}/analysis.csv", index=False)
 
 
-def hyperopt_model(model: str, save_results: bool):
+def hyperopt_model(
+    model: str, save_results: bool, start_from_coin: str = "BTC", start_from_tf=None
+):
     """
     Hyperparameter optimization for all datasets, for a given model.
+    start_from_coin and start_from_tf can be specified if the model stopped at a certain point.
+    For example, if the model stopped at EOS and 4h then set start_from_coin = "EOS" and start_from_tf = "4h".
 
     Parameters
     ----------
@@ -314,11 +349,21 @@ def hyperopt_model(model: str, save_results: bool):
         The name of the model to be used.
     save_results : bool
         Whether to save the results or not.
+    start_from_coin : str
+        The coin to start from, BTC if all coins are to be used.
+    start_from_tf : str
+        If not None, the time frame to start from for the first coin.
     """
 
-    for coin in all_coins:
-        for tf in timeframes:
+    # If start_from_tf is not None
+    tf_index = timeframes.index(start_from_tf) if start_from_tf else 0
+
+    for coin in all_coins[all_coins.index(start_from_coin) :]:
+        for tf in timeframes[tf_index:]:
             hyperopt_dataset(model, coin, tf, save_results)
+
+        # Reset the tf_index for the next coin
+        tf_index = 0
 
 
 def hyperopt_full(save_results: bool):
@@ -339,5 +384,8 @@ def hyperopt_full(save_results: bool):
 
 
 if __name__ == "__main__":
-    hyperopt_full(save_results=True)
-    # hyperopt_model("TBATS", False)
+    # Note: It is important to have all the code that runs the Ray Tune trials in this file.
+    # Otherwise, Ray Tune will not be able to find the functions.
+
+    # hyperopt_full(save_results=True)
+    hyperopt_model("Prophet", True, "DOGE", "1d")

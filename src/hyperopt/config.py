@@ -22,6 +22,9 @@ models = [
 # If GPU is available use it
 use_GPU = True
 
+# If -1 use all CPU cores, otherwise specify the number of cores to use
+cpu_cores = -1
+
 # Use 25% of the data for testing, the rest for training
 test_percentage = 0.25
 
