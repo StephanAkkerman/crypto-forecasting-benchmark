@@ -61,6 +61,10 @@ Additionally, you will need to install several Python packages which are listed 
 ```
 pip install -r requirements.txt
 ```
+If you want to use the development version:
+```
+pip install git+https://github.com/StephanAkkerman/Crypto_Forecasting.git
+```
 
 While using a GPU is optional, it is highly recommended for performing hyperparameter optimization and fitting and evaluating the models. You might need to change the `batch_size` and `parallel_trials` parameters to prevent GPU OOM errors.
 
