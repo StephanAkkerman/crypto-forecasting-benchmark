@@ -1,0 +1,2 @@
+date,timestamp,pid,hostname,node_ip,config/n_changepoints,config/changepoint_range,config/changepoint_prior_scale,config/seasonality_prior_scale,config/seasonality_mode
+2023-07-02_23-51-30,1688334690,14460,Stephan-PC,127.0.0.1,50,0.6,1.0,1.0,additive
