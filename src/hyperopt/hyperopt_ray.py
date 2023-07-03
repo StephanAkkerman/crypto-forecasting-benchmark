@@ -366,7 +366,7 @@ def hyperopt_model(
         tf_index = 0
 
 
-def hyperopt_full(save_results: bool):
+def hyperopt_full(save_results: bool, start_from_model=None):
     """
     Hyperparameter optimization for all datasets, for all models.
 
@@ -376,10 +376,12 @@ def hyperopt_full(save_results: bool):
         Whether to save the results or not.
     """
 
-    for model in models:
+    for model in models[models.index(start_from_model) :]:
         # Prophet does not work on cluster :(
         if model in ["Prophet", "TBATS"]:
             continue
+        if model == "NBEATS":
+            hyperopt_model(model, save_results, "TRX", "15m")
         hyperopt_model(model, save_results)
 
 
@@ -387,5 +389,5 @@ if __name__ == "__main__":
     # Note: It is important to have all the code that runs the Ray Tune trials in this file.
     # Otherwise, Ray Tune will not be able to find the functions.
 
-    # hyperopt_full(save_results=True)
-    hyperopt_model("Prophet", True, "ATOM", "1d")
+    hyperopt_full(save_results=True, start_from_model="NBEATS")
+    # hyperopt_model("Prophet", True, "ATOM", "1d")
