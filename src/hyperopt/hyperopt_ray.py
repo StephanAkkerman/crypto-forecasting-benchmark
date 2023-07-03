@@ -390,4 +390,4 @@ if __name__ == "__main__":
     # Otherwise, Ray Tune will not be able to find the functions.
 
     # hyperopt_full(save_results=True, start_from_model="NBEATS")
-    hyperopt_model("Prophet", True, "XMR")
+    hyperopt_model("Prophet", True, "XTZ", "4h")
