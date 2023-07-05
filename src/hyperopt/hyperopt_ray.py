@@ -377,17 +377,21 @@ def hyperopt_full(save_results: bool, start_from_model=None):
     """
 
     for model in models[models.index(start_from_model) :]:
+        start_from_coin = "BTC"
+        start_from_tf = None
+
         # Prophet does not work on cluster :(
         if model in ["Prophet", "TBATS"]:
             continue
         if model == "NBEATS":
-            hyperopt_model(model, save_results, "TRX", "15m")
-        hyperopt_model(model, save_results)
+            start_from_coin = "TRX"
+            start_from_tf = "15m"
+        hyperopt_model(model, save_results, start_from_coin, start_from_tf)
 
 
 if __name__ == "__main__":
     # Note: It is important to have all the code that runs the Ray Tune trials in this file.
     # Otherwise, Ray Tune will not be able to find the functions.
 
-    hyperopt_full(save_results=True, start_from_model="NBEATS")
-    # hyperopt_model("Prophet", True, "ATOM", "1d")
+    hyperopt_full(save_results=True, start_from_model="RNN")
+    # hyperopt_model("Prophet", True, "XTZ", "4h")
