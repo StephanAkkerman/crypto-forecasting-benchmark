@@ -4,7 +4,7 @@ import json
 from ray import tune
 
 # https://docs.ray.io/en/latest/tune/api/suggestion.html
-from ray.tune.search.skopt import SkOptSearch
+from ray.tune.search.hebo import HEBOSearch
 
 # https://docs.ray.io/en/latest/tune/api/schedulers.html
 # https://docs.ray.io/en/latest/tune/api/doc/ray.tune.schedulers.AsyncHyperBandScheduler.html
@@ -280,7 +280,7 @@ def hyperopt(
         metric="rmse",
         mode="min",  # "min" or "max
         progress_reporter=get_reporter(model_name),
-        search_alg=SkOptSearch(),
+        search_alg=HEBOSearch(),
         verbose=2,  # 0: silent, 1: only status updates, 2: status and trial results 3: most detailed
         local_dir="ray_results",
         name=f"{model_name}_{coin}_{time_frame}_{hyperopt_period}",  # folder in local_dir
@@ -393,4 +393,5 @@ if __name__ == "__main__":
     # Note: It is important to have all the code that runs the Ray Tune trials in this file.
     # Otherwise, Ray Tune will not be able to find the functions.
 
-    hyperopt_full(save_results=True, start_from_model="TCN")
+    # hyperopt_full(save_results=True, start_from_model="TCN")
+    hyperopt_model("TBATS", save_results=True)
