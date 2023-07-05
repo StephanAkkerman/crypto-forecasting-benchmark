@@ -133,6 +133,7 @@ def result_analysis(model_name, coin, time_frame):
 def model_analysis(model_name):
     # Get the best hyperparameters for each coin and time frame
     # Creating a overview of best hyperparameters, grouped by timeframe or coin
+    # Also shows what hyperparameters are the most influential for the RMSE
     pass
 
 

@@ -2,6 +2,7 @@ import os
 import json
 
 from ray import tune
+from ray.air.config import RunConfig
 
 # https://docs.ray.io/en/latest/tune/api/suggestion.html
 from ray.tune.search.hebo import HEBOSearch
@@ -270,22 +271,31 @@ def hyperopt(
         save_results=save_results,
     )
 
-    # https://docs.ray.io/en/latest/tune/key-concepts.html#analysis
-    return tune.run(
-        train_fn_with_parameters,
-        resources_per_trial=get_resources(model_name, parallel_trials=parallel_trials),
-        config=get_search_space(model_name),
-        num_samples=num_samples,  # the number of combinations to try
-        scheduler=ASHAScheduler(),
-        metric="rmse",
-        mode="min",  # "min" or "max
-        progress_reporter=get_reporter(model_name),
-        search_alg=HEBOSearch(),
-        verbose=2,  # 0: silent, 1: only status updates, 2: status and trial results 3: most detailed
-        local_dir="ray_results",
-        name=f"{model_name}_{coin}_{time_frame}_{hyperopt_period}",  # folder in local_dir
-        trial_name_creator=lambda trial: model_name,  # folder in name file
+    # https://docs.ray.io/en/latest/tune/api/doc/ray.tune.Tuner.html#ray.tune.Tuner
+    # https://docs.ray.io/en/latest/tune/api/doc/ray.tune.TuneConfig.html#ray.tune.TuneConfig
+    # https://docs.ray.io/en/latest/ray-air/api/doc/ray.air.RunConfig.html#ray.air.RunConfig
+    tuner = tune.Tuner(
+        trainable=tune.with_resources(
+            train_fn_with_parameters,
+            get_resources(model_name, parallel_trials=parallel_trials),
+        ),
+        param_space=get_search_space(model_name),
+        tune_config=tune.TuneConfig(
+            mode="min",
+            metric="rmse",
+            num_samples=num_samples,
+            scheduler=ASHAScheduler(),
+            search_alg=HEBOSearch(),
+            trial_name_creator=lambda trial: model_name,  # folder in name file
+        ),
+        run_config=RunConfig(
+            name=f"{model_name}_{coin}_{time_frame}_{hyperopt_period}",  # folder in local_dir
+            progress_reporter=get_reporter(model_name),
+            verbose=2,
+            local_dir="ray_results",
+        ),
     )
+    return tuner.fit()
 
 
 def hyperopt_dataset(
@@ -332,7 +342,7 @@ def hyperopt_dataset(
     )
 
     if save_results:
-        analysis.results_df.to_csv(f"{folder_loc}/analysis.csv", index=False)
+        analysis.get_dataframe().to_csv(f"{folder_loc}/analysis.csv", index=False)
 
 
 def hyperopt_model(
@@ -394,4 +404,5 @@ if __name__ == "__main__":
     # Otherwise, Ray Tune will not be able to find the functions.
 
     # hyperopt_full(save_results=True, start_from_model="TCN")
-    hyperopt_model("TBATS", save_results=True)
+    # hyperopt_model("TBATS", save_results=True)
+    hyperopt_model("Prophet", save_results=False)
