@@ -393,5 +393,4 @@ if __name__ == "__main__":
     # Note: It is important to have all the code that runs the Ray Tune trials in this file.
     # Otherwise, Ray Tune will not be able to find the functions.
 
-    hyperopt_full(save_results=True, start_from_model="RNN")
-    # hyperopt_model("Prophet", True, "XTZ", "4h")
+    hyperopt_full(save_results=True, start_from_model="TCN")
