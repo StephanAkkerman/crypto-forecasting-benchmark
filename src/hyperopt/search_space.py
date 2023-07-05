@@ -100,8 +100,8 @@ model_config = {
     # kernel_size < input_chunk_length
     "TCN": {
         "kernel_size": tune.choice([2, 3, 5, 7, 9]),
-        "num_filters": tune.choice([3, 8, 11, 16, 24, 32]),
-        "dilation_base": tune.choice([2, 4, 8, 16, 32]),
+        "num_filters": tune.choice([3, 8, 11, 16, 24]),
+        "dilation_base": tune.choice([2, 4, 8, 12, 16]),
         # Setting num_layers high will cause CUDA OOM errors
         "num_layers": tune.choice([None, 2, 4, 6]),
         # Use custom input_chunk_length
