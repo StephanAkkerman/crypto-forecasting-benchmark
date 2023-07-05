@@ -110,7 +110,8 @@ model_config = {
                 [i for i in input_chunk_length if i > spec.config.kernel_size]
             )
         ),
-        "batch_size": tune.choice([16, 32, 64, 128, 256]),
+        # Decreased batch size
+        "batch_size": tune.choice([16, 32, 64]),
         "n_epochs": tune.choice([25, 50, 75, 100]),
         "dropout": tune.uniform(0.01, 0.5),
         "pl_trainer_kwargs": {
