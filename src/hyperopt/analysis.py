@@ -2,24 +2,28 @@ import os
 import glob
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
-from config import timeframes
+from config import timeframes, all_coins
 
 
-def save_plot(model_name: str, coin: str, time_frame: str, save: bool = True):
-    """
-    Create a plot of the forecast and save it to save_loc.
+def get_predictions(pred_loc):
+    """Get the predictions and validation data made during determining the best hyperparameters for the model
 
     Parameters
     ----------
-    save_loc : str
-        The location to save the plot to.
+    pred_loc: str
+        The location of the prediction files
+    Returns
+    -------
+    list
+        Validation data
+    list
+        Predictions
     """
 
-    save_loc = f"hyperopt_results/{model_name}/{coin}/{time_frame}/"
-
-    # Get all .csv files in save_loc
-    csv_files = glob.glob(os.path.join(save_loc, "*.csv"))
+    # Get all .csv files in pred_loc
+    csv_files = glob.glob(os.path.join(pred_loc, "*.csv"))
 
     predictions = []
 
@@ -43,6 +47,25 @@ def save_plot(model_name: str, coin: str, time_frame: str, save: bool = True):
             # Skip if rmse is too high
             if rmse < 1:
                 predictions.append((pd.read_csv(file), rmse))
+
+    return val_data, predictions
+
+
+def pred_plot(model_name: str, coin: str, time_frame: str, save: bool = True):
+    """
+    Create a plot of the forecast and save it to save_loc.
+
+    Parameters
+    ----------
+    model_name : str
+        The name of the model
+    coin : str
+        The name of the coin, i.e. BTC
+    time_frame: str
+        The time frame, options are [1m, 15m, 4h, 1d]
+    """
+    pred_loc = f"hyperopt_results/{model_name}/{coin}/{time_frame}/"
+    val_data, predictions = get_predictions(pred_loc)
 
     # Plot the results
     _, ax = plt.subplots(figsize=(12, 6))
@@ -71,39 +94,43 @@ def save_plot(model_name: str, coin: str, time_frame: str, save: bool = True):
     plt.ylabel("Logarithmic Returns")
     plt.title("Validation Set vs. Forecast")
     if save:
-        plt.savefig(f"{save_loc}/forecast.png")
+        plt.savefig(f"{pred_loc}/forecast.png")
     else:
         plt.show()
     plt.close()
 
 
-def best_hyperparameters(model_name, coin, time_frame):
+def get_analysis(model_name, coin, time_frame, keep_mae=False):
     # Read the results
     save_loc = f"hyperopt_results/{model_name}/{coin}/{time_frame}/"
 
-    # Get the period0_results.csv
-    results = pd.read_csv(f"{save_loc}period0_results.csv")
+    # Get the analysis.csv
+    results = pd.read_csv(f"{save_loc}analysis.csv")
+
+    dropped_cols = [
+        "time_this_iter_s",
+        "done",
+        "training_iteration",
+        "date",
+        "timestamp",
+        "time_total_s",
+        "pid",
+        "hostname",
+        "node_ip",
+        "time_since_restore",
+        "iterations_since_restore",
+        "experiment_tag",
+        "config/output_chunk_length",
+        "config/pl_trainer_kwargs/enable_progress_bar",
+        "config/pl_trainer_kwargs/accelerator",
+    ]
+
+    if not keep_mae:
+        dropped_cols.append("mae")
 
     # Only keep useful columns
     results = results.drop(
-        [
-            "time_this_iter_s",
-            "done",
-            "training_iteration",
-            "date",
-            "timestamp",
-            "time_total_s",
-            "pid",
-            "hostname",
-            "node_ip",
-            "time_since_restore",
-            "iterations_since_restore",
-            "experiment_tag",
-            "config/output_chunk_length",
-            "config/model_name",
-            "config/pl_trainer_kwargs/enable_progress_bar",
-            "config/pl_trainer_kwargs/accelerator",
-        ],
+        dropped_cols,
         axis=1,
     )
 
@@ -111,23 +138,99 @@ def best_hyperparameters(model_name, coin, time_frame):
     results.rename(columns=lambda x: x.replace("config/", ""), inplace=True)
 
     # Sort by rmse
-    results = results.sort_values(by=["rmse"])
+    return results.sort_values(by=["rmse"])
 
-    print(results)
 
-    # Save the results
-    # results.to_csv(f"{save_loc}best_hyperparameters.csv", index=False)
+def best_hyperparameters(model_name, coin, time_frame):
+    analysis = get_analysis(model_name, coin, time_frame)
+
+    # Get the best parameters
+    best = analysis.iloc[0]
+
+    # Remove metrics
+    best_config = best.drop(["rmse", "mae"])
+
+    # Convert to dict
+    return best_config.to_dict()
 
 
 def create_plots(model_name):
     for coin in ["BTC", "ETH"]:
         for time_frame in timeframes:
-            save_plot(model_name, coin, time_frame)
+            pred_plot(model_name, coin, time_frame)
 
 
-def result_analysis(model_name, coin, time_frame):
-    best_hyperparameters(model_name, coin, time_frame)
-    save_plot(model_name, coin, time_frame, save=False)
+def influential_parameters(model_name, coin, time_frame):
+    analysis = get_analysis(model_name, coin, time_frame)
+
+    # Get the correlations
+    correlations = analysis.corr()["rmse"].sort_values()
+
+    # Drop rmse and mae
+    correlations = correlations.drop(["rmse", "mae"])
+
+    # Determine which parameters had the most influence on the outcome
+    print(correlations)
+
+
+def model_influential_plot(model_name):
+    datasets = []
+    for coin in all_coins:
+        for time_frame in timeframes:
+            datasets.append(get_analysis(model_name, coin, time_frame))
+
+    influential_plot(datasets)
+
+
+def coin_influential_plot(model_name, coin):
+    datasets = []
+    for time_frame in timeframes:
+        datasets.append(get_analysis(model_name, coin, time_frame))
+    influential_plot(datasets)
+
+
+def time_frame_influential_plot(model_name, time_frame):
+    datasets = []
+    for coin in all_coins:
+        datasets.append(get_analysis(model_name, coin, time_frame))
+    influential_plot(datasets)
+
+
+def influential_plot(datasets, correlation_type: str = "pearson"):
+    # pearson, spearman, kendall
+
+    # Initialize a dictionary to store the correlation coefficients
+    correlations = {col: [] for col in datasets[0].columns if col != "rmse"}
+
+    # Compute the correlation for each dataset
+    for df in datasets:
+        corr = df.corr(correlation_type)["rmse"]
+        for col in correlations.keys():
+            correlations[col].append(corr[col])
+
+    # Compute the mean and standard deviation for each hyperparameter
+    means = {col: np.mean(correlations[col]) for col in correlations.keys()}
+    std_devs = {col: np.std(correlations[col]) for col in correlations.keys()}
+
+    # Convert the results to pandas Series for easier plotting
+    means_series = pd.Series(means)
+    std_devs_series = pd.Series(std_devs)
+
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(14, 6))
+    ax.bar(
+        means_series.index,
+        means_series.sort_values(),
+        yerr=std_devs_series,
+        align="center",
+        alpha=0.5,
+        ecolor="black",
+        capsize=10,
+    )
+    plt.axhline(y=0, color="r", linestyle="-")
+    ax.set_ylabel("Mean Correlation with RMSE")
+    ax.set_title("Hyperparameter Influence on RMSE")
+    plt.show()
 
 
 def model_analysis(model_name):
@@ -137,9 +240,51 @@ def model_analysis(model_name):
     pass
 
 
+def coin_analysis(model_name, coin):
+    pass
+
+
+def avg_best(model_name):
+    datasets = []
+    for coin in all_coins:
+        for time_frame in timeframes:
+            datasets.append(get_analysis(model_name, coin, time_frame))
+
+    # Concatenate all results into a single dataframe
+    all_results = pd.concat(datasets)
+
+    columns = [
+        "num_layers",
+        "num_blocks",
+        "layer_widths",
+        "input_chunk_length",
+        "n_epochs",
+        "batch_size",
+        # "dropout",
+    ]
+
+    # Group by the hyperparameters and calculate the mean RMSE for each group
+    average_results = all_results.groupby(columns).mean()
+    print(average_results)
+
+    # Find the hyperparameters with the lowest average RMSE
+    best_hyperparameters = average_results["rmse"].idxmin()
+
+    # Make it a dictionary
+    best_hyperparameters = dict(zip(columns, best_hyperparameters))
+
+    print(f"Best hyperparameters on average: {best_hyperparameters}")
+
+
 if __name__ == "__main__":
     model_name = "NBEATS"
     coin = "BNB"
     time_frame = "1m"
 
-    result_analysis(model_name, coin, time_frame)
+    # influential_parameters(model_name, coin, time_frame)
+    # print(best_hyperparameters(model_name, coin, time_frame))
+    # result_analysis(model_name, coin, time_frame)
+    model_influential_plot(model_name)
+    # coin_influential_plot(model_name, coin)
+    # time_frame_influential_plot(model_name, time_frame)
+    # avg_best(model_name)
