@@ -395,7 +395,7 @@ def hyperopt_full(save_results: bool, start_from_model=None):
             continue
         if model == "TCN":
             start_from_coin = "LINK"
-            #start_from_tf = "15m"
+            # start_from_tf = "15m"
         hyperopt_model(model, save_results, start_from_coin, start_from_tf)
 
 
@@ -403,6 +403,4 @@ if __name__ == "__main__":
     # Note: It is important to have all the code that runs the Ray Tune trials in this file.
     # Otherwise, Ray Tune will not be able to find the functions.
 
-    # hyperopt_full(save_results=True, start_from_model="TCN")
-    hyperopt_model("TCN", save_results=True)
-    #hyperopt_model("Prophet", save_results=False)
+    hyperopt_full(save_results=True, start_from_model="TCN")
