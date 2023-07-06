@@ -393,9 +393,9 @@ def hyperopt_full(save_results: bool, start_from_model=None):
         # Prophet does not work on cluster :(
         if model in ["Prophet", "TBATS"]:
             continue
-        if model == "NBEATS":
-            start_from_coin = "TRX"
-            start_from_tf = "15m"
+        if model == "TCN":
+            start_from_coin = "LINK"
+            #start_from_tf = "15m"
         hyperopt_model(model, save_results, start_from_coin, start_from_tf)
 
 
@@ -404,5 +404,5 @@ if __name__ == "__main__":
     # Otherwise, Ray Tune will not be able to find the functions.
 
     # hyperopt_full(save_results=True, start_from_model="TCN")
-    # hyperopt_model("TBATS", save_results=True)
-    hyperopt_model("Prophet", save_results=False)
+    hyperopt_model("TCN", save_results=True)
+    #hyperopt_model("Prophet", save_results=False)
