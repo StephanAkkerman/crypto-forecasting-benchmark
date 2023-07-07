@@ -346,7 +346,10 @@ def hyperopt_dataset(
 
 
 def hyperopt_model(
-    model: str, save_results: bool, start_from_coin: str = "BTC", start_from_tf=None
+    model: str,
+    save_results: bool = True,
+    start_from_coin: str = "BTC",
+    start_from_tf=None,
 ):
     """
     Hyperparameter optimization for all datasets, for a given model.
@@ -376,7 +379,9 @@ def hyperopt_model(
         tf_index = 0
 
 
-def hyperopt_full(save_results: bool, start_from_model=None):
+def hyperopt_full(
+    save_results: bool = True, start_from_model=None, start_from_coin="BTC"
+):
     """
     Hyperparameter optimization for all datasets, for all models.
 
@@ -387,20 +392,20 @@ def hyperopt_full(save_results: bool, start_from_model=None):
     """
 
     for model in models[models.index(start_from_model) :]:
-        start_from_coin = "BTC"
         start_from_tf = None
+        coin = "BTC"
 
         # Prophet does not work on cluster :(
-        if model in ["Prophet", "TBATS"]:
+        if model in ["Prophet"]:
             continue
-        if model == "TCN":
-            start_from_coin = "LINK"
+        if start_from_model and model == start_from_model:
+            coin = start_from_coin
             # start_from_tf = "15m"
-        hyperopt_model(model, save_results, start_from_coin, start_from_tf)
+        hyperopt_model(model, save_results, coin, start_from_tf)
 
 
 if __name__ == "__main__":
     # Note: It is important to have all the code that runs the Ray Tune trials in this file.
     # Otherwise, Ray Tune will not be able to find the functions.
 
-    hyperopt_full(save_results=True, start_from_model="TCN")
+    hyperopt_model("TBATS")
