@@ -109,6 +109,8 @@ def get_analysis(model_name, coin, time_frame, keep_mae=False):
 
     dropped_cols = [
         "time_this_iter_s",
+        "trial_id",
+        "logdir",
         "done",
         "training_iteration",
         "date",
@@ -129,6 +131,9 @@ def get_analysis(model_name, coin, time_frame, keep_mae=False):
         dropped_cols.append("mae")
 
     # Only keep useful columns
+    dropped_cols = [
+        col for col in dropped_cols if col in results.columns
+    ]  # Only keep columns that exist in the DataFrame
     results = results.drop(
         dropped_cols,
         axis=1,
@@ -148,7 +153,7 @@ def best_hyperparameters(model_name, coin, time_frame):
     best = analysis.iloc[0]
 
     # Remove metrics
-    best_config = best.drop(["rmse", "mae"])
+    best_config = best.drop(["rmse"])
 
     # Convert to dict
     return best_config.to_dict()
@@ -158,19 +163,6 @@ def create_plots(model_name):
     for coin in ["BTC", "ETH"]:
         for time_frame in timeframes:
             pred_plot(model_name, coin, time_frame)
-
-
-def influential_parameters(model_name, coin, time_frame):
-    analysis = get_analysis(model_name, coin, time_frame)
-
-    # Get the correlations
-    correlations = analysis.corr()["rmse"].sort_values()
-
-    # Drop rmse and mae
-    correlations = correlations.drop(["rmse", "mae"])
-
-    # Determine which parameters had the most influence on the outcome
-    print(correlations)
 
 
 def model_influential_plot(model_name):
@@ -244,6 +236,59 @@ def coin_analysis(model_name, coin):
     pass
 
 
+def best_hyperparameters_model(model_name):
+    all_best = []
+
+    for coin in all_coins:
+        for time_frame in timeframes:
+            all_best.append(best_hyperparameters(model_name, coin, time_frame))
+
+    # Convert the list of dictionaries to a DataFrame
+    df = pd.DataFrame(all_best)
+
+    # Determine the number of rows and columns for the subplots
+    n = len(df.columns)
+    ncols = 3  # You can adjust this as needed
+    nrows = n // ncols + (n % ncols > 0)
+
+    fig, axes = plt.subplots(
+        nrows, ncols, figsize=(10, nrows * 3)
+    )  # Adjust the figure size as needed
+    axes = axes.ravel()  # Flatten the axes array
+
+    # For each column in the DataFrame (each hyperparameter), plot a bar plot in a subplot
+    for i, col in enumerate(df.columns):
+        if col == "dropout":
+            counts, bins, patches = axes[i].hist(
+                df[col],
+                edgecolor="black",
+            )  # Plot a histogram of the column
+            # We'll color code by height, but you could use any scalar
+            max_height = max(counts)
+            # Loop over the bars
+            for rect, count in zip(patches, counts):
+                if count == max_height:
+                    rect.set_facecolor("green")
+                else:
+                    rect.set_facecolor("blue")
+        else:
+            counts = df[col].value_counts().sort_index()
+            colors = ["blue" if x < max(counts) else "green" for x in counts]
+            counts.plot(
+                kind="bar", ax=axes[i], width=1.0, edgecolor="black", color=colors
+            )  # Plot a bar plot of the column
+        axes[i].set_title(f"Distribution of {col}")  # Set the title of the subplot
+        axes[i].set_xlabel(col)  # Set the x-label of the subplot
+        axes[i].set_ylabel("Frequency")  # Set the y-label of the subplot
+
+    # Remove any unused subplots
+    for j in range(i + 1, nrows * ncols):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()  # Adjust the layout so everything fits
+    plt.show()  # Display the plot
+
+
 def avg_best(model_name):
     datasets = []
     for coin in all_coins:
@@ -277,14 +322,15 @@ def avg_best(model_name):
 
 
 if __name__ == "__main__":
-    model_name = "NBEATS"
+    model_name = "TCN"
     coin = "BNB"
     time_frame = "1m"
 
     # influential_parameters(model_name, coin, time_frame)
     # print(best_hyperparameters(model_name, coin, time_frame))
     # result_analysis(model_name, coin, time_frame)
-    model_influential_plot(model_name)
+    # model_influential_plot(model_name)
+    best_hyperparameters_model(model_name)
     # coin_influential_plot(model_name, coin)
     # time_frame_influential_plot(model_name, time_frame)
     # avg_best(model_name)
