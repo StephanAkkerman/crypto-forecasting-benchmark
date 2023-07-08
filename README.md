@@ -24,12 +24,12 @@ This project is not yet finished and is planned to be done in October 2023. The 
   - [x] Stochasticity
   - [x] Trend
   - [x] Volatility
-- [ ] Hyperparameter optimization
-  - [x] ARIMA, Random Forest, XGBoost, LightGBM, Prophet, N-BEATS, RNN, LSTM, GRU, TFT, NHiTS
-  - [ ] TBATS, TCN
-  - [ ] Parameter analysis
+- [X] Hyperparameter optimization
+  - [x] Random Forest, XGBoost, LightGBM, Prophet, N-BEATS, RNN, LSTM, GRU, TFT, NHiTS
+  - [X] ARIMA, TBATS
+  - [X] Parameter analysis
 - [ ] Evaluation of optimal model
-  - [x] RNN
+  - [x] ARIMA
   - [ ] Volatility analysis
   - [ ] Market capitalization analysis
 
