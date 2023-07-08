@@ -1,10 +1,12 @@
 import os
+import math
 import glob
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-from config import timeframes, all_coins
+from hyperopt.config import timeframes, all_coins
 
 
 def get_predictions(pred_loc):
@@ -146,6 +148,29 @@ def get_analysis(model_name, coin, time_frame, keep_mae=False):
     return results.sort_values(by=["rmse"])
 
 
+def float_to_int(val: float):
+    """
+    Helper function to convert whole floats to ints
+
+    Parameters
+    ----------
+    val : float
+        The value to convert
+
+    Returns
+    -------
+    float or int
+        The converted value
+    """
+    if isinstance(val, str):
+        return val
+    elif math.isnan(val):
+        return None
+    elif isinstance(val, float) and val.is_integer():
+        return int(val)
+    return val
+
+
 def best_hyperparameters(model_name, coin, time_frame):
     analysis = get_analysis(model_name, coin, time_frame)
 
@@ -155,8 +180,8 @@ def best_hyperparameters(model_name, coin, time_frame):
     # Remove metrics
     best_config = best.drop(["rmse"])
 
-    # Convert to dict
-    return best_config.to_dict()
+    # Convert to dict with correct types
+    return {key: float_to_int(value) for key, value in best_config.to_dict().items()}
 
 
 def create_plots(model_name):

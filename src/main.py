@@ -1,6 +1,3 @@
-import timeit
-import sys
-
 # Local imports
 from analysis import (
     auto_correlation,
@@ -12,7 +9,7 @@ from analysis import (
     trend,
     volatility,
 )
-from experiment import train_test
+from experiment import forecast
 
 
 def analysis():
@@ -46,10 +43,5 @@ def analysis():
     stochasticity.calc_hurst()
 
 
-def models():
-    # forecast.all_forecasts("ARIMA")
-    pass
-
-
 if __name__ == "__main__":
-    train_test.plot_periods()
+    forecast.test_models()

@@ -39,7 +39,6 @@ from config import (
 from search_space import default_args, model_config
 from train_test import get_train_test
 from utils import (
-    create_dirs,
     get_resources,
     get_reporter,
     get_search_space,
@@ -318,7 +317,7 @@ def hyperopt_dataset(
 
     # load data
     train_series, _ = get_train_test(coin=coin, time_frame=time_frame)
-    
+
     # Create folder to save results
     folder_loc = f"{results_folder}/{model_name}/{coin}/{time_frame}"
     os.makedirs(folder_loc, exist_ok=True)
@@ -390,7 +389,7 @@ def hyperopt_full(
     save_results : bool
         Whether to save the results or not.
     """
-    models = model_config.keys()
+    models = list(model_config)
 
     for model in models[models.index(start_from_model) :]:
         start_from_tf = None
@@ -407,4 +406,4 @@ if __name__ == "__main__":
     # Note: It is important to have all the code that runs the Ray Tune trials in this file.
     # Otherwise, Ray Tune will not be able to find the functions.
 
-    hyperopt_model("TBATS")
+    hyperopt_dataset("Prophet", save_results=True, coin="ATOM", time_frame="1d")

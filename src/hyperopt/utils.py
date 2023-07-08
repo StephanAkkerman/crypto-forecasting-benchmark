@@ -9,9 +9,7 @@ from ray.util.accelerators import __all__ as accelerators
 from config import (
     use_GPU,
     cpu_cores,
-    timeframes,
     num_samples,
-    results_folder,
 )
 
 from search_space import model_config, model_unspecific

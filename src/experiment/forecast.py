@@ -1,5 +1,4 @@
 import os
-from tqdm import tqdm
 import pandas as pd
 
 # Models
@@ -19,12 +18,14 @@ from darts.models import (
 
 # Local imports
 from experiment.train_test import get_train_test
-from experiment.eval import eval_model
 from hyperopt.analysis import best_hyperparameters
 from hyperopt.config import all_coins, timeframes
+from hyperopt.search_space import model_config
 
 
 def get_model(model_name, coin, time_frame):
+    # TODO: Also add the model unspecific parameters
+
     if model_name == "ARIMA":
         return StatsForecastAutoARIMA(
             start_p=0,
@@ -37,7 +38,7 @@ def get_model(model_name, coin, time_frame):
             max_P=5,
             max_Q=5,
         )
-    if model_name == "RandomForest":
+    elif model_name == "RandomForest":
         return RandomForest(**best_hyperparameters(model_name, coin, time_frame))
     elif model_name == "XGB":
         return XGBModel(**best_hyperparameters(model_name, coin, time_frame))
@@ -83,18 +84,6 @@ def get_model(model_name, coin, time_frame):
         raise ValueError(f"Model {model_name} is not supported.")
 
 
-def all_forecasts(model_name):
-    for coin in tqdm(all_coins):
-        # Create directories
-        os.makedirs(f"data/models/{model_name}/{coin}", exist_ok=True)
-
-        print(f"Generating forecasts for {coin}...")
-        for time_frame in tqdm(timeframes):
-            generate_forecasts(
-                model_name, coin, time_frame, n_periods=5, show_plot=False
-            )
-
-
 def generate_forecasts(
     model_name: str, coin: str, time_frame: str, n_periods=5, show_plot=True
 ):
@@ -107,39 +96,74 @@ def generate_forecasts(
 
     model = get_model(model_name, coin, time_frame)
 
-    predictions = []
-    params = []
-
     # Certain models need to be retrained for each period
     retrain = False
+    train_length = None
     if model_name in ["Prophet", "TBATS", "ARIMA"]:
         retrain = True
+        train_length = len(train_set[period])
 
-    for period in tqdm(range(n_periods)):
+    for period in range(n_periods):
         model.fit(series=time_series[period])
 
         pred = model.historical_forecasts(
             time_series[period],
-            start=len(time_series[period]) - len(test_set[period]),
+            start=len(train_set[period]),
             forecast_horizon=1,  # 1 step ahead forecasting
             stride=1,  # 1 step ahead forecasting
             retrain=retrain,
-            train_length=len(time_series[period]) - len(test_set[period]),
+            train_length=train_length,
             verbose=False,
         )
 
-        predictions.append(pred)
-
-        if model_name == "ARIMA":
-            params.append(model.model.model_["arma"])
-
-    # Save params
-    if model_name == "ARIMA":
-        params_df = pd.DataFrame(params, columns=["p", "d", "q", "P", "D", "Q", "C"])
-        params_df.to_csv(
-            f"data/models/{model_name}/{coin}/{time_frame}_params.csv", index=False
+        # Save all important information
+        pred.pd_dataframe().to_csv(
+            f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+        )
+        train_set[period].pd_dataframe().to_csv(
+            f"data/models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
+        )
+        test_set[period].pd_dataframe().to_csv(
+            f"data/models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
         )
 
-    eval_model(
-        model_name, coin, time_frame, train_set, test_set, predictions, show_plot
-    )
+        # Save ARIMA parameters
+        if model_name == "ARIMA":
+            params_df = pd.DataFrame(
+                model.model.model_["arma"], columns=["p", "d", "q", "P", "D", "Q", "C"]
+            )
+            params_df.to_csv(
+                f"data/models/{model_name}/{coin}/{time_frame}/params_{period}.csv",
+                index=False,
+            )
+
+        # Print information
+        print(
+            f"Saved {model_name} forecast in data/models/{model_name}/{coin}/{time_frame}/ for period {period}"
+        )
+
+
+def forecast_model(model_name):
+    for coin in all_coins:
+        for time_frame in timeframes:
+            # Create directories
+            os.makedirs(f"data/models/{model_name}/{coin}/{time_frame}", exist_ok=True)
+
+            generate_forecasts(
+                model_name, coin, time_frame, n_periods=5, show_plot=False
+            )
+
+
+def forecast_all():
+    models = list(model_config) + ["ARIMA", "TBATS"]
+
+    for model in models:
+        forecast_model(model)
+
+
+def test_models():
+    for model in list(model_config) + ["ARIMA", "TBATS"]:
+        for coin in all_coins:
+            for time_frame in timeframes:
+                print(f"Testing {model} for {coin} {time_frame}")
+                get_model(model, coin, time_frame)

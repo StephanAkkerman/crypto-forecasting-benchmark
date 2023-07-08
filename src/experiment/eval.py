@@ -21,19 +21,19 @@ def eval_model(model_name, coin, time_frame, train, test, predictions, show_plot
 
     print(results)
 
-    csv_file_loc = f"data/models/{model_name}/{coin}/{time_frame}_metrics.csv"
-    plot_file_loc = f"data/models/{model_name}/{coin}/plots/{time_frame}.png"
-    forecast_loc = f"data/models/{model_name}/{coin}/{time_frame}_forecast.csv"
+    # csv_file_loc = f"data/models/{model_name}/{coin}/{time_frame}_metrics.csv"
+    # plot_file_loc = f"data/models/{model_name}/{coin}/plots/{time_frame}.png"
+    # forecast_loc = f"data/models/{model_name}/{coin}/{time_frame}_forecast.csv"
 
-    make_plot(
-        results,
-        csv_file_loc,
-        plot_file_loc,
-        forecast_loc,
-        predictions,
-        test,
-        show_plots,
-    )
+    # make_plot(
+    #    results,
+    #    csv_file_loc,
+    #    plot_file_loc,
+    #    forecast_loc,
+    #    predictions,
+    #    test,
+    #    show_plots,
+    # )
 
 
 def make_plot(
