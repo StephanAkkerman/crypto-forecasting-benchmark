@@ -74,28 +74,6 @@ def get_resources(model_name: str, parallel_trials: int) -> dict:
     return resources_per_trial
 
 
-def create_dirs(model_name: str, coin: str):
-    """
-    Create the directories to save the results in.
-
-    Parameters
-    ----------
-    model_name : str
-        The name of the model.
-    coin : str
-        The name of the coin.
-    """
-    for tf in timeframes:
-        if not os.path.exists(f"{results_folder}/{model_name}/{coin}/{tf}"):
-            if not os.path.exists(f"{results_folder}/{model_name}/{coin}"):
-                if not os.path.exists(f"{results_folder}/{model_name}"):
-                    if not os.path.exists(results_folder):
-                        os.makedirs(results_folder)
-                    os.makedirs(f"{results_folder}/{model_name}")
-                os.makedirs(f"{results_folder}/{model_name}/{coin}")
-            os.makedirs(f"{results_folder}/{model_name}/{coin}/{tf}")
-
-
 def get_reporter(model_name):
     return CLIReporter(
         parameter_columns=list(model_config[model_name].keys()),

@@ -4,20 +4,6 @@ small_cap = ["VET", "ALGO", "EOS", "CHZ", "IOTA", "NEO", "XTZ"]
 all_coins = large_cap + mid_cap + small_cap
 
 timeframes = ["1m", "15m", "4h", "1d"]
-models = [
-    "RandomForest",
-    "XGB",
-    "LightGBM",
-    "Prophet",
-    "TBATS",
-    "NBEATS",
-    "RNN",
-    "LSTM",
-    "GRU",
-    "TCN",
-    "TFT",
-    "NHiTS",
-]
 
 # If GPU is available use it
 use_GPU = True

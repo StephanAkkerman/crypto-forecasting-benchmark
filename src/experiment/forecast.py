@@ -20,16 +20,13 @@ from darts.models import (
 # Local imports
 from experiment.train_test import get_train_test
 from experiment.eval import eval_model
-from hyperopt.train_test import models, all_coins, timeframes
+from hyperopt.analysis import best_hyperparameters
+from hyperopt.config import all_coins, timeframes
 
 
-def get_model(model_name: str):
-    if model_name not in models:
-        raise ValueError(f"Model {model_name} not found in {models}")
-
-    if model_name == "ARIMA":  # Basically hyperparameter tuning for ARIMA
-        # https://nixtla.github.io/statsforecast/models.html#arima-methods
-        model = StatsForecastAutoARIMA(
+def get_model(model_name, coin, time_frame):
+    if model_name == "ARIMA":
+        return StatsForecastAutoARIMA(
             start_p=0,
             start_q=0,
             start_P=0,
@@ -40,74 +37,62 @@ def get_model(model_name: str):
             max_P=5,
             max_Q=5,
         )
-
+    if model_name == "RandomForest":
+        return RandomForest(**best_hyperparameters(model_name, coin, time_frame))
+    elif model_name == "XGB":
+        return XGBModel(**best_hyperparameters(model_name, coin, time_frame))
+    elif model_name == "LightGBM":
+        return LightGBMModel(**best_hyperparameters(model_name, coin, time_frame))
+    elif model_name == "Prophet":
+        return Prophet(**best_hyperparameters(model_name, coin, time_frame))
+    elif model_name == "TBATS":
+        return TBATS(use_arma_errors=None)
+    elif model_name == "NBEATS":
+        return NBEATSModel(
+            **best_hyperparameters(model_name, coin, time_frame), model_name=model_name
+        )
     elif model_name == "RNN":
-        model = RNNModel(
-            input_chunk_length=30,
-            training_length=248,
-            output_chunk_length=1,  # 1 for one-step-ahead forecasting
-            force_reset=True,  # This should be done with every new period (or change model_name per period)
-            pl_trainer_kwargs={"accelerator": "gpu", "devices": [0]},  # for GPU
-            n_epochs=5,
-            random_state=42,
-            # save_checkpoints=True,
-            # log_tensorboard=True,
-            # work_dir=f"data/models/rnn/{coin}",
+        return RNNModel(
+            **best_hyperparameters(model_name, coin, time_frame), model_name=model_name
         )
-    elif model_name == "lstm":
-        model = RNNModel(
+    elif model_name == "LSTM":
+        return RNNModel(
+            **best_hyperparameters(model_name, coin, time_frame),
+            model_name=model_name,
             model="LSTM",
-            pl_trainer_kwargs={"accelerator": "gpu", "devices": [0]},  # for GPU
         )
-    elif model_name == "gru":
-        model = RNNModel(
+    elif model_name == "GRU":
+        return RNNModel(
+            **best_hyperparameters(model_name, coin, time_frame),
+            model_name=model_name,
             model="GRU",
-            pl_trainer_kwargs={"accelerator": "gpu", "devices": [0]},  # for GPU
         )
-    elif model_name == "tcn":
-        model = TCNModel()
-    elif model_name == "nbeats":
-        model = NBEATSModel()
-    elif model_name == "tft":
-        model = TFTModel()
-    elif model_name == "random forest":
-        model = RandomForest()
-    elif model_name == "xgboost":
-        model = XGBModel()
-    elif model_name == "lightgbm":
-        model = LightGBMModel()
-    elif model_name == "nhits":
-        model = NHiTSModel()
-    elif model_name == "tbats":
-        model = TBATS()
-    elif model_name == "prophet":
-        model = Prophet()
-
-    return model
+    elif model_name == "TCN":
+        return TCNModel(
+            **best_hyperparameters(model_name, coin, time_frame), model_name=model_name
+        )
+    elif model_name == "TFT":
+        return TFTModel(
+            **best_hyperparameters(model_name, coin, time_frame), model_name=model_name
+        )
+    elif model_name == "NHiTS":
+        return NHiTSModel(
+            **best_hyperparameters(model_name, coin, time_frame), model_name=model_name
+        )
+    else:
+        raise ValueError(f"Model {model_name} is not supported.")
 
 
 def all_forecasts(model_name):
-    model_name = model_name.upper()
-
     for coin in tqdm(all_coins):
-        create_dirs(model_name, coin)
+        # Create directories
+        os.makedirs(f"data/models/{model_name}/{coin}", exist_ok=True)
 
         print(f"Generating forecasts for {coin}...")
         for time_frame in tqdm(timeframes):
             generate_forecasts(
                 model_name, coin, time_frame, n_periods=5, show_plot=False
             )
-
-
-def create_dirs(model_name, coin):
-    # Add the folders if they don't exist
-    if not os.path.exists(f"data/models/{model_name}/{coin}"):
-        if not os.path.exists(f"data/models/{model_name}"):
-            if not os.path.exists("data/models"):
-                os.makedirs("data/models")
-            os.makedirs(f"data/models/{model_name}")
-        os.makedirs(f"data/models/{model_name}/{coin}")
-        # os.makedirs(f"data/models/{model_name}/{coin}/plots")
 
 
 def generate_forecasts(
@@ -120,10 +105,15 @@ def generate_forecasts(
         n_periods=n_periods,
     )
 
-    model = get_model(model_name)
+    model = get_model(model_name, coin, time_frame)
 
     predictions = []
     params = []
+
+    # Certain models need to be retrained for each period
+    retrain = False
+    if model_name in ["Prophet", "TBATS", "ARIMA"]:
+        retrain = True
 
     for period in tqdm(range(n_periods)):
         model.fit(series=time_series[period])
@@ -133,19 +123,22 @@ def generate_forecasts(
             start=len(time_series[period]) - len(test_set[period]),
             forecast_horizon=1,  # 1 step ahead forecasting
             stride=1,  # 1 step ahead forecasting
-            retrain=True,
+            retrain=retrain,
             train_length=len(time_series[period]) - len(test_set[period]),
             verbose=False,
         )
 
         predictions.append(pred)
-        params.append(model.model.model_["arma"])
+
+        if model_name == "ARIMA":
+            params.append(model.model.model_["arma"])
 
     # Save params
-    params_df = pd.DataFrame(params, columns=["p", "d", "q", "P", "D", "Q", "C"])
-    params_df.to_csv(
-        f"data/models/{model_name}/{coin}/{time_frame}_params.csv", index=False
-    )
+    if model_name == "ARIMA":
+        params_df = pd.DataFrame(params, columns=["p", "d", "q", "P", "D", "Q", "C"])
+        params_df.to_csv(
+            f"data/models/{model_name}/{coin}/{time_frame}_params.csv", index=False
+        )
 
     eval_model(
         model_name, coin, time_frame, train_set, test_set, predictions, show_plot

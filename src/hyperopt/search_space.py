@@ -66,12 +66,6 @@ model_config = {
     },
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.tbats_model.html
     # https://github.com/intive-DataScience/tbats
-    "TBATS": {
-        "use_box_cox": tune.choice([True, False]),
-        "use_trend": tune.choice([True, False]),
-        "seasonal_periods": tune.choice([None, "freq"]),
-        "use_arma_errors": tune.choice([True, False]),
-    },
     ### Machine Learning Models ###
     # https://unit8co.github.io/darts/generated_api/darts.models.forecasting.nbeats.html
     "NBEATS": {

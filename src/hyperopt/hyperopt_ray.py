@@ -31,13 +31,12 @@ from config import (
     val_percentage,
     all_coins,
     timeframes,
-    models,
     num_samples,
     results_folder,
     parallel_trials,
     hyperopt_period,
 )
-from search_space import default_args
+from search_space import default_args, model_config
 from train_test import get_train_test
 from utils import (
     create_dirs,
@@ -319,12 +318,10 @@ def hyperopt_dataset(
 
     # load data
     train_series, _ = get_train_test(coin=coin, time_frame=time_frame)
-
-    # Create the folders
-    create_dirs(model_name, coin)
-
+    
     # Create folder to save results
     folder_loc = f"{results_folder}/{model_name}/{coin}/{time_frame}"
+    os.makedirs(folder_loc, exist_ok=True)
 
     # Save the images in here
     save_loc = os.path.join(os.getcwd(), folder_loc)
@@ -380,7 +377,10 @@ def hyperopt_model(
 
 
 def hyperopt_full(
-    save_results: bool = True, start_from_model=None, start_from_coin="BTC"
+    save_results: bool = True,
+    start_from_model=None,
+    start_from_coin="BTC",
+    start_from_tf=None,
 ):
     """
     Hyperparameter optimization for all datasets, for all models.
@@ -390,18 +390,17 @@ def hyperopt_full(
     save_results : bool
         Whether to save the results or not.
     """
+    models = model_config.keys()
 
     for model in models[models.index(start_from_model) :]:
         start_from_tf = None
         coin = "BTC"
 
-        # Prophet does not work on cluster :(
-        if model in ["Prophet"]:
-            continue
+        # If specifying a model to start from
         if start_from_model and model == start_from_model:
             coin = start_from_coin
-            # start_from_tf = "15m"
-        hyperopt_model(model, save_results, coin, start_from_tf)
+            time_frame = start_from_tf
+        hyperopt_model(model, save_results, coin, time_frame)
 
 
 if __name__ == "__main__":
