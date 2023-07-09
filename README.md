@@ -1,4 +1,4 @@
-# Examining the Effect of Timeframes and Market Capitalization on Predictive Performance
+# Examining the Effect of Volatility on Predictive Performance
 [![Python 3.9.16](https://img.shields.io/badge/python-3.9.16-blue.svg)](https://www.python.org/downloads/release/python-3916/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![MIT License](https://img.shields.io/github/license/StephanAkkerman/Crypto_Forecasting.svg?color=brightgreen)](https://opensource.org/licenses/MIT)
