@@ -44,4 +44,4 @@ def analysis():
 
 
 if __name__ == "__main__":
-    forecast.test_models()
+    forecast.forecast_all()

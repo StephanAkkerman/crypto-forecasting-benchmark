@@ -181,7 +181,14 @@ def best_hyperparameters(model_name, coin, time_frame):
     best_config = best.drop(["rmse"])
 
     # Convert to dict with correct types
-    return {key: float_to_int(value) for key, value in best_config.to_dict().items()}
+    config_dict = {
+        key: float_to_int(value) for key, value in best_config.to_dict().items()
+    }
+
+    if model_name != "Prophet":
+        config_dict.update({"output_chunk_length": 1})
+
+    return config_dict
 
 
 def create_plots(model_name):
