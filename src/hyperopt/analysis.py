@@ -127,6 +127,7 @@ def get_analysis(model_name, coin, time_frame, keep_mae=False):
         "config/output_chunk_length",
         "config/pl_trainer_kwargs/enable_progress_bar",
         "config/pl_trainer_kwargs/accelerator",
+        "skip",
     ]
 
     if not keep_mae:
@@ -188,6 +189,7 @@ def best_hyperparameters(model_name, coin, time_frame):
     if model_name != "Prophet":
         config_dict.update({"output_chunk_length": 1})
 
+    print(config_dict)
     return config_dict
 
 

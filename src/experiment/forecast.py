@@ -1,4 +1,6 @@
 import os
+import logging
+
 from tqdm import tqdm
 import pandas as pd
 
@@ -22,6 +24,12 @@ from experiment.train_test import get_train_test
 from hyperopt.analysis import best_hyperparameters
 from hyperopt.config import all_coins, timeframes
 from hyperopt.search_space import model_config
+
+# Ignore fbprophet warnings
+logger = logging.getLogger("cmdstanpy")
+logger.addHandler(logging.NullHandler())
+logger.propagate = False
+logger.setLevel(logging.CRITICAL)
 
 
 def get_model(model_name, coin, time_frame):
@@ -102,7 +110,7 @@ def generate_forecasts(
     train_length = None
     if model_name in ["Prophet", "TBATS", "ARIMA"]:
         retrain = True
-        train_length = len(train_set[period])
+        train_length = len(train_set[0])
 
     for period in tqdm(
         range(n_periods),
