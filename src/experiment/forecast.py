@@ -1,4 +1,5 @@
 import os
+from tqdm import tqdm
 import pandas as pd
 
 # Models
@@ -103,7 +104,11 @@ def generate_forecasts(
         retrain = True
         train_length = len(train_set[period])
 
-    for period in range(n_periods):
+    for period in tqdm(
+        range(n_periods),
+        desc=f"Forecasting periods for {model_name}/{coin}/{time_frame}",
+        leave=False,
+    ):
         model.fit(series=time_series[period])
 
         pred = model.historical_forecasts(
@@ -137,11 +142,6 @@ def generate_forecasts(
                 index=False,
             )
 
-        # Print information
-        print(
-            f"Saved {model_name} forecast in data/models/{model_name}/{coin}/{time_frame}/ for period {period}"
-        )
-
 
 def forecast_model(model_name):
     for coin in all_coins:
@@ -154,10 +154,13 @@ def forecast_model(model_name):
             )
 
 
-def forecast_all():
+def forecast_all(start_from_model=None):
     models = list(model_config) + ["ARIMA", "TBATS"]
 
-    for model in models:
+    if start_from_model:
+        models = models[models.index(start_from_model) :]
+
+    for model in tqdm(models, desc="Generating forecast for all models", leave=False):
         forecast_model(model)
 
 
