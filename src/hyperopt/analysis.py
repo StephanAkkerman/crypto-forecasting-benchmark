@@ -189,7 +189,6 @@ def best_hyperparameters(model_name, coin, time_frame):
     if model_name != "Prophet":
         config_dict.update({"output_chunk_length": 1})
 
-    print(config_dict)
     return config_dict
 
 
