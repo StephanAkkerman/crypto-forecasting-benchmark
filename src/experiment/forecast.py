@@ -22,7 +22,7 @@ from darts.models import (
 # Local imports
 from experiment.train_test import get_train_test
 from hyperopt.analysis import best_hyperparameters
-from hyperopt.config import all_coins, timeframes
+from hyperopt.config import all_coins, timeframes, n_periods
 from hyperopt.search_space import model_config
 
 # Ignore fbprophet warnings
@@ -93,7 +93,7 @@ def get_model(model_name, coin, time_frame):
         raise ValueError(f"Model {model_name} is not supported.")
 
 
-def generate_forecasts(model_name: str, coin: str, time_frame: str, n_periods=5):
+def generate_forecasts(model_name: str, coin: str, time_frame: str):
     # Get the training and testing data for each period
     train_set, test_set, time_series = get_train_test(
         coin=coin,
@@ -145,9 +145,7 @@ def forecast_model(model_name):
             # Create directories
             os.makedirs(f"data/models/{model_name}/{coin}/{time_frame}", exist_ok=True)
 
-            generate_forecasts(
-                model_name, coin, time_frame, n_periods=5, show_plot=False
-            )
+            generate_forecasts(model_name, coin, time_frame)
 
 
 def forecast_all(start_from_model=None):
