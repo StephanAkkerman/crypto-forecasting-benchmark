@@ -44,4 +44,4 @@ def analysis():
 
 
 if __name__ == "__main__":
-    forecast.forecast_model("ARIMA")
+    forecast.forecast_model("TBATS")
