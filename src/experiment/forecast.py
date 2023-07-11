@@ -93,9 +93,7 @@ def get_model(model_name, coin, time_frame):
         raise ValueError(f"Model {model_name} is not supported.")
 
 
-def generate_forecasts(
-    model_name: str, coin: str, time_frame: str, n_periods=5, show_plot=True
-):
+def generate_forecasts(model_name: str, coin: str, time_frame: str, n_periods=5):
     # Get the training and testing data for each period
     train_set, test_set, time_series = get_train_test(
         coin=coin,
@@ -139,16 +137,6 @@ def generate_forecasts(
         test_set[period].pd_dataframe().to_csv(
             f"data/models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
         )
-
-        # Save ARIMA parameters
-        if model_name == "ARIMA":
-            params_df = pd.DataFrame(
-                model.model.model_["arma"], columns=["p", "d", "q", "P", "D", "Q", "C"]
-            )
-            params_df.to_csv(
-                f"data/models/{model_name}/{coin}/{time_frame}/params_{period}.csv",
-                index=False,
-            )
 
 
 def forecast_model(model_name):
