@@ -44,4 +44,5 @@ def analysis():
 
 
 if __name__ == "__main__":
-    forecast.forecast_all("GRU", "TRX", "15m")
+    # forecast.forecast_all("GRU", "TRX", "15m")
+    forecast.forecast_model("TBATS")

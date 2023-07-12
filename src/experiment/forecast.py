@@ -58,7 +58,8 @@ def get_model(model_name, coin, time_frame):
     elif model_name == "Prophet":
         return Prophet(**best_hyperparameters(model_name, coin, time_frame))
     elif model_name == "TBATS":
-        return TBATS(use_arma_errors=None)
+        # Fork only works on Unix systems
+        return TBATS(use_arma_errors=None, multiprocessing_start_method="fork")
     elif model_name == "NBEATS":
         return NBEATSModel(
             **best_hyperparameters(model_name, coin, time_frame), model_name=model_name
@@ -141,14 +142,9 @@ def generate_forecasts(model_name: str, coin: str, time_frame: str):
         )
 
 
-def forecast_model(model_name, coins=None, time_frames=None):
-    if coins:
-        all_coins = coins
-    if time_frames:
-        timeframes = time_frames
-
-    for coin in all_coins:
-        for time_frame in timeframes:
+def forecast_model(model_name, start_from_coin="BTC", start_from_time_frame="1m"):
+    for coin in all_coins[all_coins.index(start_from_coin) :]:
+        for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
             # Create directories
             os.makedirs(f"data/models/{model_name}/{coin}/{time_frame}", exist_ok=True)
 
@@ -164,10 +160,13 @@ def forecast_all(
         models = models[models.index(start_from_model) :]
 
     for model in tqdm(models, desc="Generating forecast for all models", leave=False):
+        coin = "BTC"
+        time_frame = "1m"
+
         if start_from_coin and start_from_model == model:
-            coin = all_coins[all_coins.index(start_from_coin) :]
+            coin = start_from_coin
             if start_from_time_frame:
-                time_frame = timeframes[timeframes.index(start_from_time_frame) :]
+                time_frame = start_from_time_frame
 
         forecast_model(model, coin, time_frame)
 
