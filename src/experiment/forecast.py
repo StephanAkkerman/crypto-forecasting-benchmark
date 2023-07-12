@@ -58,8 +58,11 @@ def get_model(model_name, coin, time_frame):
     elif model_name == "Prophet":
         return Prophet(**best_hyperparameters(model_name, coin, time_frame))
     elif model_name == "TBATS":
-        # Fork only works on Unix systems
-        return TBATS(use_arma_errors=None, multiprocessing_start_method="fork")
+        # https://medium.com/analytics-vidhya/time-series-forecasting-using-tbats-model-ce8c429442a9
+        return TBATS(
+            use_arma_errors=None,
+            n_jobs=1,  # Seems to be quicker
+        )
     elif model_name == "NBEATS":
         return NBEATSModel(
             **best_hyperparameters(model_name, coin, time_frame), model_name=model_name
@@ -127,7 +130,7 @@ def generate_forecasts(model_name: str, coin: str, time_frame: str):
             stride=1,  # 1 step ahead forecasting
             retrain=retrain,
             train_length=train_length,
-            verbose=False,
+            verbose=True,
         )
 
         # Save all important information
