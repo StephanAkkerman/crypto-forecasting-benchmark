@@ -2,7 +2,9 @@ import os
 import logging
 
 from tqdm import tqdm
-import pandas as pd
+import pytorch_lightning as pl
+import torch
+
 
 # Models
 from darts.models import (
@@ -139,7 +141,12 @@ def generate_forecasts(model_name: str, coin: str, time_frame: str):
         )
 
 
-def forecast_model(model_name):
+def forecast_model(model_name, coins=None, time_frames=None):
+    if coins:
+        all_coins = coins
+    if time_frames:
+        timeframes = time_frames
+
     for coin in all_coins:
         for time_frame in timeframes:
             # Create directories
@@ -148,14 +155,21 @@ def forecast_model(model_name):
             generate_forecasts(model_name, coin, time_frame)
 
 
-def forecast_all(start_from_model=None):
+def forecast_all(
+    start_from_model=None, start_from_coin=None, start_from_time_frame=None
+):
     models = list(model_config) + ["ARIMA", "TBATS"]
 
     if start_from_model:
         models = models[models.index(start_from_model) :]
 
     for model in tqdm(models, desc="Generating forecast for all models", leave=False):
-        forecast_model(model)
+        if start_from_coin and start_from_model == model:
+            coin = all_coins[all_coins.index(start_from_coin) :]
+            if start_from_time_frame:
+                time_frame = timeframes[timeframes.index(start_from_time_frame) :]
+
+        forecast_model(model, coin, time_frame)
 
 
 def test_models():

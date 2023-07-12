@@ -172,7 +172,7 @@ def float_to_int(val: float):
     return val
 
 
-def best_hyperparameters(model_name, coin, time_frame):
+def best_hyperparameters(model_name, coin, time_frame, complete: bool = True):
     analysis = get_analysis(model_name, coin, time_frame)
 
     # Get the best parameters
@@ -186,8 +186,26 @@ def best_hyperparameters(model_name, coin, time_frame):
         key: float_to_int(value) for key, value in best_config.to_dict().items()
     }
 
-    if model_name != "Prophet":
-        config_dict.update({"output_chunk_length": 1})
+    if complete:
+        if model_name != "Prophet":
+            config_dict.update({"output_chunk_length": 1})
+
+        if model_name not in [
+            "RandomForest",
+            "XGB",
+            "LightGBM",
+            "Prophet",
+            "TBATS",
+            "TCN",
+        ]:
+            config_dict.update(
+                {
+                    "pl_trainer_kwargs": {
+                        "enable_progress_bar": False,
+                        "accelerator": "auto",
+                    }
+                }
+            )
 
     return config_dict
 
