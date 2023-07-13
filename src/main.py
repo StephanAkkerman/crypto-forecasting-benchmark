@@ -47,6 +47,7 @@ def methods():
 
 
 if __name__ == "__main__":
+    forecast.forecast_model("ARIMA", "CHZ", "1d")
     # forecast.generate_forecasts("RNN", "BTC", "1d")
-    forecast.forecast_all(ignore_model=["Prophet", "ARIMA"])
+    # forecast.forecast_all(ignore_model=["Prophet", "ARIMA"])
     # analysis.compare_predictions("ETH", "1d")
