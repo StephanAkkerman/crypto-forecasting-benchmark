@@ -1,5 +1,8 @@
+import torch
+import os
+
 # Local imports
-from analysis import (
+from data_analysis import (
     auto_correlation,
     correlation,
     heteroskedasticity,
@@ -9,10 +12,10 @@ from analysis import (
     trend,
     volatility,
 )
-from experiment import forecast
+from experiment import forecast, analysis
 
 
-def analysis():
+def methods():
     """
     Generates all analysis data and plots.
     """
@@ -44,5 +47,6 @@ def analysis():
 
 
 if __name__ == "__main__":
-    # forecast.forecast_all("GRU", "TRX", "15m")
-    forecast.forecast_model("TBATS")
+    # forecast.generate_forecasts("RNN", "BTC", "1d")
+    forecast.forecast_all(ignore_model=["Prophet", "ARIMA"])
+    # analysis.compare_predictions("ETH", "1d")

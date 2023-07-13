@@ -107,8 +107,6 @@ def generate_forecasts(model_name: str, coin: str, time_frame: str):
         n_periods=n_periods,
     )
 
-    model = get_model(model_name, coin, time_frame)
-
     # Certain models need to be retrained for each period
     retrain = False
     train_length = None
@@ -121,6 +119,8 @@ def generate_forecasts(model_name: str, coin: str, time_frame: str):
         desc=f"Forecasting periods for {model_name}/{coin}/{time_frame}",
         leave=False,
     ):
+        # Reset the model
+        model = get_model(model_name, coin, time_frame)
         model.fit(series=time_series[period])
 
         pred = model.historical_forecasts(
@@ -130,7 +130,7 @@ def generate_forecasts(model_name: str, coin: str, time_frame: str):
             stride=1,  # 1 step ahead forecasting
             retrain=retrain,
             train_length=train_length,
-            verbose=True,
+            verbose=False,
         )
 
         # Save all important information
@@ -155,7 +155,10 @@ def forecast_model(model_name, start_from_coin="BTC", start_from_time_frame="1m"
 
 
 def forecast_all(
-    start_from_model=None, start_from_coin=None, start_from_time_frame=None
+    start_from_model=None,
+    start_from_coin=None,
+    start_from_time_frame=None,
+    ignore_model=[],
 ):
     models = list(model_config) + ["ARIMA", "TBATS"]
 
@@ -163,6 +166,9 @@ def forecast_all(
         models = models[models.index(start_from_model) :]
 
     for model in tqdm(models, desc="Generating forecast for all models", leave=False):
+        if model in ignore_model:
+            continue
+
         coin = "BTC"
         time_frame = "1m"
 
