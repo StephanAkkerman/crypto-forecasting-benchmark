@@ -1,28 +1,10 @@
+import os
 import pandas as pd
-import matplotlib.pyplot as plt
 from darts.timeseries import TimeSeries
 from darts import concatenate
-from darts.metrics import mae, mase, rmse
+from darts.metrics import rmse
 import plotly.graph_objects as go
 from hyperopt.search_space import model_config
-
-
-def eval_model(model_name, coin, time_frame, train, test, predictions, show_plots=True):
-    errors_mase = []
-    errors_rmse = []
-    errors_mae = []
-
-    for i in range(len(predictions)):
-        # Calculate the mean squared error
-        errors_mase.append(mase(test[i], predictions[i], train[i]))
-        errors_rmse.append(rmse(test[i], predictions[i]))
-        errors_mae.append(mae(test[i], predictions[i]))
-
-    results = pd.DataFrame(
-        {"MAE": errors_mae, "MASE": errors_mase, "RMSE": errors_rmse}
-    )
-
-    print(results)
 
 
 def get_predictions(model_name, coin, time_frame):
@@ -31,9 +13,14 @@ def get_predictions(model_name, coin, time_frame):
     rmses = []
 
     for period in range(5):
-        pred = pd.read_csv(
-            f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
-        )
+        file_path = f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+        if not os.path.exists(file_path):
+            print(
+                f"Skipping {model_name} as it does not exist in the data/models/ directory."
+            )
+            return None, None, None
+
+        pred = pd.read_csv(file_path)
         pred = TimeSeries.from_dataframe(
             pred, time_col="time", value_cols=["log returns"]
         )
@@ -62,7 +49,9 @@ def all_model_predictions(coin, time_frame):
     models = list(model_config) + ["ARIMA"]
 
     for model in models:
-        model_predictions[model] = get_predictions(model, coin, time_frame)
+        preds, tests, rmses = get_predictions(model, coin, time_frame)
+        if preds is not None:
+            model_predictions[model] = (preds, tests, rmses)
 
     # Only use the third value in the tuple (the rmse)
     rmses = {model: rmse for model, (_, _, rmse) in model_predictions.items()}
