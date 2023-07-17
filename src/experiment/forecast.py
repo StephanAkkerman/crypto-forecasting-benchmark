@@ -186,3 +186,21 @@ def test_models():
             for time_frame in timeframes:
                 print(f"Testing {model} for {coin} {time_frame}")
                 get_model(model, coin, time_frame)
+
+
+def create_missing_forecasts():
+    for model_name in list(model_config) + ["ARIMA", "TBATS"]:
+        for coin in all_coins:
+            for time_frame in timeframes:
+                for period in range(5):
+                    file_path = f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+                    if not os.path.exists(file_path):
+                        print("Missing", file_path, "generating now...")
+                        
+                        # Create directory
+                        os.makedirs(
+                            f"data/models/{model_name}/{coin}/{time_frame}/",
+                            exist_ok=True,
+                        )
+                        
+                        generate_forecasts(model_name, coin, time_frame)

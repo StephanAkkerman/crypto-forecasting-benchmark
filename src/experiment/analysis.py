@@ -4,7 +4,9 @@ from darts.timeseries import TimeSeries
 from darts import concatenate
 from darts.metrics import rmse
 import plotly.graph_objects as go
+
 from hyperopt.search_space import model_config
+from hyperopt.config import all_coins, timeframes
 
 
 def get_predictions(model_name, coin, time_frame):
@@ -16,7 +18,7 @@ def get_predictions(model_name, coin, time_frame):
         file_path = f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
         if not os.path.exists(file_path):
             print(
-                f"Skipping {model_name} as it does not exist in the data/models/ directory."
+                f"Warning the following file does not exist: data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
             )
             return None, None, None
 
@@ -46,10 +48,12 @@ def get_predictions(model_name, coin, time_frame):
 def all_model_predictions(coin, time_frame):
     model_predictions = {}
 
-    models = list(model_config) + ["ARIMA"]
+    models = list(model_config) + ["ARIMA", "TBATS"]
 
     for model in models:
         preds, tests, rmses = get_predictions(model, coin, time_frame)
+
+        # If the model does not exist, skip it
         if preds is not None:
             model_predictions[model] = (preds, tests, rmses)
 
@@ -60,14 +64,12 @@ def all_model_predictions(coin, time_frame):
     # Add average row to dataframe
     rmse_df.loc["Average"] = rmse_df.mean()
 
-    print(rmse_df)
-
-    return model_predictions
+    return model_predictions, rmse_df
 
 
 def compare_predictions(coin, time_frame):
     # Get the predictions
-    model_predictions = all_model_predictions(coin, time_frame)
+    model_predictions, rmse_df = all_model_predictions(coin, time_frame)
     test = model_predictions["ARIMA"][1]
 
     # Create a new figure
@@ -118,3 +120,30 @@ def compare_predictions(coin, time_frame):
 
     # Show the plot
     fig.show()
+
+
+def build_rmse_database():
+    # Build a dataframe of all the rmse values for a timeframe
+    # Use coin as index
+
+    for tf in timeframes:
+        rmse_df = pd.DataFrame()
+        for coin in all_coins:
+            # Get the predictions
+            _, rmse_df_coin = all_model_predictions(coin, tf)
+            rmse_df_list = pd.DataFrame(
+                {col: [rmse_df_coin[col].tolist()] for col in rmse_df_coin}
+            )
+            # print(rmse_df_list)
+            # Add the coin to the index
+            rmse_df_list.index = [coin]
+            # Add the data to the dataframe
+            rmse_df = pd.concat([rmse_df, rmse_df_list])
+
+        # Save the dataframe to a csv
+        print(rmse_df)
+        break
+
+
+def models_boxplot():
+    pass

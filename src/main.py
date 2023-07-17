@@ -47,7 +47,5 @@ def methods():
 
 
 if __name__ == "__main__":
-    # forecast.forecast_model("ARIMA", "CHZ", "1d")
-    # forecast.generate_forecasts("RNN", "BTC", "1d")
-    # forecast.forecast_all(ignore_model=["Prophet", "ARIMA"])
-    analysis.compare_predictions("BTC", "1d")
+    forecast.create_missing_forecasts()
+    # analysis.build_rmse_database()
