@@ -47,5 +47,5 @@ def methods():
 
 
 if __name__ == "__main__":
-    forecast.create_missing_forecasts()
-    # analysis.build_rmse_database()
+    # forecast.create_missing_forecasts()
+    analysis.build_rmse_database()
