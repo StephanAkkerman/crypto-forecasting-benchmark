@@ -123,8 +123,7 @@ def compare_predictions(coin, time_frame):
 
 
 def build_rmse_database():
-    # Build a dataframe of all the rmse values for a timeframe
-    # Use coin as index
+    os.makedirs("data/analysis", exist_ok=True)
 
     for tf in timeframes:
         rmse_df = pd.DataFrame()
@@ -141,8 +140,10 @@ def build_rmse_database():
             rmse_df = pd.concat([rmse_df, rmse_df_list])
 
         # Save the dataframe to a csv
-        print(rmse_df)
-        break
+        rmse_df.to_csv(f"data/analysis/rmse_{tf}.csv", index=True)
+
+        # Print number on Nan values
+        print(f"Number of NaN values in {tf}: {rmse_df.isna().sum().sum()}")
 
 
 def models_boxplot():
