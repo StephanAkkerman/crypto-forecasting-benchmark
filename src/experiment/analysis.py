@@ -1,70 +1,13 @@
-import os
-import pandas as pd
-from darts.timeseries import TimeSeries
-from darts import concatenate
-from darts.metrics import rmse
+import numpy as np
+
+import matplotlib.pyplot as plt
+
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from hyperopt.search_space import model_config
-from hyperopt.config import all_coins, timeframes
-
-
-def get_predictions(model_name, coin, time_frame):
-    preds = []
-    tests = []
-    rmses = []
-
-    for period in range(5):
-        file_path = f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
-        if not os.path.exists(file_path):
-            print(
-                f"Warning the following file does not exist: data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
-            )
-            return None, None, None
-
-        pred = pd.read_csv(file_path)
-        pred = TimeSeries.from_dataframe(
-            pred, time_col="time", value_cols=["log returns"]
-        )
-
-        test = pd.read_csv(
-            f"data/models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
-        )
-        test = TimeSeries.from_dataframe(
-            test, time_col="date", value_cols=["log returns"]
-        )
-        rmses.append(rmse(test, pred))
-
-        # Add it to list
-        preds.append(pred)
-        tests.append(test)
-
-    preds = concatenate(preds, axis=0)
-    tests = concatenate(tests, axis=0)
-
-    return preds, tests, rmses
-
-
-def all_model_predictions(coin, time_frame):
-    model_predictions = {}
-
-    models = list(model_config) + ["ARIMA", "TBATS"]
-
-    for model in models:
-        preds, tests, rmses = get_predictions(model, coin, time_frame)
-
-        # If the model does not exist, skip it
-        if preds is not None:
-            model_predictions[model] = (preds, tests, rmses)
-
-    # Only use the third value in the tuple (the rmse)
-    rmses = {model: rmse for model, (_, _, rmse) in model_predictions.items()}
-    rmse_df = pd.DataFrame(rmses)
-
-    # Add average row to dataframe
-    rmse_df.loc["Average"] = rmse_df.mean()
-
-    return model_predictions, rmse_df
+from hyperopt.config import all_coins
+from experiment.utils import all_model_predictions, read_rmse_csv
 
 
 def compare_predictions(coin, time_frame):
@@ -122,29 +65,248 @@ def compare_predictions(coin, time_frame):
     fig.show()
 
 
-def build_rmse_database():
-    os.makedirs("data/analysis", exist_ok=True)
+def plotly_model_boxplot(time_frame, show_points: bool = False):
+    """
+    Interactively plot a boxplot of the RMSEs for each model.
 
-    for tf in timeframes:
-        rmse_df = pd.DataFrame()
-        for coin in all_coins:
-            # Get the predictions
-            _, rmse_df_coin = all_model_predictions(coin, tf)
-            rmse_df_list = pd.DataFrame(
-                {col: [rmse_df_coin[col].tolist()] for col in rmse_df_coin}
-            )
-            # print(rmse_df_list)
-            # Add the coin to the index
-            rmse_df_list.index = [coin]
-            # Add the data to the dataframe
-            rmse_df = pd.concat([rmse_df, rmse_df_list])
+    Parameters
+    ----------
+    time_frame : str
+        Options are: "1m", "15m", "4h", "1d".
+    """
 
-        # Save the dataframe to a csv
-        rmse_df.to_csv(f"data/analysis/rmse_{tf}.csv", index=True)
+    # Set the boxpoints
+    boxpoints = "outliers"
+    if show_points:
+        boxpoints = "all"
 
-        # Print number on Nan values
-        print(f"Number of NaN values in {tf}: {rmse_df.isna().sum().sum()}")
+    df = read_rmse_csv(time_frame)
+
+    # Define your list of models
+    models = list(model_config) + ["ARIMA", "TBATS"]
+
+    # Create figure with secondary y-axis
+    fig = make_subplots()
+
+    # Create a dropdown menu
+    buttons = []
+    
+    # Calculate total number of traces
+    total_traces = len(all_coins) * len(df.columns)
+
+    # Add traces, one for each model
+    for i, model in enumerate(models):
+        # Add a box trace for the current model
+        for coin, rmse in df[model].items():
+            fig.add_trace(go.Box(y=rmse, name=coin, boxpoints=boxpoints, visible=i==0))
+            
+        # Create a visibility list for current coin
+        visibility = [False] * total_traces
+        visibility[i * len(df.columns) : (i + 1) * len(df.columns)] = [True] * len(
+            df.columns
+        )
+
+        # Add a button for the current model
+        button = dict(
+            label=model,
+            method="update",
+            args=[
+                {"visible": [i == j for j in range(len(models))]},
+                {"title": f"Boxplot for {model}"},
+            ],
+        )
+        buttons.append(button)
+
+    # Add dropdown menu to layout
+    fig.update_layout(updatemenus=[go.layout.Updatemenu(active=0, buttons=buttons)])
+
+    # Set title
+    fig.update_layout(title_text=f"Boxplot for {models[0]}")
+
+    # Use the same x-axis range for all traces
+    fig.update_xaxes(categoryorder="array", categoryarray=all_coins)
+
+    fig.show()
 
 
-def models_boxplot():
-    pass
+def plt_model_boxplot(model, time_frame):
+    # x axis should show coins
+    # y axis should show rmse boxplot values
+
+    df = read_rmse_csv(time_frame)
+    df = df[model]
+
+    print(df)
+
+    # Create a figure and axis
+    fig, ax = plt.subplots()
+
+    # Create boxplot for each model
+    boxplots = []
+    labels = []
+    for model, rmses in df.items():
+        # Append boxplot data and labels
+        boxplots.append(rmses)
+        labels.append(model)
+
+    # Create the boxplot with labels
+    ax.boxplot(boxplots, labels=labels)
+
+    # Set the labels
+    ax.set_title("Boxplot of RMSEs")
+    ax.set_ylabel("RMSE")
+
+    plt.show()
+
+
+def plotly_coin_boxplot(time_frame):
+    df = read_rmse_csv(time_frame)
+
+    # Create figure with secondary y-axis
+    fig = make_subplots()
+
+    buttons = []
+
+    # Calculate total number of traces
+    total_traces = len(all_coins) * len(df.columns)
+
+    # Add traces, one for each model
+    for i, coin in enumerate(all_coins):
+        # Add a box trace for the current model
+        for model, rmse in df.loc[coin].items():
+            fig.add_trace(go.Box(y=rmse, name=model, visible=i == 0))
+
+        # Create a visibility list for current coin
+        visibility = [False] * total_traces
+        visibility[i * len(df.columns) : (i + 1) * len(df.columns)] = [True] * len(
+            df.columns
+        )
+
+        # Create a dropdown menu
+        button = dict(
+            label=coin,
+            method="update",
+            args=[
+                {"visible": visibility},
+                {"title": f"Boxplot for {coin}"},
+            ],
+        )
+        buttons.append(button)
+
+    # Add dropdown menu to layout
+    fig.update_layout(updatemenus=[go.layout.Updatemenu(active=0, buttons=buttons)])
+
+    # Set title
+    fig.update_layout(title_text=f"Boxplot for {all_coins[0]}")
+
+    # Use the same x-axis range for all traces
+    fig.update_xaxes(
+        categoryorder="array", categoryarray=list(model_config) + ["ARIMA", "TBATS"]
+    )
+
+    fig.show()
+
+
+def plt_coin_boxplot(coin, time_frame):
+    df = read_rmse_csv(time_frame)
+
+    # Only get the coin
+    df = df.loc[coin]
+
+    # Create a figure and axis
+    _, ax = plt.subplots(figsize=(15, 6))
+
+    # Create boxplot for each model
+    boxplots = []
+    labels = []
+    for model, rmses in df.items():
+        # Append boxplot data and labels
+        boxplots.append(rmses)
+        labels.append(model)
+
+    # Create the boxplot with labels
+    ax.boxplot(boxplots, labels=labels)
+
+    # Set the labels
+    ax.set_title("Boxplot of RMSEs")
+    ax.set_ylabel("RMSE")
+
+    plt.show()
+
+
+def rmse_outliers_coin(coin, time_frame):
+    df = read_rmse_csv(time_frame)
+
+    # Only get the coin
+    df = df.loc[coin]
+
+    # Compute and print outliers for each model
+    for model, rmses in df.items():
+        q1 = np.quantile(rmses, 0.25)
+        q3 = np.quantile(rmses, 0.75)
+        iqr = q3 - q1
+        low_outliers = [
+            (f"period: {i+1}", f"rmse: {x}")
+            for i, x in enumerate(rmses)
+            if x < (q1 - 1.5 * iqr)
+        ]
+        high_outliers = [
+            (f"period: {i+1}", f"rmse: {x}")
+            for i, x in enumerate(rmses)
+            if x > (q3 + 1.5 * iqr)
+        ]
+
+        if low_outliers:
+            print(f"Low outliers for {model}: {low_outliers}")
+        if high_outliers:
+            print(f"High outliers for {model}: {high_outliers}")
+
+
+def all_models_boxplot(time_frame):
+    df = read_rmse_csv(time_frame)
+
+    # Average the RMSEs
+    df = df.applymap(lambda x: np.mean(x))
+
+    # Create a figure and axis
+    _, ax = plt.subplots(figsize=(15, 6))
+
+    # Create boxplot for each model
+    boxplots = []
+    labels = []
+    for model, rmses in df.items():
+        # Append boxplot data and labels
+        boxplots.append(rmses)
+        labels.append(model)
+
+    # Create the boxplot with labels
+    ax.boxplot(boxplots, labels=labels)
+
+    # Set the labels
+    ax.set_title("Boxplot of RMSEs")
+    ax.set_ylabel("RMSE")
+
+    plt.show()
+
+
+def all_models_outliers(time_frame):
+    df = read_rmse_csv(time_frame)
+
+    # Average the RMSEs
+    df = df.applymap(lambda x: np.mean(x))
+
+    q1 = df.quantile(0.25)
+
+    q3 = df.quantile(0.75)
+
+    IQR = q3 - q1
+
+    low_outliers = df[df < (q1 - 1.5 * IQR)]
+    high_outliers = df[df > (q3 + 1.5 * IQR)]
+
+    # Remove rows with NaN
+    low_outliers = low_outliers.dropna(how="all")
+    high_outliers = high_outliers.dropna(how="all")
+
+    print(low_outliers)
+    print(high_outliers)

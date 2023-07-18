@@ -47,5 +47,9 @@ def methods():
 
 
 if __name__ == "__main__":
-    # forecast.create_missing_forecasts()
-    analysis.build_rmse_database()
+    # analysis.compare_predictions("EOS", "1d")
+    # analysis.find_outliers_IQR("1d")
+    # analysis.model_boxplot("1d")
+    # analysis.rmse_outliers_coin("ETH", "1d")
+    analysis.plotly_coin_boxplot("1d")
+    # analysis.plt_coin_boxplot("ETH", "1d")
