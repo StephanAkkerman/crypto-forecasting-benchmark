@@ -47,7 +47,7 @@ def methods():
 
 
 if __name__ == "__main__":
-    analysis.plot_volatility()
+    # analysis.plot_volatility()
     # analysis.compare_predictions("EOS", "1d")
     # analysis.find_outliers_IQR("1d")
     # analysis.model_boxplot("1d")
@@ -55,3 +55,4 @@ if __name__ == "__main__":
     # analysis.plotly_coin_boxplot("1d")
     # analysis.plt_coin_boxplot("ETH", "1d")
     # analysis.all_models_boxplot("1d")
+    forecast.forecast_all(ignore_model=["ARIMA", "TBATS", "Prophet"])
