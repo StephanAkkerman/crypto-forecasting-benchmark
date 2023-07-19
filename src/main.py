@@ -12,7 +12,7 @@ from data_analysis import (
     trend,
     volatility,
 )
-from experiment import forecast, analysis
+from experiment import forecast, analysis, train_test
 
 
 def methods():
@@ -47,9 +47,11 @@ def methods():
 
 
 if __name__ == "__main__":
+    analysis.plot_volatility()
     # analysis.compare_predictions("EOS", "1d")
     # analysis.find_outliers_IQR("1d")
     # analysis.model_boxplot("1d")
     # analysis.rmse_outliers_coin("ETH", "1d")
-    analysis.plotly_coin_boxplot("1d")
+    # analysis.plotly_coin_boxplot("1d")
     # analysis.plt_coin_boxplot("ETH", "1d")
+    # analysis.all_models_boxplot("1d")

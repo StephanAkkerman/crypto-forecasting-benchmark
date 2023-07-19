@@ -121,8 +121,11 @@ def generate_forecasts(model_name: str, coin: str, time_frame: str):
     ):
         # Reset the model
         model = get_model(model_name, coin, time_frame)
-        model.fit(series=time_series[period])
 
+        # Fit on the training data
+        model.fit(series=train_set[period])
+
+        # Generate the historical forecast
         pred = model.historical_forecasts(
             time_series[period],
             start=len(train_set[period]),
@@ -143,6 +146,67 @@ def generate_forecasts(model_name: str, coin: str, time_frame: str):
         test_set[period].pd_dataframe().to_csv(
             f"data/models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
         )
+
+
+def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
+    # Get the training and testing data for each period
+    train_set, test_set, time_series = get_train_test(
+        coin=coin,
+        time_frame=time_frame,
+        n_periods=n_periods,
+    )
+
+    # This will always be used to test on
+    final_test = test_set[-1]
+    complete_ts = time_series[-1]
+
+    # Start from the final period and add training + test to it
+    for period in tqdm(
+        range(n_periods.reverse()),
+        desc=f"Forecasting periods for {model_name}/{coin}/{time_frame}",
+        leave=False,
+    ):
+        # Reset the model
+        model = get_model(model_name, coin, time_frame)
+        model.fit(series=train_set[period])
+
+        pred = model.historical_forecasts(
+            complete_ts,
+            start=len(complete_ts) - len(final_test),
+            forecast_horizon=1,  # 1 step ahead forecasting
+            stride=1,  # 1 step ahead forecasting
+            retrain=False,
+            train_length=None,
+            verbose=False,
+        )
+
+        # Save all important information
+        pred.pd_dataframe().to_csv(
+            f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+        )
+        train_set[period].pd_dataframe().to_csv(
+            f"data/models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
+        )
+        test_set[period].pd_dataframe().to_csv(
+            f"data/models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
+        )
+
+        if period == 0:
+            break
+
+        # Increase the complete time series
+        complete_ts = time_series[period - 1] + complete_ts
+
+
+def extended_forecast_model(
+    model_name, start_from_coin="BTC", start_from_time_frame="1m"
+):
+    for coin in all_coins[all_coins.index(start_from_coin) :]:
+        for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
+            # Create directories
+            os.makedirs(f"data/models/{model_name}/{coin}/{time_frame}", exist_ok=True)
+
+            generate_extended_forecasts(model_name, coin, time_frame)
 
 
 def forecast_model(model_name, start_from_coin="BTC", start_from_time_frame="1m"):
@@ -196,11 +260,11 @@ def create_missing_forecasts():
                     file_path = f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
                     if not os.path.exists(file_path):
                         print("Missing", file_path, "generating now...")
-                        
+
                         # Create directory
                         os.makedirs(
                             f"data/models/{model_name}/{coin}/{time_frame}/",
                             exist_ok=True,
                         )
-                        
+
                         generate_forecasts(model_name, coin, time_frame)
