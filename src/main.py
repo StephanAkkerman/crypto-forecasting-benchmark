@@ -55,4 +55,7 @@ if __name__ == "__main__":
     # analysis.plotly_coin_boxplot("1d")
     # analysis.plt_coin_boxplot("ETH", "1d")
     # analysis.all_models_boxplot("1d")
-    forecast.forecast_all(ignore_model=["ARIMA", "TBATS", "Prophet"])
+
+    # forecast.forecast_all(ignore_model=["ARIMA", "TBATS", "Prophet"])
+    # forecast.forecast_model("ARIMA")
+    forecast.find_missing_forecasts(["ARIMA"])
