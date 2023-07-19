@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### Job name
-#SBATCH --job-name=hyperopt_forecast2
+#SBATCH --job-name=TBATS_forecast
 
 ### Email
 #SBATCH --mail-type=BEGIN,END,FAIL

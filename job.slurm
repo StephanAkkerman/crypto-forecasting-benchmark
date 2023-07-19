@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### Job name
-#SBATCH --job-name=hyperopt_forecast
+#SBATCH --job-name=forecast
 
 ### Email
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -14,7 +14,7 @@
 
 ### Request the time you need for execution in minutes
 ### The format for the parameter is: [hour:]minute:second,
-#SBATCH -t 150:00:00
+#SBATCH -t 240:00:00
 
 ### Memory your job needs per node, e. g. 1 GB
 #SBATCH --mem 100G
