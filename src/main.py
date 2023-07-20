@@ -55,7 +55,11 @@ if __name__ == "__main__":
     # analysis.plotly_coin_boxplot("1d")
     # analysis.plt_coin_boxplot("ETH", "1d")
     # analysis.all_models_boxplot("1d")
+    # analysis.plot_volatility()
 
     # forecast.forecast_all(ignore_model=["ARIMA", "TBATS", "Prophet"])
-    # forecast.forecast_model("ARIMA")
-    forecast.find_missing_forecasts(["ARIMA"])
+    # forecast.forecast_model(
+    #    "Prophet", start_from_coin="XRP", start_from_time_frame="1m"
+    # )
+    # forecast.find_missing_forecasts(["Prophet"])
+    forecast.generate_extended_forecasts("NBEATS", "BTC", "1d")

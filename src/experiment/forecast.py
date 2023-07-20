@@ -2,8 +2,8 @@ import os
 import logging
 
 from tqdm import tqdm
-import pytorch_lightning as pl
-import torch
+
+from darts import concatenate
 
 
 # Models
@@ -160,11 +160,13 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
     final_test = test_set[-1]
     complete_ts = time_series[-1]
 
+    reversed_periods = reversed(range(n_periods))
+
     # Start from the final period and add training + test to it
     for period in tqdm(
-        range(n_periods.reverse()),
-        desc=f"Forecasting periods for {model_name}/{coin}/{time_frame}",
-        leave=False,
+            reversed_periods,
+            desc=f"Forecasting periods for {model_name}/{coin}/{time_frame}",
+            leave=False,
     ):
         # Reset the model
         model = get_model(model_name, coin, time_frame)
@@ -182,20 +184,23 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
 
         # Save all important information
         pred.pd_dataframe().to_csv(
-            f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+            f"data/extened_models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
         )
         train_set[period].pd_dataframe().to_csv(
-            f"data/models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
+            f"data/extened_models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
         )
         test_set[period].pd_dataframe().to_csv(
-            f"data/models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
+            f"data/extened_models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
         )
 
         if period == 0:
             break
 
-        # Increase the complete time series
-        complete_ts = time_series[period - 1] + complete_ts
+        # Increase the complete time series, add it to the front of current
+        # Time series shifts with the length of the test set
+        complete_ts = concatenate(
+            [train_set[period - 1][: len(test_set[0])], complete_ts], axis=0
+        )
 
 
 def extended_forecast_model(
@@ -204,9 +209,38 @@ def extended_forecast_model(
     for coin in all_coins[all_coins.index(start_from_coin) :]:
         for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
             # Create directories
-            os.makedirs(f"data/models/{model_name}/{coin}/{time_frame}", exist_ok=True)
+            os.makedirs(
+                f"data/extened_models/{model_name}/{coin}/{time_frame}", exist_ok=True
+            )
 
             generate_extended_forecasts(model_name, coin, time_frame)
+
+
+def extend_all(
+    start_from_model=None,
+    start_from_coin=None,
+    start_from_time_frame=None,
+    ignore_model=[],
+):
+    # All ML models
+    models = ["NBEATS", "RNN", "LSTM", "GRU", "TCN", "TFT", "NHiTS"]
+
+    if start_from_model:
+        models = models[models.index(start_from_model) :]
+
+    for model in tqdm(models, desc="Generating forecast for all models", leave=False):
+        if model in ignore_model:
+            continue
+
+        coin = "BTC"
+        time_frame = "1m"
+
+        if start_from_coin and start_from_model == model:
+            coin = start_from_coin
+            if start_from_time_frame:
+                time_frame = start_from_time_frame
+
+        extended_forecast_model(model, coin, time_frame)
 
 
 def forecast_model(model_name, start_from_coin="BTC", start_from_time_frame="1m"):
@@ -266,8 +300,10 @@ def find_missing_forecasts(models=[]):
                 for period in range(5):
                     file_path = f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
                     if not os.path.exists(file_path):
-                        missing.append(model_name, coin, time_frame)
+                        missing.append((model_name, coin, time_frame))
                         print(f"Missing {file_path}")
+
+    print(f"Found {len(missing)} missing forecasts.")
 
     if not missing:
         print("No missing forecasts found.")
