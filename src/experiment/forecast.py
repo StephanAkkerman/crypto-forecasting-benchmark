@@ -164,9 +164,9 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
 
     # Start from the final period and add training + test to it
     for period in tqdm(
-            reversed_periods,
-            desc=f"Forecasting periods for {model_name}/{coin}/{time_frame}",
-            leave=False,
+        reversed_periods,
+        desc=f"Forecasting periods for {model_name}/{coin}/{time_frame}",
+        leave=False,
     ):
         # Reset the model
         model = get_model(model_name, coin, time_frame)
@@ -302,16 +302,19 @@ def find_missing_forecasts(models=[]):
                     if not os.path.exists(file_path):
                         missing.append((model_name, coin, time_frame))
                         print(f"Missing {file_path}")
+                        break
 
     print(f"Found {len(missing)} missing forecasts.")
 
     if not missing:
         print("No missing forecasts found.")
 
+    return missing
 
-def create_missing_forecasts():
+
+def create_missing_forecasts(models=[]):
     # Create directory
-    for model_name, coin, time_frame in find_missing_forecasts():
+    for model_name, coin, time_frame in find_missing_forecasts(models):
         os.makedirs(
             f"data/models/{model_name}/{coin}/{time_frame}/",
             exist_ok=True,

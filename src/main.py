@@ -59,7 +59,8 @@ if __name__ == "__main__":
 
     # forecast.forecast_all(ignore_model=["ARIMA", "TBATS", "Prophet"])
     # forecast.forecast_model(
-    #    "Prophet", start_from_coin="XRP", start_from_time_frame="1m"
+    #   "Prophet", start_from_coin="XTZ", start_from_time_frame="1m"
     # )
     # forecast.find_missing_forecasts(["Prophet"])
-    forecast.generate_extended_forecasts("NBEATS", "BTC", "1d")
+    forecast.create_missing_forecasts(["Prophet"])
+    # forecast.generate_extended_forecasts("NBEATS", "BTC", "1d")
