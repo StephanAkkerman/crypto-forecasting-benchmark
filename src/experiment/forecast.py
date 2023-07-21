@@ -203,6 +203,93 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
         )
 
 
+def generate_raw_forecasts(model_name: str, coin: str, time_frame: str):
+    # Get the training and testing data for each period
+    train_set, test_set, time_series = get_train_test(
+        coin=coin,
+        time_frame=time_frame,
+        n_periods=n_periods,
+        col="close"
+    )
+
+    # Certain models need to be retrained for each period
+    retrain = False
+    train_length = None
+    if model_name in ["Prophet", "TBATS", "ARIMA"]:
+        retrain = True
+        train_length = len(train_set[0])
+
+    for period in tqdm(
+        range(n_periods),
+        desc=f"Forecasting periods for {model_name}/{coin}/{time_frame}",
+        leave=False,
+    ):
+        # Reset the model
+        model = get_model(model_name, coin, time_frame)
+
+        # Fit on the training data
+        model.fit(series=train_set[period])
+
+        # Generate the historical forecast
+        pred = model.historical_forecasts(
+            time_series[period],
+            start=len(train_set[period]),
+            forecast_horizon=1,  # 1 step ahead forecasting
+            stride=1,  # 1 step ahead forecasting
+            retrain=retrain,
+            train_length=train_length,
+            verbose=False,
+        )
+
+        # Save all important information
+        pred.pd_dataframe().to_csv(
+            f"data/raw_models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+        )
+        train_set[period].pd_dataframe().to_csv(
+            f"data/raw_models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
+        )
+        test_set[period].pd_dataframe().to_csv(
+            f"data/raw_models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
+        )
+
+
+def raw_forecast_model(model_name, start_from_coin="BTC", start_from_time_frame="1m"):
+    for coin in all_coins[all_coins.index(start_from_coin) :]:
+        for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
+            # Create directories
+            os.makedirs(
+                f"data/raw_models/{model_name}/{coin}/{time_frame}", exist_ok=True
+            )
+
+            generate_raw_forecasts(model_name, coin, time_frame)
+
+
+def raw_all(
+    start_from_model=None,
+    start_from_coin=None,
+    start_from_time_frame=None,
+    ignore_model=[],
+):
+    models = list(model_config) + ["ARIMA", "TBATS"]
+
+    if start_from_model:
+        models = models[models.index(start_from_model) :]
+
+    for model in tqdm(models, desc="Generating forecast for all models", leave=False):
+        if model in ignore_model:
+            continue
+
+        coin = "BTC"
+        time_frame = "1m"
+
+        if start_from_coin and start_from_model == model:
+            coin = start_from_coin
+            if start_from_time_frame:
+                time_frame = start_from_time_frame
+
+        raw_forecast_model(model, coin, time_frame)
+
+
 def extended_forecast_model(
     model_name, start_from_coin="BTC", start_from_time_frame="1m"
 ):
@@ -286,7 +373,7 @@ def test_models():
                 get_model(model, coin, time_frame)
 
 
-def find_missing_forecasts(models=[]):
+def find_missing_forecasts(folder_name, models=[]):
     all_models = list(model_config) + ["ARIMA", "TBATS"]
 
     if models:
@@ -298,7 +385,7 @@ def find_missing_forecasts(models=[]):
         for coin in all_coins:
             for time_frame in timeframes:
                 for period in range(5):
-                    file_path = f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+                    file_path = f"data/{folder_name}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
                     if not os.path.exists(file_path):
                         missing.append((model_name, coin, time_frame))
                         print(f"Missing {file_path}")
@@ -312,12 +399,12 @@ def find_missing_forecasts(models=[]):
     return missing
 
 
-def create_missing_forecasts(models=[]):
+def create_missing_forecasts(folder_name="models", models=[]):
     # Create directory
     for model_name, coin, time_frame in find_missing_forecasts(models):
         os.makedirs(
-            f"data/models/{model_name}/{coin}/{time_frame}/",
+            f"data/{folder_name}/{model_name}/{coin}/{time_frame}/",
             exist_ok=True,
         )
 
-        generate_forecasts(model_name, coin, time_frame)
+        generate_forecasts(folder_name, model_name, coin, time_frame)

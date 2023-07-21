@@ -47,20 +47,13 @@ def methods():
 
 
 if __name__ == "__main__":
-    # analysis.plot_volatility()
-    # analysis.compare_predictions("EOS", "1d")
-    # analysis.find_outliers_IQR("1d")
-    # analysis.model_boxplot("1d")
-    # analysis.rmse_outliers_coin("ETH", "1d")
-    # analysis.plotly_coin_boxplot("1d")
-    # analysis.plt_coin_boxplot("ETH", "1d")
-    # analysis.all_models_boxplot("1d")
-    # analysis.plot_volatility()
+    pass
+    # volatility.plotly_volatility("15m")
 
     # forecast.forecast_all(ignore_model=["ARIMA", "TBATS", "Prophet"])
     # forecast.forecast_model(
     #   "Prophet", start_from_coin="XTZ", start_from_time_frame="1m"
     # )
     # forecast.find_missing_forecasts(["Prophet"])
-    forecast.create_missing_forecasts(["Prophet"])
+    # forecast.create_missing_forecasts(["Prophet"])
     # forecast.generate_extended_forecasts("NBEATS", "BTC", "1d")
