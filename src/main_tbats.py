@@ -16,4 +16,4 @@ if __name__ == "__main__":
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use only the first GPU.
 
-    forecast.forecast_model("TBATS")
+    forecast.raw_forecast_model("TBATS")
