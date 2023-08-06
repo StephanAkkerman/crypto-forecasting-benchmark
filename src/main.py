@@ -51,6 +51,7 @@ if __name__ == "__main__":
     # forecast.raw_forecast_model("Prophet")
     # forecast.find_missing_forecasts("raw_models")
     forecast.create_missing_forecasts("raw_models")
+    # forecast.raw_all(ignore_model=["TBATS", "Prophet"])
 
     # forecast.forecast_all(ignore_model=["ARIMA", "TBATS", "Prophet"])
     # forecast.forecast_model(
