@@ -184,13 +184,13 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
 
         # Save all important information
         pred.pd_dataframe().to_csv(
-            f"data/extened_models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+            f"data/extended_models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
         )
         train_set[period].pd_dataframe().to_csv(
-            f"data/extened_models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
+            f"data/extended_models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
         )
         test_set[period].pd_dataframe().to_csv(
-            f"data/extened_models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
+            f"data/extended_models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
         )
 
         if period == 0:
@@ -206,10 +206,7 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
 def generate_raw_forecasts(model_name: str, coin: str, time_frame: str):
     # Get the training and testing data for each period
     train_set, test_set, time_series = get_train_test(
-        coin=coin,
-        time_frame=time_frame,
-        n_periods=n_periods,
-        col="close"
+        coin=coin, time_frame=time_frame, n_periods=n_periods, col="close"
     )
 
     # Certain models need to be retrained for each period
@@ -297,7 +294,7 @@ def extended_forecast_model(
         for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
             # Create directories
             os.makedirs(
-                f"data/extened_models/{model_name}/{coin}/{time_frame}", exist_ok=True
+                f"data/extended_models/{model_name}/{coin}/{time_frame}", exist_ok=True
             )
 
             generate_extended_forecasts(model_name, coin, time_frame)
@@ -400,11 +397,18 @@ def find_missing_forecasts(folder_name, models=[]):
 
 
 def create_missing_forecasts(folder_name="models", models=[]):
+    if folder_name == "models":
+        generate_func = generate_forecasts
+    elif folder_name == "raw_models":
+        generate_func = generate_raw_forecasts
+    elif folder_name == "extended_models":
+        generate_func = generate_extended_forecasts
+
     # Create directory
-    for model_name, coin, time_frame in find_missing_forecasts(models):
+    for model_name, coin, time_frame in find_missing_forecasts(folder_name, models):
         os.makedirs(
             f"data/{folder_name}/{model_name}/{coin}/{time_frame}/",
             exist_ok=True,
         )
 
-        generate_forecasts(folder_name, model_name, coin, time_frame)
+        generate_func(model_name, coin, time_frame)

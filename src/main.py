@@ -48,7 +48,9 @@ def methods():
 
 if __name__ == "__main__":
     # volatility.plotly_volatility("15m")
-    forecast.raw_forecast_model("Prophet")
+    # forecast.raw_forecast_model("Prophet")
+    # forecast.find_missing_forecasts("raw_models")
+    forecast.create_missing_forecasts("raw_models")
 
     # forecast.forecast_all(ignore_model=["ARIMA", "TBATS", "Prophet"])
     # forecast.forecast_model(
