@@ -1,4 +1,4 @@
-darts==0.24.0
+darts==0.25.0
 hurst==0.0.5
 matplotlib==3.7.2
 numpy==1.24.4
