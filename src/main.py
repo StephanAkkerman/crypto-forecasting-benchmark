@@ -52,8 +52,8 @@ if __name__ == "__main__":
     # forecast.find_missing_forecasts(
     #    "extended_models", ["NBEATS", "RNN", "LSTM", "GRU", "TCN", "TFT", "NHiTS"]
     # )
-    forecast.create_missing_forecasts("raw_models")
-    forecast.create_missing_forecasts(
+    forecast.find_missing_forecasts("raw_models")
+    forecast.find_missing_forecasts(
         "extended_models", ["NBEATS", "RNN", "LSTM", "GRU", "TCN", "TFT", "NHiTS"]
     )
     # forecast.raw_all(ignore_model=["TBATS", "Prophet"])
