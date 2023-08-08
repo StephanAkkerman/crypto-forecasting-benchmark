@@ -45,25 +45,26 @@ def all_model_predictions(
     rmse_df = pd.DataFrame(rmses)
 
     # Add average row to dataframe
-    rmse_df.loc["Average"] = rmse_df.mean()
-
-    print(rmse_df)
+    # rmse_df.loc["Average"] = rmse_df.mean()
 
     return model_predictions, rmse_df
 
 
-def build_rmse_database(model_dir: str = "models"):
+def build_rmse_database(model_dir: str = "models", skip_existing: bool = True):
     os.makedirs(f"data/analysis/{model_dir}", exist_ok=True)
 
     for tf in timeframes:
         # Skip if the file already exists
-        if os.path.exists(f"data/analysis/{model_dir}/rmse_{tf}.csv"):
-            print(
-                f"data/analysis/{model_dir}/rmse_{tf}.csv already exists, skipping..."
-            )
-            continue
+        if skip_existing:
+            if os.path.exists(f"data/analysis/{model_dir}/rmse_{tf}.csv"):
+                print(
+                    f"data/analysis/{model_dir}/rmse_{tf}.csv already exists, skipping..."
+                )
+                continue
 
         print(f"Building data/analysis/{model_dir}/rmse_{tf}.csv...")
+
+        # Data will be added to this DataFrame
         rmse_df = pd.DataFrame()
 
         for coin in all_coins:
@@ -71,6 +72,7 @@ def build_rmse_database(model_dir: str = "models"):
             _, rmse_df_coin = all_model_predictions(
                 model_dir=model_dir, coin=coin, time_frame=tf
             )
+            # Convert the dataframe to a list of lists
             rmse_df_list = pd.DataFrame(
                 {col: [rmse_df_coin[col].tolist()] for col in rmse_df_coin}
             )
@@ -83,9 +85,9 @@ def build_rmse_database(model_dir: str = "models"):
         rmse_df.to_csv(f"data/analysis/{model_dir}/rmse_{tf}.csv", index=True)
 
         # Print number on Nan values
-        print(
-            f"Number of NaN values in {tf} for {model_dir}: {rmse_df.isna().sum().sum()}"
-        )
+        nan_values = rmse_df.isna().sum().sum()
+        if nan_values > 0:
+            print(f"Number of NaN values in {tf} for {model_dir}: {nan_values}")
 
 
 def build_all_rmse_databases():
