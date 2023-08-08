@@ -170,7 +170,7 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
         leave=False,
     ):
         extended_train = complete_ts[: -len(final_test)]
-        
+
         # Reset the model
         model = get_model(model_name, coin, time_frame)
         model.fit(series=extended_train)

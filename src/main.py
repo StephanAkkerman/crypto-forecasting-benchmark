@@ -54,4 +54,5 @@ if __name__ == "__main__":
     # forecast.fix_extended_test_train()
     # utils.build_rmse_database(model_dir="extended_models")
     # utils.all_model_predictions("extended_models", "BTC", "1d")
-    forecast.generate_extended_forecasts("GRU", "BTC", "1d")
+    # forecast.generate_extended_forecasts("GRU", "BTC", "1d")
+    forecast.extend_all()
