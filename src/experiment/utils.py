@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import pandas as pd
 from darts.metrics import rmse
 from darts import concatenate
@@ -7,6 +8,7 @@ from darts.timeseries import TimeSeries
 
 # Local imports
 from config import all_coins, timeframes, all_models, ml_models
+from data.csv_data import read_csv
 
 
 def read_rmse_csv(model_dir: str, time_frame: str) -> pd.DataFrame:
@@ -43,9 +45,6 @@ def all_model_predictions(
     # Only use the third value in the tuple (the rmse) and convert to a dict
     rmses = {model: rmse for model, (_, _, rmse) in model_predictions.items()}
     rmse_df = pd.DataFrame(rmses)
-
-    # Add average row to dataframe
-    # rmse_df.loc["Average"] = rmse_df.mean()
 
     return model_predictions, rmse_df
 
@@ -166,3 +165,29 @@ def get_predictions(
         tests = tests[0]
 
     return preds, tests, rmses
+
+
+def log_returns_to_price(model_dir, model, coin, time_frame):
+    """Convert a series of logarithmic returns to price series."""
+    preds, tests, rmses = get_predictions(
+        model_dir=model_dir, model_name=model, coin=coin, time_frame=time_frame
+    )
+    price_df = read_csv(coin=coin, timeframe=time_frame, col_names=["close"])
+
+    # Start with 1 before the prediction
+    start_pos = price_df.index.get_loc(preds.start_time()) - 1
+    end_pos = price_df.index.get_loc(preds.end_time()) + 1
+    price_df = price_df.iloc[start_pos:end_pos]
+
+    # Get the first close price
+    prices = [price_df["close"].to_list()[0]]
+
+    for value in preds.values():
+        prices.append(prices[-1] * np.exp(value[0]))
+
+    # Convert to a dataframe
+    prices = pd.DataFrame({"price": prices}, index=[price_df.index])
+
+    # Save it as a .csv
+    # prices.to_csv(f"data/{model_dir}/{model}/{coin}/{time_frame}/prices.csv")
+    print(prices)
