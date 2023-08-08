@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-from hyperopt.config import timeframes, all_coins
+from hyperopt.config import timeframes, all_coins, results_folder
 
 
 def get_predictions(pred_loc):
@@ -66,7 +66,7 @@ def pred_plot(model_name: str, coin: str, time_frame: str, save: bool = True):
     time_frame: str
         The time frame, options are [1m, 15m, 4h, 1d]
     """
-    pred_loc = f"hyperopt_results/{model_name}/{coin}/{time_frame}/"
+    pred_loc = f"data/{results_folder}/{model_name}/{coin}/{time_frame}/"
     val_data, predictions = get_predictions(pred_loc)
 
     # Plot the results
@@ -104,7 +104,7 @@ def pred_plot(model_name: str, coin: str, time_frame: str, save: bool = True):
 
 def get_analysis(model_name, coin, time_frame, keep_mae=False):
     # Read the results
-    save_loc = f"hyperopt_results/{model_name}/{coin}/{time_frame}/"
+    save_loc = f"data/{results_folder}/{model_name}/{coin}/{time_frame}/"
 
     # Get the analysis.csv
     results = pd.read_csv(f"{save_loc}analysis.csv")

@@ -169,9 +169,11 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
         desc=f"Forecasting periods for {model_name}/{coin}/{time_frame}",
         leave=False,
     ):
+        extended_train = complete_ts[: -len(final_test)]
+        
         # Reset the model
         model = get_model(model_name, coin, time_frame)
-        model.fit(series=train_set[period])
+        model.fit(series=extended_train)
 
         pred = model.historical_forecasts(
             complete_ts,
@@ -188,7 +190,7 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
             f"data/extended_models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
         )
         # The training data keeps increase backwards
-        complete_ts[: -len(final_test)].pd_dataframe().to_csv(
+        extended_train.pd_dataframe().to_csv(
             f"data/extended_models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
         )
         # Test set is always the same

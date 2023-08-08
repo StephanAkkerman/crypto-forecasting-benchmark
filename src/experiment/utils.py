@@ -27,7 +27,12 @@ def all_model_predictions(
     # Save the predictions and tests for each model
     model_predictions = {}
 
-    for model in all_models:
+    if model_dir == "extended_models":
+        models = ml_models
+    else:
+        models = all_models
+
+    for model in models:
         preds, tests, rmses = get_predictions(
             model_dir=model_dir, model_name=model, coin=coin, time_frame=time_frame
         )
@@ -35,37 +40,14 @@ def all_model_predictions(
         if preds is not None:
             model_predictions[model] = (preds, tests, rmses)
 
-    # Only use the third value in the tuple (the rmse)
+    # Only use the third value in the tuple (the rmse) and convert to a dict
     rmses = {model: rmse for model, (_, _, rmse) in model_predictions.items()}
     rmse_df = pd.DataFrame(rmses)
 
     # Add average row to dataframe
     rmse_df.loc["Average"] = rmse_df.mean()
 
-    return model_predictions, rmse_df
-
-
-def extended_model_predictions(coin: str, time_frame: str):
-    # Save the predictions and tests for each model
-    model_predictions = {}
-
-    for model in ml_models:
-        preds, tests, rmses = get_predictions(
-            model_dir="extended_models",
-            model_name=model,
-            coin=coin,
-            time_frame=time_frame,
-        )
-        # If the model does not exist, skip it
-        if preds is not None:
-            model_predictions[model] = (preds, tests, rmses)
-
-    # Only use the third value in the tuple (the rmse)
-    rmses = {model: rmse for model, (_, _, rmse) in model_predictions.items()}
-    rmse_df = pd.DataFrame(rmses)
-
-    # Add average row to dataframe
-    rmse_df.loc["Average"] = rmse_df.mean()
+    print(rmse_df)
 
     return model_predictions, rmse_df
 
@@ -108,7 +90,7 @@ def build_rmse_database(model_dir: str = "models"):
 
 def build_all_rmse_databases():
     # Cannot be done for extended_models
-    for model_dir in ["models", "raw_models"]:
+    for model_dir in ["models", "raw_models", "extended_models"]:
         build_rmse_database(model_dir=model_dir)
 
 
@@ -165,6 +147,8 @@ def get_predictions(
 
         test = pd.read_csv(test_path)
         test = TimeSeries.from_dataframe(test, time_col="date", value_cols=value_cols)
+
+        # Calculate the RMSE for this period and add it to the list
         rmses.append(rmse(test, pred))
 
         # Add it to list

@@ -47,10 +47,11 @@ def methods():
 
 
 if __name__ == "__main__":
-    # utils.build_all_rmse_databases()
     # analysis.compare_predictions("extended_models", "BTC", "1d")
     # boxplots.plotly_coin_boxplot(model_dir="models", time_frame="1d")
     # boxplots.plotly_model_boxplot(model_dir="models", time_frame="1d")
     # utils.extended_model_predictions("BTC", "1d")
     # forecast.fix_extended_test_train()
-    forecast.test()
+    # utils.build_rmse_database(model_dir="extended_models")
+    # utils.all_model_predictions("extended_models", "BTC", "1d")
+    forecast.generate_extended_forecasts("GRU", "BTC", "1d")

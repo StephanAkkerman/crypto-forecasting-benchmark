@@ -3,17 +3,13 @@ import plotly.graph_objects as go
 
 from experiment.utils import (
     all_model_predictions,
-    extended_model_predictions,
     read_rmse_csv,
 )
 
 
 def compare_predictions(model_dir: str, coin: str, time_frame: str):
     # Get the predictions
-    if model_dir == "extended_models":
-        model_predictions, _ = extended_model_predictions(coin, time_frame)
-    else:
-        model_predictions, _ = all_model_predictions(model_dir, coin, time_frame)
+    model_predictions, _ = all_model_predictions(model_dir, coin, time_frame)
     test = model_predictions[list(model_predictions.keys())[0]][1]
 
     # Create a new figure
