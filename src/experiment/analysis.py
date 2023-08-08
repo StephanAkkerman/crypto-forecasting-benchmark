@@ -1,15 +1,20 @@
 import numpy as np
-import pandas as pd
-
 import plotly.graph_objects as go
 
-from experiment.utils import all_model_predictions, read_rmse_csv
+from experiment.utils import (
+    all_model_predictions,
+    extended_model_predictions,
+    read_rmse_csv,
+)
 
 
-def compare_predictions(coin, time_frame):
+def compare_predictions(model_dir: str, coin: str, time_frame: str):
     # Get the predictions
-    model_predictions, _ = all_model_predictions(coin, time_frame)
-    test = model_predictions["ARIMA"][1]
+    if model_dir == "extended_models":
+        model_predictions, _ = extended_model_predictions(coin, time_frame)
+    else:
+        model_predictions, _ = all_model_predictions(model_dir, coin, time_frame)
+    test = model_predictions[list(model_predictions.keys())[0]][1]
 
     # Create a new figure
     fig = go.Figure()
@@ -26,14 +31,25 @@ def compare_predictions(coin, time_frame):
 
     # Plot each model's predictions
     for model_name, (pred, _, _) in model_predictions.items():
-        fig.add_trace(
-            go.Scatter(
-                y=pred.univariate_values(),
-                mode="lines",
-                name=model_name,
-                visible="legendonly",  # This line is hidden initially
+        if model_dir == "extended_models":
+            for i, p in enumerate(pred):
+                fig.add_trace(
+                    go.Scatter(
+                        y=p.univariate_values(),
+                        mode="lines",
+                        name=f"{model_name} {i}",
+                        visible="legendonly",  # This line is hidden initially
+                    )
+                )
+        else:
+            fig.add_trace(
+                go.Scatter(
+                    y=pred.univariate_values(),
+                    mode="lines",
+                    name=model_name,
+                    visible="legendonly",  # This line is hidden initially
+                )
             )
-        )
 
     # Compute the length of each period
     period_length = len(test) // 5
@@ -61,8 +77,8 @@ def compare_predictions(coin, time_frame):
     fig.show()
 
 
-def rmse_outliers_coin(coin, time_frame):
-    df = read_rmse_csv(time_frame)
+def rmse_outliers_coin(model_dir: str, coin: str, time_frame: str):
+    df = read_rmse_csv(model_dir, time_frame)
 
     # Only get the coin
     df = df.loc[coin]
@@ -89,8 +105,8 @@ def rmse_outliers_coin(coin, time_frame):
             print(f"High outliers for {model}: {high_outliers}")
 
 
-def all_models_outliers(time_frame):
-    df = read_rmse_csv(time_frame)
+def all_models_outliers(model_dir: str, time_frame: str):
+    df = read_rmse_csv(model_dir, time_frame)
 
     # Average the RMSEs
     df = df.applymap(lambda x: np.mean(x))

@@ -2,14 +2,12 @@ from darts import TimeSeries
 
 # Local imports
 from data.csv_data import read_csv
+from config import test_percentage, n_periods
 
 
-# Load your data (replace this with your actual data)
 def get_train_test(
     coin="BTC",
     time_frame="1d",
-    n_periods=5,
-    test_size_percentage=0.25,
     col="log returns",
 ):
     # Read data from a CSV file
@@ -20,11 +18,8 @@ def get_train_test(
     time_series = TimeSeries.from_dataframe(data, "date", col)
 
     # Set parameters for sliding window and periods
-    test_size = int(len(time_series) / (1 / test_size_percentage - 1 + n_periods))
-    train_size = int(test_size * (1 / test_size_percentage - 1))
-
-    # print("Train size:", train_size)
-    # print("Test size:", test_size)
+    test_size = int(len(time_series) / (1 / test_percentage - 1 + n_periods))
+    train_size = int(test_size * (1 / test_percentage - 1))
 
     # Save the training and test sets as lists of TimeSeries
     train_set = []
@@ -38,6 +33,8 @@ def get_train_test(
 
         train_set.append(time_series[train_start:train_end])
         test_set.append(time_series[train_end : train_end + test_size])
+
+        # The whole timeseries of this period
         full_set.append(time_series[train_start : train_end + test_size])
 
     return train_set, test_set, full_set

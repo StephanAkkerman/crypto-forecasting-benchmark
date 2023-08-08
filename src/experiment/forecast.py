@@ -24,8 +24,7 @@ from darts.models import (
 # Local imports
 from experiment.train_test import get_train_test
 from hyperopt.analysis import best_hyperparameters
-from hyperopt.config import all_coins, timeframes, n_periods
-from hyperopt.search_space import model_config
+from config import all_coins, timeframes, n_periods, all_models, ml_models
 
 # Ignore fbprophet warnings
 logger = logging.getLogger("cmdstanpy")
@@ -153,13 +152,15 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
     train_set, test_set, time_series = get_train_test(
         coin=coin,
         time_frame=time_frame,
-        n_periods=n_periods,
     )
 
     # This will always be used to test on
     final_test = test_set[-1]
+
+    # This will be increased backwards every period
     complete_ts = time_series[-1]
 
+    # Start with the last period
     reversed_periods = reversed(range(n_periods))
 
     # Start from the final period and add training + test to it
@@ -178,7 +179,7 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
             forecast_horizon=1,  # 1 step ahead forecasting
             stride=1,  # 1 step ahead forecasting
             retrain=False,
-            train_length=None,
+            train_length=None,  # only necessary if retrain=True
             verbose=False,
         )
 
@@ -186,13 +187,16 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
         pred.pd_dataframe().to_csv(
             f"data/extended_models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
         )
-        train_set[period].pd_dataframe().to_csv(
+        # The training data keeps increase backwards
+        complete_ts[: -len(final_test)].pd_dataframe().to_csv(
             f"data/extended_models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
         )
-        test_set[period].pd_dataframe().to_csv(
+        # Test set is always the same
+        final_test.pd_dataframe().to_csv(
             f"data/extended_models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
         )
 
+        # Period 0 is last, meaning this model used the most training data
         if period == 0:
             break
 
@@ -267,7 +271,7 @@ def raw_all(
     start_from_time_frame=None,
     ignore_model=[],
 ):
-    models = list(model_config) + ["ARIMA", "TBATS"]
+    models = all_models
 
     if start_from_model:
         models = models[models.index(start_from_model) :]
@@ -307,7 +311,7 @@ def extend_all(
     ignore_model=[],
 ):
     # All ML models
-    models = ["NBEATS", "RNN", "LSTM", "GRU", "TCN", "TFT", "NHiTS"]
+    models = ml_models
 
     if start_from_model:
         models = models[models.index(start_from_model) :]
@@ -342,7 +346,7 @@ def forecast_all(
     start_from_time_frame=None,
     ignore_model=[],
 ):
-    models = list(model_config) + ["ARIMA", "TBATS"]
+    models = all_models
 
     if start_from_model:
         models = models[models.index(start_from_model) :]
@@ -363,7 +367,7 @@ def forecast_all(
 
 
 def test_models():
-    for model in list(model_config) + ["ARIMA", "TBATS"]:
+    for model in all_models:
         for coin in all_coins:
             for time_frame in timeframes:
                 print(f"Testing {model} for {coin} {time_frame}")
@@ -371,7 +375,7 @@ def test_models():
 
 
 def find_missing_forecasts(folder_name, models=[]):
-    all_models = list(model_config) + ["ARIMA", "TBATS"]
+    all_models = all_models
 
     if models:
         all_models = models

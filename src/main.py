@@ -12,7 +12,7 @@ from data_analysis import (
     trend,
     volatility,
 )
-from experiment import forecast, analysis, train_test
+from experiment import forecast, analysis, train_test, utils, boxplots
 
 
 def methods():
@@ -47,21 +47,10 @@ def methods():
 
 
 if __name__ == "__main__":
-    # volatility.plotly_volatility("15m")
-    # forecast.raw_forecast_model("Prophet")
-    # forecast.find_missing_forecasts(
-    #    "extended_models", ["NBEATS", "RNN", "LSTM", "GRU", "TCN", "TFT", "NHiTS"]
-    # )
-    forecast.find_missing_forecasts("raw_models")
-    forecast.find_missing_forecasts(
-        "extended_models", ["NBEATS", "RNN", "LSTM", "GRU", "TCN", "TFT", "NHiTS"]
-    )
-    # forecast.raw_all(ignore_model=["TBATS", "Prophet"])
-
-    # forecast.forecast_all(ignore_model=["ARIMA", "TBATS", "Prophet"])
-    # forecast.forecast_model(
-    #   "Prophet", start_from_coin="XTZ", start_from_time_frame="1m"
-    # )
-    # forecast.find_missing_forecasts(["Prophet"])
-    # forecast.create_missing_forecasts(["Prophet"])
-    # forecast.generate_extended_forecasts("NBEATS", "BTC", "1d")
+    # utils.build_all_rmse_databases()
+    # analysis.compare_predictions("extended_models", "BTC", "1d")
+    # boxplots.plotly_coin_boxplot(model_dir="models", time_frame="1d")
+    # boxplots.plotly_model_boxplot(model_dir="models", time_frame="1d")
+    # utils.extended_model_predictions("BTC", "1d")
+    # forecast.fix_extended_test_train()
+    forecast.test()

@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 import matplotlib.pyplot as plt
 
@@ -11,9 +12,9 @@ from experiment.utils import read_rmse_csv
 
 
 def plotly_boxplot(
-    time_frame,
-    plot_items,
-    labels,
+    df: pd.DataFrame,
+    plot_items: list,
+    labels: list,
     title_prefix: str = "Boxplot",
     show_points: bool = False,
 ):
@@ -22,12 +23,14 @@ def plotly_boxplot(
 
     Parameters
     ----------
+    model_dir: str
+        Directory where the models are saved.
     time_frame : str
         Options are: "1m", "15m", "4h", "1d".
     plot_items : list
-        List of items to plot boxplots for.
+        List of items to plot boxplots for, often the names of the coins.
     labels : list
-        List of labels for each boxplot.
+        List of labels for each boxplot, often the names of the models.
     title_prefix : str
         Prefix for the plot title.
     """
@@ -36,8 +39,6 @@ def plotly_boxplot(
     boxpoints = "outliers"
     if show_points:
         boxpoints = "all"
-
-    df = read_rmse_csv(time_frame)
 
     # Create figure with secondary y-axis
     fig = make_subplots()
@@ -85,26 +86,41 @@ def plotly_boxplot(
     fig.show()
 
 
-def plotly_model_boxplot(time_frame):
+def plotly_model_boxplot(model_dir: str, time_frame: str):
     # For model boxplot, call like this
-    plotly_boxplot(time_frame, list(model_config) + ["ARIMA", "TBATS"], all_coins)
+    df = read_rmse_csv(model_dir=model_dir, time_frame=time_frame)
 
-
-def plotly_coin_boxplot(time_frame):
-    # For coin boxplot, call like this
     plotly_boxplot(
-        time_frame=time_frame,
+        df=df.T,
+        plot_items=list(model_config) + ["ARIMA", "TBATS"],
+        labels=all_coins,
+    )
+
+
+def plotly_coin_boxplot(model_dir: str, time_frame: str):
+    # For coin boxplot, call like this
+    df = read_rmse_csv(model_dir=model_dir, time_frame=time_frame)
+
+    plotly_boxplot(
+        df=df,
         plot_items=all_coins,
         labels=list(model_config) + ["ARIMA", "TBATS"],
     )
 
 
-def plt_boxplot(df_subset, title="Boxplot of RMSEs", time_frame=None):
+def plt_boxplot(
+    model_dir: str,
+    df_subset: str,
+    title: str = "Boxplot of RMSEs",
+    time_frame: str = None,
+):
     """
     Plot a boxplot of the RMSEs.
 
     Parameters
     ----------
+    model_dir: str
+        Directory where the models are saved.
     df_subset : str
         Either 'model' or 'coin'. Determines whether to subset dataframe by model or coin.
     title : str
@@ -116,7 +132,7 @@ def plt_boxplot(df_subset, title="Boxplot of RMSEs", time_frame=None):
     """
 
     # Read in the dataframe
-    df = read_rmse_csv(time_frame)
+    df = read_rmse_csv(model_dir=model_dir, time_frame=time_frame)
 
     # Subset the dataframe
     if df_subset != "all models":
@@ -145,13 +161,13 @@ def plt_boxplot(df_subset, title="Boxplot of RMSEs", time_frame=None):
     plt.show()
 
 
-def plt_model_boxplot(model, time_frame):
-    plt_boxplot(model, time_frame=time_frame)
+def plt_model_boxplot(model_dir: str, model: str, time_frame: str):
+    plt_boxplot(model_dir=model_dir, df_subset=model, time_frame=time_frame)
 
 
-def plt_coin_boxplot(coin, time_frame):
-    plt_boxplot(coin, time_frame=time_frame)
+def plt_coin_boxplot(model_dir, coin, time_frame):
+    plt_boxplot(model_dir=model_dir, df_subset=coin, time_frame=time_frame)
 
 
-def all_models_boxplot(time_frame):
-    plt_boxplot("all models", time_frame=time_frame)
+def all_models_boxplot(model_dir, time_frame):
+    plt_boxplot(model_dir=model_dir, df_subset="all models", time_frame=time_frame)
