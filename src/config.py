@@ -37,7 +37,18 @@ val_percentage = 0.1
 # Split the data in periods of 5
 n_periods = 5
 
+# Directories
+coin_dir = "data/coins"
+
+# Output directories
+statistics_dir = "output/statistics"
+plots_dir = "output/plots"
+
 # Model directories
-log_returns_model_dir = "models"
-close_model_dir = "raw_models"
-extended_model_dir = "extended_models"
+model_output_dir = "output/model_output"
+log_returns_model_dir = f"{model_output_dir}/log_returns"
+raw_model_dir = f"{model_output_dir}/raw"
+extended_model_dir = f"{model_output_dir}/extended"
+transformed_model_dir = f"{model_output_dir}/transformed"
+
+rmse_dir = "output/rmse"

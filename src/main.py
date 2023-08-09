@@ -12,7 +12,7 @@ from data_analysis import (
     trend,
     volatility,
 )
-from experiment import forecast, analysis, train_test, utils, boxplots
+from experiment import forecast, analysis, train_test, utils, boxplots, rmse
 
 
 def methods():
@@ -57,4 +57,7 @@ if __name__ == "__main__":
     # utils.build_rmse_database("raw_models", skip_existing=False)
     # forecast.generate_extended_forecasts("GRU", "BTC", "1d")
     # forecast.extend_all()
-    utils.log_returns_to_price("models", "ARIMA", "BTC", "1d")
+    # utils.all_log_returns_to_price("models")
+    # analysis.compare_to_raw("BTC", "1m")
+    # boxplots.plotly_model_boxplot_comparison("1d")
+    utils.all_log_returns_to_price()

@@ -3,11 +3,11 @@ import pandas as pd
 from statsmodels.tsa.seasonal import STL
 
 # Local imports
-from data.vars import all_coins, timeframes
+from config import all_coins, timeframes, statistics_dir
 from data.csv_data import read_csv
 
 
-def seasonal_strength_test(log_returns : bool = False):
+def seasonal_strength_test(log_returns: bool = False):
     """
     Calculates the strength of the trend and seasonality for the data using STL decomposition.
     Formula is based on https://otexts.com/fpp3/stlfeatures.html
@@ -66,6 +66,8 @@ def seasonal_strength_test(log_returns : bool = False):
 
     # Save to Excel
     if log_returns:
-        stl_df.to_excel("data/tests/stl_seasonality_log_returns.xlsx", index=False)
+        stl_df.to_excel(
+            f"{statistics_dir}/stl_seasonality_log_returns.xlsx", index=False
+        )
     else:
-        stl_df.to_excel("data/tests/stl_seasonality.xlsx", index=False)
+        stl_df.to_excel(f"{statistics_dir}/stl_seasonality.xlsx", index=False)

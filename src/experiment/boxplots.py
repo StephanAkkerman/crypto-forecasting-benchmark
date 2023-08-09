@@ -6,9 +6,8 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from hyperopt.search_space import model_config
-from hyperopt.config import all_coins
-from experiment.utils import read_rmse_csv
+from experiment.rmse import read_rmse_csv
+from config import all_models, all_coins
 
 
 def plotly_boxplot(
@@ -86,13 +85,120 @@ def plotly_boxplot(
     fig.show()
 
 
+def plotly_boxplot_comparison(
+    df: pd.DataFrame,
+    df2: pd.DataFrame,
+    plot_items: list,
+    labels: list,
+    title_prefix: str = "Boxplot",
+    show_points: bool = False,
+):
+    """
+    Interactively plot a boxplot of the RMSEs for each item in plot_items.
+
+    Parameters
+    ----------
+    model_dir: str
+        Directory where the models are saved.
+    time_frame : str
+        Options are: "1m", "15m", "4h", "1d".
+    plot_items : list
+        List of items to plot boxplots for, often the names of the coins.
+    labels : list
+        List of labels for each boxplot, often the names of the models.
+    title_prefix : str
+        Prefix for the plot title.
+    """
+
+    # Set the boxpoints
+    boxpoints = "outliers"
+    if show_points:
+        boxpoints = "all"
+
+    # Create figure with secondary y-axis
+    fig = make_subplots()
+
+    # Create a dropdown menu
+    buttons = []
+
+    # Calculate total number of traces
+    # * 2 for the second df
+    total_traces = len(plot_items) * len(df.columns) * 2
+
+    # Add traces, one for each item
+    for i, item in enumerate(plot_items):
+        # Add a box trace for the current item
+        for label, rmse in df.loc[item].items():
+            fig.add_trace(
+                go.Box(
+                    y=rmse,
+                    name=f"Transformed {label}",
+                    boxpoints=boxpoints,
+                    visible=i == 0,
+                    legendgroup=label,
+                )
+            )
+
+        for label, rmse in df2.loc[item].items():
+            fig.add_trace(
+                go.Box(
+                    y=rmse,
+                    name=label,
+                    boxpoints=boxpoints,
+                    visible=i == 0,
+                    legendgroup=label,
+                    showlegend=False,
+                )
+            )
+
+        # Create a visibility list for current item
+        visibility = [False] * total_traces
+        visibility[i * len(df.columns) : (i + 1) * len(df.columns)] = [True] * len(
+            df.columns
+        )
+
+        # Add a button for the current item
+        button = dict(
+            label=item,
+            method="update",
+            args=[
+                {"visible": visibility},
+                {"title": f"{title_prefix} for {item}"},
+            ],
+        )
+        buttons.append(button)
+
+    # Add dropdown menu to layout
+    fig.update_layout(updatemenus=[go.layout.Updatemenu(active=0, buttons=buttons)])
+
+    # Set title
+    fig.update_layout(title_text=f"{title_prefix} for {plot_items[0]}")
+
+    # Use the same x-axis range for all traces
+    fig.update_xaxes(categoryorder="array", categoryarray=labels)
+
+    fig.show()
+
+
+def plotly_model_boxplot_comparison(time_frame: str):
+    log_returns = read_rmse_csv(model_dir="models", time_frame=time_frame)
+    raw = read_rmse_csv(model_dir="raw_models", time_frame=time_frame)
+
+    plotly_boxplot_comparison(
+        df=log_returns.T,
+        df2=raw.T,
+        plot_items=all_models,
+        labels=all_coins,
+    )
+
+
 def plotly_model_boxplot(model_dir: str, time_frame: str):
     # For model boxplot, call like this
     df = read_rmse_csv(model_dir=model_dir, time_frame=time_frame)
 
     plotly_boxplot(
         df=df.T,
-        plot_items=list(model_config) + ["ARIMA", "TBATS"],
+        plot_items=all_models,
         labels=all_coins,
     )
 
@@ -104,7 +210,7 @@ def plotly_coin_boxplot(model_dir: str, time_frame: str):
     plotly_boxplot(
         df=df,
         plot_items=all_coins,
-        labels=list(model_config) + ["ARIMA", "TBATS"],
+        labels=all_models,
     )
 
 

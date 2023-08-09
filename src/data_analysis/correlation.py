@@ -6,26 +6,28 @@ import matplotlib.pyplot as plt
 from scipy.signal import correlate
 from statsmodels.tsa.stattools import grangercausalitytests
 
-from data.vars import all_coins, timeframes
+from config import all_coins, timeframes, plots_dir
 from data.csv_data import read_csv
+
 
 def correlation_tests():
     """
     Generates all correlation plots and matrices
     """
-    
+
     corr_matrix()
     corr_pval()
     cross_cor(True)
     cross_cor(False)
     granger_caus()
 
+
 def corr_matrix():
     """
     Generates the correlation matrix for all coins and time frames
     Shows each time frame separately, with Pearson and Spearman correlation
     """
-    
+
     one_d = pd.DataFrame()
     one_m = pd.DataFrame()
     four_h = pd.DataFrame()
@@ -69,15 +71,16 @@ def corr_matrix():
         sn.heatmap(spear_matrix, cbar=False, annot=True, ax=ax2).set(
             title=f"{time} Spearman Correlation Matrix"
         )
-        
-        plt.show()
-        plt.savefig(f"data/plots/{time}_corr_matrix.png")
 
-def corr_pval(pearson : bool = False):
+        plt.show()
+        plt.savefig(f"{plots_dir}/{time}_corr_matrix.png")
+
+
+def corr_pval(pearson: bool = False):
     """
     Prints the coin pairs that have a p-value below 0.05 using the Spearman or Pearson correlation
     """
-    
+
     for time in timeframes:
         time_df = pd.DataFrame()
         for coin in all_coins:
@@ -92,7 +95,9 @@ def corr_pval(pearson : bool = False):
 
                 # Calculate Pearson's correlation coefficient and p-value
                 if pearson:
-                    correlation_coefficient, p_value = scipy.stats.pearsonr(first_coin['close'].values, other_coin['close'].values)
+                    correlation_coefficient, p_value = scipy.stats.pearsonr(
+                        first_coin["close"].values, other_coin["close"].values
+                    )
                 else:
                     correlation_coefficient, p_value = scipy.stats.spearmanr(
                         first_coin["close"].values, other_coin["close"].values
@@ -119,7 +124,8 @@ def corr_pval(pearson : bool = False):
     # Check for p_val < 0.05
     print(len(time_df["p-value"] < 0.05))
 
-def cross_cor(show_lags : bool = False):
+
+def cross_cor(show_lags: bool = False):
     """
     Displays cross-correlation between all coins and time frames as a heatmap
 
@@ -128,7 +134,7 @@ def cross_cor(show_lags : bool = False):
     show_lags : bool, optional
         Shows the lags instead of cross-correlation, by default False
     """
-    
+
     for time in timeframes:
         # Compute cross-correlations
         cross_correlations = np.zeros((len(all_coins), len(all_coins)))
@@ -192,12 +198,12 @@ def cross_cor(show_lags : bool = False):
         plt.title(time + " Cross-correlation Heatmap")
         plt.xlabel("")
         plt.ylabel("")
-        
+
         plt.show()
         if not show_lags:
-            plt.savefig(f"data/plots/{time}_cross_cor.png")
+            plt.savefig(f"{plots_dir}/{time}_cross_cor.png")
         else:
-            plt.savefig(f"data/plots/{time}_cross_lags.png")
+            plt.savefig(f"{plots_dir}/{time}_cross_lags.png")
 
 
 def granger_caus():
@@ -256,5 +262,5 @@ def granger_caus():
         plt.xlabel("")
         plt.ylabel("")
         plt.show()
-        
-        plt.savefig(f"data/plots/{time}_granger_caus.png")
+
+        plt.savefig(f"{plots_dir}/{time}_granger_caus.png")

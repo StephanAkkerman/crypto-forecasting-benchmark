@@ -4,11 +4,11 @@ import statsmodels.api as sm
 from statsmodels.stats.diagnostic import het_breuschpagan, het_goldfeldquandt, het_arch
 
 # Local imports
-from data.vars import all_coins, timeframes
+from config import all_coins, timeframes, statistics_dir
 from data.csv_data import read_csv
 
 
-def uncon_het_tests(log_returns : bool = True):
+def uncon_het_tests(log_returns: bool = True):
     """
     Tests for uncoditional heteroskedasticity using Breusch-Pagan and Goldfeld-Quandt tests.
     Saves the results as an excel file.
@@ -18,7 +18,7 @@ def uncon_het_tests(log_returns : bool = True):
     log_returns : bool
         If True, use the logarithmic returns of the data, by default True
     """
-    
+
     # Read the dataset
     results = pd.DataFrame()
 
@@ -74,13 +74,16 @@ def uncon_het_tests(log_returns : bool = True):
                 )
 
     # Save as excel
-    results.to_excel(f"data/tests/unconditional_heteroskedasticity.xlsx", index=False)
+    results.to_excel(
+        f"{statistics_dir}/unconditional_heteroskedasticity.xlsx", index=False
+    )
+
 
 def con_het_test():
     """
     Perform the Engle's ARCH test for conditional heteroskedasticity on all datasets and saves it as an excel file
     """
-    
+
     results = pd.DataFrame()
 
     for coin in all_coins:
@@ -104,4 +107,4 @@ def con_het_test():
                 [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
             )
     # save as .xlsx
-    results.to_excel("data/tests/cond_heteroskedasticity.xlsx")
+    results.to_excel(f"{statistics_dir}/cond_heteroskedasticity.xlsx")

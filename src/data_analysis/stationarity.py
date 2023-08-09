@@ -3,20 +3,22 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller, kpss
 
 # Local imports
-from data.vars import all_coins, timeframes
+from config import all_coins, timeframes, statistics_dir, plots_dir
 from data.csv_data import read_csv
+
 
 def stationarity_tests():
     """
     Performs the Augmented Dickey-Fuller and KPSS tests on the data and saves the results to an Excel file.
     """
     plot_price()
-    
+
     for diff in [False, True]:
         adf_test(diff)
         kpss_test(diff)
 
-def adf_test(diff : bool = False, file_name : str = "adf_test"):
+
+def adf_test(diff: bool = False, file_name: str = "adf_test"):
     """
     Performs the Augmented Dickey-Fuller test on the data and saves the results to an Excel file.
 
@@ -27,7 +29,7 @@ def adf_test(diff : bool = False, file_name : str = "adf_test"):
     file_name : str, optional
         The name for the file to be saved in /data/tests/, by default "adf_test"
     """
-    
+
     results = pd.DataFrame()
 
     for coin in all_coins:
@@ -60,13 +62,13 @@ def adf_test(diff : bool = False, file_name : str = "adf_test"):
             )
 
     # Write to Excel
-    results.to_excel(f"data/tests/{file_name}.xlsx")
+    results.to_excel(f"{statistics_dir}/{file_name}.xlsx")
 
     # Show the coins that are stationary, p-value < 0.05
     print(results[results["p-value"] < 0.05])
 
 
-def kpss_test(diff : bool = False, file_name : str = "kpss_test"):
+def kpss_test(diff: bool = False, file_name: str = "kpss_test"):
     """
     Performs the KPSS test on the data and saves the results to an Excel file.
 
@@ -111,13 +113,13 @@ def kpss_test(diff : bool = False, file_name : str = "kpss_test"):
                 [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
             )
 
-    results.to_excel(f"data/tests/{file_name}.xlsx")
+    results.to_excel(f"{statistics_dir}/{file_name}.xlsx")
 
     # Show the coins that are stationary, p-value < 0.05
     print(results[results["p-value"] > 0.05])
 
 
-def plot_price(crypto : str = "BTC", timeframe : str = "1d"):
+def plot_price(crypto: str = "BTC", timeframe: str = "1d"):
     """
     Shows a plot of the price and returns of the crypto.
 
@@ -128,8 +130,7 @@ def plot_price(crypto : str = "BTC", timeframe : str = "1d"):
     timeframe : str, optional
         The time frame to use, by default "1d"
     """
-    
-    
+
     df = read_csv(crypto, timeframe)
     df_diff = df.diff().dropna()
 
@@ -148,4 +149,4 @@ def plot_price(crypto : str = "BTC", timeframe : str = "1d"):
     axs[1].set_xlabel("Date")
 
     plt.show()
-    plt.savefig("data/plots/price.png")
+    plt.savefig(f"{plots_dir}/price.png")

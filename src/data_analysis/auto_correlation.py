@@ -5,8 +5,9 @@ import matplotlib.pyplot as plt
 from statsmodels.graphics.tsaplots import plot_acf
 
 # Local imports
-from data.vars import all_coins, timeframes
+from config import all_coins, timeframes, plots_dir, statistics_dir
 from data.csv_data import read_csv
+
 
 def auto_cor_tests():
     """
@@ -15,13 +16,13 @@ def auto_cor_tests():
     plot_acf()
     plot_log_returns()
 
-    for diff, log in [(False, False), (True,False), (True, True)]:
+    for diff, log in [(False, False), (True, False), (True, True)]:
         print("Durbin-Watson: ", durbin_watson(diff, log))
         breusch_godfrey(diff, log)
         ljung_box(diff, log)
 
 
-def durbin_watson(diff : bool = True, log : bool = True) -> int:
+def durbin_watson(diff: bool = True, log: bool = True) -> int:
     """
     Generates the test statistic for Durbin-Watson test for autocorrelation
 
@@ -69,10 +70,12 @@ def durbin_watson(diff : bool = True, log : bool = True) -> int:
             )
 
     # A value of 2.0 indicates no autocorrelation
-    return len(results[(results["Durbin-Watson"] > 1.5) & (results["Durbin-Watson"] < 2.5)])
+    return len(
+        results[(results["Durbin-Watson"] > 1.5) & (results["Durbin-Watson"] < 2.5)]
+    )
 
 
-def ljung_box(diff : bool = True, log : bool = True) -> None:
+def ljung_box(diff: bool = True, log: bool = True) -> None:
     """
     Performs the Ljung-Box test for autocorrelation on all datasets and saves it as an excel file
 
@@ -118,10 +121,10 @@ def ljung_box(diff : bool = True, log : bool = True) -> None:
                 )
 
     # Save as excel
-    results.to_excel(f"data/tests/{file_name}.xlsx", index=False)
+    results.to_excel(f"{statistics_dir}/{file_name}.xlsx", index=False)
 
 
-def breusch_godfrey(diff : bool = True, log : bool = True):
+def breusch_godfrey(diff: bool = True, log: bool = True):
     """
     Performs the Breusch-Godfrey test for autocorrelation on all datasets and saves it as an excel file
 
@@ -170,7 +173,7 @@ def breusch_godfrey(diff : bool = True, log : bool = True):
                 )
 
     # Save it as excel
-    results.to_excel(f"data/tests/{file_name}.xlsx", index=False)
+    results.to_excel(f"{statistics_dir}/{file_name}.xlsx", index=False)
 
 
 def plot_acf(crypto="BTC", timeframe="1d"):
@@ -184,7 +187,7 @@ def plot_acf(crypto="BTC", timeframe="1d"):
     timeframe : str, optional
         The timeframe of the data, by default "1d"
     """
-    
+
     df = read_csv(crypto, timeframe)
 
     df_diff = df.diff().dropna()
@@ -202,7 +205,7 @@ def plot_acf(crypto="BTC", timeframe="1d"):
     axs[1].set_ylabel("ACF")
 
     plt.show()
-    plt.savefig("data/plots/acf.png")
+    plt.savefig("output/plots/acf.png")
 
 
 def plot_log_returns(crypto="BTC", timeframe="1d"):
@@ -234,4 +237,4 @@ def plot_log_returns(crypto="BTC", timeframe="1d"):
     axs[1].set_xlabel("Date")
 
     plt.show()
-    plt.savefig("data/plots/log_returns.png")
+    plt.savefig(f"{plots_dir}/log_returns.png")

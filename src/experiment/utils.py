@@ -7,20 +7,16 @@ from darts import concatenate
 from darts.timeseries import TimeSeries
 
 # Local imports
-from config import all_coins, timeframes, all_models, ml_models
+from config import (
+    all_coins,
+    timeframes,
+    all_models,
+    ml_models,
+    log_returns_model_dir,
+    model_output_dir,
+    transformed_model_dir,
+)
 from data.csv_data import read_csv
-
-
-def read_rmse_csv(model_dir: str, time_frame: str) -> pd.DataFrame:
-    df = pd.read_csv(f"data/analysis/{model_dir}/rmse_{time_frame}.csv", index_col=0)
-
-    # Convert string to list of floats
-    df = df.applymap(lambda x: x.strip("[]").split(", "))
-
-    # Convert list of strings to list of floats
-    df = df.applymap(lambda x: [float(i) for i in x])
-
-    return df
 
 
 def all_model_predictions(
@@ -49,50 +45,33 @@ def all_model_predictions(
     return model_predictions, rmse_df
 
 
-def build_rmse_database(model_dir: str = "models", skip_existing: bool = True):
-    os.makedirs(f"data/analysis/{model_dir}", exist_ok=True)
+def all_model_log_returns_as_price(coin: str, time_frame: str) -> dict:
+    """
+    Returns a dictionary of the predictions for each model.
+    The predictions are converted from log returns to price.
 
-    for tf in timeframes:
-        # Skip if the file already exists
-        if skip_existing:
-            if os.path.exists(f"data/analysis/{model_dir}/rmse_{tf}.csv"):
-                print(
-                    f"data/analysis/{model_dir}/rmse_{tf}.csv already exists, skipping..."
-                )
-                continue
+    Parameters
+    ----------
+    coin : str
+        Options are such as "BTC", "ETH", etc.
+    time_frame : str
+        Options are "1m", "15m", "4h", "1d".
 
-        print(f"Building data/analysis/{model_dir}/rmse_{tf}.csv...")
+    Returns
+    -------
+    dict
+        Dictionary of the predictions for each model, with key as the model name.
+    """
+    model_predictions = {}
 
-        # Data will be added to this DataFrame
-        rmse_df = pd.DataFrame()
+    for model in all_models:
+        df = pd.read_csv(
+            f"{log_returns_model_dir}/{model}/{coin}/{time_frame}/price_from_log_returns.csv"
+        )
 
-        for coin in all_coins:
-            # Get the predictions
-            _, rmse_df_coin = all_model_predictions(
-                model_dir=model_dir, coin=coin, time_frame=tf
-            )
-            # Convert the dataframe to a list of lists
-            rmse_df_list = pd.DataFrame(
-                {col: [rmse_df_coin[col].tolist()] for col in rmse_df_coin}
-            )
-            # Add the coin to the index
-            rmse_df_list.index = [coin]
-            # Add the data to the dataframe
-            rmse_df = pd.concat([rmse_df, rmse_df_list])
+        model_predictions[model] = df["prediction"].tolist()
 
-        # Save the dataframe to a csv
-        rmse_df.to_csv(f"data/analysis/{model_dir}/rmse_{tf}.csv", index=True)
-
-        # Print number on Nan values
-        nan_values = rmse_df.isna().sum().sum()
-        if nan_values > 0:
-            print(f"Number of NaN values in {tf} for {model_dir}: {nan_values}")
-
-
-def build_all_rmse_databases():
-    # Cannot be done for extended_models
-    for model_dir in ["models", "raw_models", "extended_models"]:
-        build_rmse_database(model_dir=model_dir)
+    return model_predictions
 
 
 def get_predictions(
@@ -100,6 +79,7 @@ def get_predictions(
     model_name: str,
     coin: str,
     time_frame: str,
+    concatenated: bool = True,
 ) -> (TimeSeries, TimeSeries, list):
     """
     Gets the predictions for a given model.
@@ -130,15 +110,11 @@ def get_predictions(
         value_cols = ["close"]
 
     for period in range(5):
-        file_path = (
-            f"data/{model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
-        )
-        test_path = (
-            f"data/{model_dir}/{model_name}/{coin}/{time_frame}/test_{period}.csv"
-        )
+        file_path = f"{model_output_dir}/{model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+        test_path = f"{model_output_dir}/{model_dir}/{model_name}/{coin}/{time_frame}/test_{period}.csv"
         if not os.path.exists(file_path):
             print(
-                f"Warning the following file does not exist: data/{model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+                f"Warning the following file does not exist: {model_output_dir}/{model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
             )
             return None, None, None
 
@@ -157,7 +133,7 @@ def get_predictions(
         tests.append(test)
 
     # Make it one big TimeSeries
-    if model_dir != "extended_models":
+    if model_dir != "extended_models" and concatenated:
         preds = concatenate(preds, axis=0)
         tests = concatenate(tests, axis=0)
     else:
@@ -167,27 +143,70 @@ def get_predictions(
     return preds, tests, rmses
 
 
-def log_returns_to_price(model_dir, model, coin, time_frame):
+def all_log_returns_to_price(model_dir: str = "models"):
+    # These already use the close price
+    if model_dir == "raw_models":
+        return
+
+    if model_dir == "extended_models":
+        models = ml_models
+
+    if model_dir == "models":
+        models = all_models
+
+    for model in models:
+        for coin in all_coins:
+            print("Converting log returns to price for", model, coin)
+            for time_frame in timeframes:
+                log_returns_to_price(
+                    model_dir=model_dir, model=model, coin=coin, time_frame=time_frame
+                )
+
+
+def log_returns_to_price(model_dir: str, model, coin, time_frame):
     """Convert a series of logarithmic returns to price series."""
-    preds, tests, rmses = get_predictions(
-        model_dir=model_dir, model_name=model, coin=coin, time_frame=time_frame
+    preds, _, _ = get_predictions(
+        model_dir=model_dir,
+        model_name=model,
+        coin=coin,
+        time_frame=time_frame,
+        concatenated=False,
     )
+
+    # Get the price of test data
     price_df = read_csv(coin=coin, timeframe=time_frame, col_names=["close"])
 
-    # Start with 1 before the prediction
-    start_pos = price_df.index.get_loc(preds.start_time()) - 1
-    end_pos = price_df.index.get_loc(preds.end_time()) + 1
-    price_df = price_df.iloc[start_pos:end_pos]
+    # Create a directory to save the predictions
+    os.makedirs(f"{transformed_model_dir}/{model}/{coin}/{time_frame}", exist_ok=True)
 
-    # Get the first close price
-    prices = [price_df["close"].to_list()[0]]
+    for i, prediction in enumerate(preds):
+        # Start with 1 before the prediction
+        start_pos = price_df.index.get_loc(prediction.start_time()) - 1
+        end_pos = price_df.index.get_loc(prediction.end_time()) + 1
+        sliced_price_df = price_df.iloc[start_pos:end_pos]
 
-    for value in preds.values():
-        prices.append(prices[-1] * np.exp(value[0]))
+        # Get the first close price
+        close = [sliced_price_df["close"].to_list()[0]]
 
-    # Convert to a dataframe
-    prices = pd.DataFrame({"price": prices}, index=[price_df.index])
+        # Convert the log returns to price
+        for value in prediction.values():
+            close.append(close[-1] * np.exp(value[0]))
 
-    # Save it as a .csv
-    # prices.to_csv(f"data/{model_dir}/{model}/{coin}/{time_frame}/prices.csv")
-    print(prices)
+        # Convert to a dataframe
+        close = pd.DataFrame(
+            {"close": close},
+            index=[sliced_price_df.index],
+        )
+
+        test = pd.DataFrame(
+            {"close": sliced_price_df["close"].to_list()}, index=[sliced_price_df.index]
+        )
+
+        # Save it as a .csv
+        close.to_csv(
+            f"{transformed_model_dir}/{model}/{coin}/{time_frame}/preds_{i}.csv"
+        )
+        test.to_csv(f"{transformed_model_dir}/{model}/{coin}/{time_frame}/test_{i}.csv")
+
+        # Reset close list
+        close = []

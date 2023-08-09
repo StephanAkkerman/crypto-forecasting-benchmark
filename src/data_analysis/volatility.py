@@ -6,7 +6,7 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 import plotly.graph_objects as go
 
 # Local imports
-from data.vars import all_coins, timeframes, small_cap, mid_cap, large_cap
+from config import all_coins, timeframes, small_cap, mid_cap, large_cap, plots_dir
 from data.csv_data import read_csv
 
 
@@ -67,7 +67,7 @@ def window_analysis(coin="BTC", time="1d"):
     # Change x-axis labels
     axes[-1].set_xlabel("Date")  # Only set x-axis label for the last subplot
 
-    plt.savefig("data/plots/window_analysis.png")
+    plt.savefig(f"{plots_dir}/window_analysis.png")
     plt.show()
 
 
@@ -155,7 +155,7 @@ def vol_diff(selected_coin: str = "BTC", timeframe: str = "1d"):
     ax1.set_xlabel("")
     ax2.set_xlabel("Date")
 
-    plt.savefig("data/plots/volatility_difference.png")
+    plt.savefig(f"{plots_dir}/volatility_difference.png")
     plt.show()
 
 
@@ -230,7 +230,7 @@ def plot_all_volatilies(timeframe="1d"):
     ax.set_ylabel("Volatility")
     ax.set_xlabel("Date")
 
-    plt.savefig("data/plots/avg_volatility.png")
+    plt.savefig(f"{plots_dir}/avg_volatility.png")
     plt.show()
 
 
@@ -300,7 +300,7 @@ def plot_percentiles(timeframe="1d"):
     ax.set_ylabel("Volatility")
     ax.set_xlabel("Date")
 
-    plt.savefig("data/plots/volatility_percentiles.png")
+    plt.savefig(f"{plots_dir}/volatility_percentiles.png")
     plt.show()
 
 

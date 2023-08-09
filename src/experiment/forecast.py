@@ -24,7 +24,17 @@ from darts.models import (
 # Local imports
 from experiment.train_test import get_train_test
 from hyperopt.analysis import best_hyperparameters
-from config import all_coins, timeframes, n_periods, all_models, ml_models
+from config import (
+    all_coins,
+    timeframes,
+    n_periods,
+    all_models,
+    ml_models,
+    model_output_dir,
+    log_returns_model_dir,
+    raw_model_dir,
+    extended_model_dir,
+)
 
 # Ignore fbprophet warnings
 logger = logging.getLogger("cmdstanpy")
@@ -137,13 +147,13 @@ def generate_forecasts(model_name: str, coin: str, time_frame: str):
 
         # Save all important information
         pred.pd_dataframe().to_csv(
-            f"data/models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+            f"{log_returns_model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
         )
         train_set[period].pd_dataframe().to_csv(
-            f"data/models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
+            f"{log_returns_model_dir}/{model_name}/{coin}/{time_frame}/train_{period}.csv"
         )
         test_set[period].pd_dataframe().to_csv(
-            f"data/models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
+            f"{log_returns_model_dir}/{model_name}/{coin}/{time_frame}/test_{period}.csv"
         )
 
 
@@ -187,15 +197,15 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
 
         # Save all important information
         pred.pd_dataframe().to_csv(
-            f"data/extended_models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+            f"{extended_model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
         )
         # The training data keeps increase backwards
         extended_train.pd_dataframe().to_csv(
-            f"data/extended_models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
+            f"{extended_model_dir}/{model_name}/{coin}/{time_frame}/train_{period}.csv"
         )
         # Test set is always the same
         final_test.pd_dataframe().to_csv(
-            f"data/extended_models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
+            f"{extended_model_dir}/{model_name}/{coin}/{time_frame}/test_{period}.csv"
         )
 
         # Period 0 is last, meaning this model used the most training data
@@ -246,13 +256,13 @@ def generate_raw_forecasts(model_name: str, coin: str, time_frame: str):
 
         # Save all important information
         pred.pd_dataframe().to_csv(
-            f"data/raw_models/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+            f"{raw_model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
         )
         train_set[period].pd_dataframe().to_csv(
-            f"data/raw_models/{model_name}/{coin}/{time_frame}/train_{period}.csv"
+            f"{raw_model_dir}/{model_name}/{coin}/{time_frame}/train_{period}.csv"
         )
         test_set[period].pd_dataframe().to_csv(
-            f"data/raw_models/{model_name}/{coin}/{time_frame}/test_{period}.csv"
+            f"{raw_model_dir}/{model_name}/{coin}/{time_frame}/test_{period}.csv"
         )
 
 
@@ -261,7 +271,7 @@ def raw_forecast_model(model_name, start_from_coin="BTC", start_from_time_frame=
         for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
             # Create directories
             os.makedirs(
-                f"data/raw_models/{model_name}/{coin}/{time_frame}", exist_ok=True
+                f"{raw_model_dir}/{model_name}/{coin}/{time_frame}", exist_ok=True
             )
 
             generate_raw_forecasts(model_name, coin, time_frame)
@@ -300,7 +310,7 @@ def extended_forecast_model(
         for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
             # Create directories
             os.makedirs(
-                f"data/extended_models/{model_name}/{coin}/{time_frame}", exist_ok=True
+                f"{extended_model_dir}/{model_name}/{coin}/{time_frame}", exist_ok=True
             )
 
             generate_extended_forecasts(model_name, coin, time_frame)
@@ -337,7 +347,10 @@ def forecast_model(model_name, start_from_coin="BTC", start_from_time_frame="1m"
     for coin in all_coins[all_coins.index(start_from_coin) :]:
         for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
             # Create directories
-            os.makedirs(f"data/models/{model_name}/{coin}/{time_frame}", exist_ok=True)
+            os.makedirs(
+                f"{log_returns_model_dir}/{model_name}/{coin}/{time_frame}",
+                exist_ok=True,
+            )
 
             generate_forecasts(model_name, coin, time_frame)
 
@@ -413,7 +426,7 @@ def create_missing_forecasts(folder_name="models", models=[]):
     # Create directory
     for model_name, coin, time_frame in find_missing_forecasts(folder_name, models):
         os.makedirs(
-            f"data/{folder_name}/{model_name}/{coin}/{time_frame}/",
+            f"{model_output_dir}/{folder_name}/{model_name}/{coin}/{time_frame}/",
             exist_ok=True,
         )
 

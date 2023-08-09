@@ -2,10 +2,11 @@ import pandas as pd
 import pymannkendall as mk
 
 # Local imports
-from data.vars import all_coins, timeframes
+from config import all_coins, timeframes, statistics_dir
 from data.csv_data import read_csv
 
-def trend_tests(log_returns : bool = False):
+
+def trend_tests(log_returns: bool = False):
     """
     Performs four trend tests on the data and saves the results to an Excel file.
 
@@ -39,7 +40,8 @@ def trend_tests(log_returns : bool = False):
         all_results = pd.concat([all_results, results], axis=0, ignore_index=True)
 
     # Save as .xlsx
-    all_results.to_excel("data/tests/trend_results.xlsx", index=False)
+    all_results.to_excel(f"{statistics_dir}/trend_results.xlsx", index=False)
+
 
 def trend_test(test, log_returns=False) -> pd.DataFrame:
     """
@@ -94,5 +96,5 @@ def trend_test(test, log_returns=False) -> pd.DataFrame:
     print("No trend", len(results[results["Trend"] == "no trend"]))
     print("decreasing", len(results[results["Trend"] == "decreasing"]))
     print("increasing", len(results[results["Trend"] == "increasing"]))
-    
+
     return results

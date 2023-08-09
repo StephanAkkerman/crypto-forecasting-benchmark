@@ -2,14 +2,15 @@ import pandas as pd
 from scipy.stats import jarque_bera
 from hurst import compute_Hc
 
-from data.vars import all_coins, timeframes
+from config import all_coins, timeframes, statistics_dir
 from data.csv_data import read_csv
+
 
 def jarque_bera_test():
     """
     Performs the Jarque-Bera test for normality on the logarithmic returns of the data.
     """
-    
+
     results = pd.DataFrame()
 
     for coin in all_coins:
@@ -40,13 +41,13 @@ def calc_hurst():
     """
     Calculates the Hurst exponent for the data and saves it to an Excel file.
     """
-    
+
     results = pd.DataFrame()
     for coin in all_coins:
         for time in timeframes:
             df = read_csv(coin, time)
             prices = df["close"].values.tolist()
-            H, _, _ = compute_Hc(prices, kind='price', simplified=False)
+            H, _, _ = compute_Hc(prices, kind="price", simplified=False)
 
             if 0.45 < H < 0.55:
                 hurst_result = "Brownian motion"
@@ -65,5 +66,5 @@ def calc_hurst():
             results = pd.concat(
                 [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
             )
-            
-    results.to_excel("data/tests/hurst.xlsx", index=False)
+
+    results.to_excel(f"{statistics_dir}/hurst.xlsx", index=False)

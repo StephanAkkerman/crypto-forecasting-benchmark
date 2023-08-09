@@ -3,8 +3,9 @@ import plotly.graph_objects as go
 
 from experiment.utils import (
     all_model_predictions,
-    read_rmse_csv,
+    all_model_log_returns_as_price,
 )
+from experiment.rmse import read_rmse_csv
 
 
 def compare_predictions(model_dir: str, coin: str, time_frame: str):
@@ -122,3 +123,84 @@ def all_models_outliers(model_dir: str, time_frame: str):
 
     print(low_outliers)
     print(high_outliers)
+
+
+def compare_to_raw(coin: str, time_frame: str):
+    """
+    Compares the prediction of the original price models to the logarithmic return models.
+
+    Parameters
+    ----------
+    coin : str
+        _description_
+    time_frame : str
+        _description_
+    """
+
+    # Get the predictions
+    raw_predictions, _ = all_model_predictions("raw_models", coin, time_frame)
+    test = raw_predictions[list(raw_predictions.keys())[0]][1]
+
+    log_as_price = all_model_log_returns_as_price(coin, time_frame)
+
+    # Create a new figure
+    fig = go.Figure()
+
+    # Add test data line
+    fig.add_trace(
+        go.Scatter(
+            y=test.univariate_values(),
+            mode="lines",
+            name="Test Set",
+            line=dict(color="black", width=2),
+        )
+    )
+
+    # Plot each model's predictions
+    for model_name, (pred, _, _) in raw_predictions.items():
+        fig.add_trace(
+            go.Scatter(
+                y=pred.univariate_values(),
+                mode="lines",
+                name=model_name,
+                visible="legendonly",  # This line is hidden initially
+                legendgroup=model_name,
+            )
+        )
+
+    for model_name, pred in log_as_price.items():
+        fig.add_trace(
+            go.Scatter(
+                y=pred,
+                mode="lines",
+                name=f"Transformed {model_name}",
+                visible="legendonly",  # This line is hidden initially
+                legendgroup=model_name,
+                showlegend=False,  # This will ensure only one legend item for the group
+            )
+        )
+
+    # Compute the length of each period
+    period_length = len(test) // 5
+
+    # Add a vertical line at the end of each period
+    for i in range(1, 5):
+        fig.add_shape(
+            type="line",
+            x0=i * period_length,
+            y0=0,
+            x1=i * period_length,
+            y1=1,
+            yref="paper",
+            line=dict(color="Red", width=1.5),
+        )
+
+    # Add labels and title
+    fig.update_layout(
+        xaxis_title="Time",
+        yaxis_title="Value",
+        title=f"{coin} Predictions Comparison",
+    )
+
+    # Show the plot
+    fig.show()

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from data.vars import all_coins, timeframes
+from config import all_coins, timeframes, coin_dir
 from data.binance_data import fetchData
 
 
@@ -40,7 +40,7 @@ def format_TOTAL():
         df["volatility"] = df["log returns"].rolling(window=30).std() * np.sqrt(30)
 
         # Add news columns to csv
-        df.to_csv(f"data/coins/TOTAL/TOTAL_{btc_time}.csv", index=True)
+        df.to_csv(f"{coin_dir}/TOTAL/TOTAL_{btc_time}.csv", index=True)
 
         # Make sure they are 1000 rows
         print(btc_time, len(df))

@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from binance.client import Client
 
+from config import coin_dir
+
 # Initialize the Client
 client = Client()
 
@@ -121,7 +123,7 @@ def fetchData(symbol="BTC", amount=1, timeframe="1d", as_csv=False, file_name=No
         if file_name == None:
             file_name = full_symbol + "_" + timeframe + ".csv"
 
-        df.to_csv(f"data/coins/{symbol}/{file_name}", index=False)
+        df.to_csv(f"{coin_dir}/{symbol}/{file_name}", index=False)
         print(f"Succesfully saved {len(df)} rows to {file_name}")
 
     return df

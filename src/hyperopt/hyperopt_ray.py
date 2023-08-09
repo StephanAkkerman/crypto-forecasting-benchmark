@@ -319,7 +319,7 @@ def hyperopt_dataset(
     train_series, _ = get_train_test(coin=coin, time_frame=time_frame)
 
     # Create folder to save results
-    folder_loc = f"data/{results_folder}/{model_name}/{coin}/{time_frame}"
+    folder_loc = f"{results_folder}/{model_name}/{coin}/{time_frame}"
     os.makedirs(folder_loc, exist_ok=True)
 
     # Save the images in here

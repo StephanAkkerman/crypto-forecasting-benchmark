@@ -66,7 +66,7 @@ def pred_plot(model_name: str, coin: str, time_frame: str, save: bool = True):
     time_frame: str
         The time frame, options are [1m, 15m, 4h, 1d]
     """
-    pred_loc = f"data/{results_folder}/{model_name}/{coin}/{time_frame}/"
+    pred_loc = f"{results_folder}/{model_name}/{coin}/{time_frame}/"
     val_data, predictions = get_predictions(pred_loc)
 
     # Plot the results

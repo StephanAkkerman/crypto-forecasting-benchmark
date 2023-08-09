@@ -30,4 +30,4 @@ parallel_trials = 10
 num_samples = 20
 
 # Results folder name
-results_folder = "hyperopt_results"
+results_folder = "output/hyperopt"
