@@ -15,6 +15,10 @@ from config import (
     log_returns_model_dir,
     model_output_dir,
     transformed_model_dir,
+    log_returns_model,
+    raw_model,
+    transformed_model,
+    extended_model,
 )
 from data.csv_data import read_csv
 
@@ -25,7 +29,7 @@ def all_model_predictions(
     # Save the predictions and tests for each model
     model_predictions = {}
 
-    if model_dir == "extended_models":
+    if model_dir == extended_model:
         models = ml_models
     else:
         models = all_models
@@ -104,9 +108,9 @@ def get_predictions(
     tests = []
     rmses = []
 
-    if model_dir in ["models", "extended_models"]:
+    if model_dir in [log_returns_model, extended_model]:
         value_cols = ["log returns"]
-    elif model_dir == "raw_models":
+    elif model_dir == raw_model:
         value_cols = ["close"]
 
     for period in range(5):
@@ -143,15 +147,15 @@ def get_predictions(
     return preds, tests, rmses
 
 
-def all_log_returns_to_price(model_dir: str = "models"):
+def all_log_returns_to_price(model_dir: str = log_returns_model):
     # These already use the close price
-    if model_dir == "raw_models":
+    if model_dir == raw_model:
         return
 
-    if model_dir == "extended_models":
+    if model_dir == extended_model:
         models = ml_models
 
-    if model_dir == "models":
+    if model_dir == log_returns_model:
         models = all_models
 
     for model in models:
@@ -197,6 +201,8 @@ def log_returns_to_price(model_dir: str, model, coin, time_frame):
             {"close": close},
             index=[sliced_price_df.index],
         )
+        # Rename index to time to match with other data
+        close = close.rename_axis("time")
 
         test = pd.DataFrame(
             {"close": sliced_price_df["close"].to_list()}, index=[sliced_price_df.index]

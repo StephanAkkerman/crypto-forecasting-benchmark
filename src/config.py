@@ -46,9 +46,16 @@ plots_dir = "output/plots"
 
 # Model directories
 model_output_dir = "output/model_output"
-log_returns_model_dir = f"{model_output_dir}/log_returns"
-raw_model_dir = f"{model_output_dir}/raw"
-extended_model_dir = f"{model_output_dir}/extended"
-transformed_model_dir = f"{model_output_dir}/transformed"
+
+# Model names
+log_returns_model = "log_returns"
+raw_model = "raw"
+extended_model = "extended"
+transformed_model = "transformed"
+
+log_returns_model_dir = f"{model_output_dir}/{log_returns_model}"
+raw_model_dir = f"{model_output_dir}/{raw_model}"
+extended_model_dir = f"{model_output_dir}/{extended_model}"
+transformed_model_dir = f"{model_output_dir}/{transformed_model}"
 
 rmse_dir = "output/rmse"
