@@ -110,7 +110,7 @@ def get_predictions(
 
     if model_dir in [log_returns_model, extended_model]:
         value_cols = ["log returns"]
-    elif model_dir == raw_model:
+    elif model_dir in [raw_model, transformed_model]:
         value_cols = ["close"]
 
     for period in range(5):
@@ -167,7 +167,7 @@ def all_log_returns_to_price(model_dir: str = log_returns_model):
                 )
 
 
-def log_returns_to_price(model_dir: str, model, coin, time_frame):
+def log_returns_to_price(model_dir: str, model: str, coin: str, time_frame: str):
     """Convert a series of logarithmic returns to price series."""
     preds, _, _ = get_predictions(
         model_dir=model_dir,
@@ -208,9 +208,13 @@ def log_returns_to_price(model_dir: str, model, coin, time_frame):
             {"close": sliced_price_df["close"].to_list()}, index=[sliced_price_df.index]
         )
 
+        # Remove the first row
+        close = close.iloc[1:]
+        test = test.iloc[1:]
+
         # Save it as a .csv
         close.to_csv(
-            f"{transformed_model_dir}/{model}/{coin}/{time_frame}/preds_{i}.csv"
+            f"{transformed_model_dir}/{model}/{coin}/{time_frame}/pred_{i}.csv"
         )
         test.to_csv(f"{transformed_model_dir}/{model}/{coin}/{time_frame}/test_{i}.csv")
 

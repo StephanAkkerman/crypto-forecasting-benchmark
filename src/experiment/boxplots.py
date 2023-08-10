@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from experiment.rmse import read_rmse_csv
-from config import all_models, all_coins
+from config import all_models, all_coins, raw_model, transformed_model
 
 
 def plotly_boxplot(
@@ -22,10 +22,8 @@ def plotly_boxplot(
 
     Parameters
     ----------
-    model_dir: str
-        Directory where the models are saved.
-    time_frame : str
-        Options are: "1m", "15m", "4h", "1d".
+    df : pd.DataFrame
+        DataFrame with the RMSEs for each model and item.
     plot_items : list
         List of items to plot boxplots for, often the names of the coins.
     labels : list
@@ -86,8 +84,8 @@ def plotly_boxplot(
 
 
 def plotly_boxplot_comparison(
-    df: pd.DataFrame,
-    df2: pd.DataFrame,
+    trans_log_returns: pd.DataFrame,
+    raw: pd.DataFrame,
     plot_items: list,
     labels: list,
     title_prefix: str = "Boxplot",
@@ -123,39 +121,40 @@ def plotly_boxplot_comparison(
 
     # Calculate total number of traces
     # * 2 for the second df
-    total_traces = len(plot_items) * len(df.columns) * 2
+    total_traces = len(plot_items) * len(trans_log_returns.columns) * 2
 
     # Add traces, one for each item
     for i, item in enumerate(plot_items):
         # Add a box trace for the current item
-        for label, rmse in df.loc[item].items():
+        for (label, rmse_1), (_, rmse_2) in zip(
+            trans_log_returns.loc[item].items(), raw.loc[item].items()
+        ):
             fig.add_trace(
                 go.Box(
-                    y=rmse,
-                    name=f"Transformed {label}",
+                    y=rmse_1,
+                    name=f"Trans {label}",
                     boxpoints=boxpoints,
                     visible=i == 0,
                     legendgroup=label,
                 )
             )
-
-        for label, rmse in df2.loc[item].items():
             fig.add_trace(
                 go.Box(
-                    y=rmse,
-                    name=label,
+                    y=rmse_2,
+                    name=f"Raw {label}",
                     boxpoints=boxpoints,
                     visible=i == 0,
                     legendgroup=label,
                     showlegend=False,
                 )
             )
-
         # Create a visibility list for current item
         visibility = [False] * total_traces
-        visibility[i * len(df.columns) : (i + 1) * len(df.columns)] = [True] * len(
-            df.columns
-        )
+        visibility[
+            i
+            * len(trans_log_returns.columns) : (i + 1)
+            * len(trans_log_returns.columns)
+        ] = [True] * len(trans_log_returns.columns)
 
         # Add a button for the current item
         button = dict(
@@ -175,18 +174,18 @@ def plotly_boxplot_comparison(
     fig.update_layout(title_text=f"{title_prefix} for {plot_items[0]}")
 
     # Use the same x-axis range for all traces
-    fig.update_xaxes(categoryorder="array", categoryarray=labels)
+    # fig.update_xaxes(categoryorder="array", categoryarray=labels)
 
     fig.show()
 
 
 def plotly_model_boxplot_comparison(time_frame: str):
-    log_returns = read_rmse_csv(model_dir="models", time_frame=time_frame)
-    raw = read_rmse_csv(model_dir="raw_models", time_frame=time_frame)
+    trans = read_rmse_csv(model_dir=transformed_model, time_frame=time_frame)
+    raw = read_rmse_csv(model_dir=raw_model, time_frame=time_frame)
 
     plotly_boxplot_comparison(
-        df=log_returns.T,
-        df2=raw.T,
+        trans_log_returns=trans.T,
+        raw=raw.T,
         plot_items=all_models,
         labels=all_coins,
     )
