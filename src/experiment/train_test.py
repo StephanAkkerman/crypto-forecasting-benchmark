@@ -1,4 +1,6 @@
 from darts import TimeSeries
+from sklearn.preprocessing import MinMaxScaler
+from darts.dataprocessing.transformers import Scaler
 
 # Local imports
 from data.csv_data import read_csv
@@ -9,6 +11,7 @@ def get_train_test(
     coin="BTC",
     time_frame="1d",
     col="log returns",
+    scale: bool = False,
 ):
     # Read data from a CSV file
     data = read_csv(coin, time_frame, [col]).dropna()
@@ -31,10 +34,27 @@ def get_train_test(
         train_start = i * test_size
         train_end = train_start + train_size
 
-        train_set.append(time_series[train_start:train_end])
-        test_set.append(time_series[train_end : train_end + test_size])
+        train = time_series[train_start:train_end]
+        test = time_series[train_end : train_end + test_size]
+        full = time_series[train_start : train_end + test_size]
+
+        # If scale is True, scale the data
+        if scale:
+            scaler = MinMaxScaler(feature_range=(-1, 1))
+            transformer = Scaler(scaler)
+
+            # Fit only on the training data
+            transformer.fit(train)
+
+            # Transform both train and test data
+            train = transformer.transform(train)
+            test = transformer.transform(test)
+            full = transformer.transform(full)
+
+        train_set.append(train)
+        test_set.append(test)
 
         # The whole timeseries of this period
-        full_set.append(time_series[train_start : train_end + test_size])
+        full_set.append(full)
 
     return train_set, test_set, full_set
