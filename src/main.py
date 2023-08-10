@@ -60,4 +60,5 @@ if __name__ == "__main__":
     # utils.all_log_returns_to_price("models")
     # analysis.compare_to_raw("BTC", "1m")
     # boxplots.plotly_model_boxplot_comparison("1d")
-    rmse.rmse_comparison()
+    # rmse.rmse_comparison()
+    pass

@@ -52,10 +52,12 @@ log_returns_model = "log_returns"
 raw_model = "raw"
 extended_model = "extended"
 transformed_model = "transformed"
+scaled_model = "scaled"
 
 log_returns_model_dir = f"{model_output_dir}/{log_returns_model}"
 raw_model_dir = f"{model_output_dir}/{raw_model}"
 extended_model_dir = f"{model_output_dir}/{extended_model}"
 transformed_model_dir = f"{model_output_dir}/{transformed_model}"
+scaled_model_dir = f"{model_output_dir}/{scaled_model}"
 
 rmse_dir = "output/rmse"
