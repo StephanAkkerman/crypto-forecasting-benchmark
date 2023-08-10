@@ -97,18 +97,32 @@ def rmse_comparison(
     # 4. Display or save the resulting table
     print(percentual_difference)
 
+    rmse_heatmap(
+        percentual_difference,
+        title=f"RMSE percentual comparison between {model_1} model and {model_2} model for {time_frame} time frame",
+    )
+
+    # To save to a new CSV
+    # percentual_difference.to_csv('percentual_difference.csv', index=False)
+
+
+def rmse_heatmap(time_frame: str, model=log_returns_model):
+    rmse = read_rmse_csv(model, time_frame)
+    rmse = rmse.applymap(lambda x: np.mean(x))
+    rmse_heatmap(
+        rmse,
+        title=f"RMSE heatmap for {model} model for {time_frame} time frame",
+    )
+
+
+def plot_rmse_heatmap(df: pd.DataFrame, title: str):
     plt.figure(figsize=(15, 10))
     plt.rcParams["axes.grid"] = False
     sns.heatmap(
-        percentual_difference,
+        df,
         annot=True,
         cmap="RdYlGn",
         fmt=".2f",
     )
-    plt.title(
-        f"RMSE percentual comparison between {model_1} model and {model_2} model for {time_frame} time frame"
-    )
+    plt.title(title)
     plt.show()
-
-    # To save to a new CSV
-    # percentual_difference.to_csv('percentual_difference.csv', index=False)
