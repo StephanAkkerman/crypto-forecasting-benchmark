@@ -126,3 +126,7 @@ def plot_rmse_heatmap(df: pd.DataFrame, title: str):
     )
     plt.title(title)
     plt.show()
+
+
+def baseline_comparison():
+    pass

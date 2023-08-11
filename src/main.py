@@ -61,4 +61,4 @@ if __name__ == "__main__":
     # analysis.compare_to_raw("BTC", "1m")
     # boxplots.plotly_model_boxplot_comparison("1d")
     # rmse.rmse_comparison()
-    pass
+    volatility.plot_periods()

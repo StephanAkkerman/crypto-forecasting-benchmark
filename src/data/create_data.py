@@ -6,6 +6,10 @@ from data.binance_data import fetchData
 
 
 def create_all_data():
+    """
+    Fetches all the data for all the coins and timeframes declared in the config file
+    """
+
     for coin in all_coins:
         for time in timeframes:
             fetchData(symbol=coin, amount=1, timeframe=time, as_csv=True)
