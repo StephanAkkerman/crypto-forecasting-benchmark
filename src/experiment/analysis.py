@@ -1,14 +1,27 @@
 import numpy as np
 import plotly.graph_objects as go
 
+from config import raw_model, transformed_model
 from experiment.utils import (
     all_model_predictions,
-    all_model_log_returns_as_price,
 )
 from experiment.rmse import read_rmse_csv
 
 
 def compare_predictions(model_dir: str, coin: str, time_frame: str):
+    """
+    Compare the predictions of all models for a given coin and time frame to their test data
+
+    Parameters
+    ----------
+    model_dir : str
+        One of the model directories declared in the config
+    coin : str
+        The coin to compare, e.g. "BTC", "ETH", "LTC"
+    time_frame : str
+        The time frame to compare, e.g. "1d", "4h", "15m"
+    """
+
     # Get the predictions
     model_predictions, _ = all_model_predictions(model_dir, coin, time_frame)
     test = model_predictions[list(model_predictions.keys())[0]][1]
@@ -28,6 +41,7 @@ def compare_predictions(model_dir: str, coin: str, time_frame: str):
 
     # Plot each model's predictions
     for model_name, (pred, _, _) in model_predictions.items():
+        # If the model is extended models, plot each prediction separately
         if model_dir == "extended_models":
             for i, p in enumerate(pred):
                 fig.add_trace(
@@ -74,8 +88,21 @@ def compare_predictions(model_dir: str, coin: str, time_frame: str):
     fig.show()
 
 
-def rmse_outliers_coin(model_dir: str, coin: str, time_frame: str):
-    df = read_rmse_csv(model_dir, time_frame)
+def rmse_outliers_coin(model: str, coin: str, time_frame: str):
+    """
+    Print the outliers for each model for a given coin and time frame
+
+    Parameters
+    ----------
+    model : str
+        One of the models declared in the config
+    coin : str
+        The coin to compare, e.g. "BTC", "ETH", "LTC"
+    time_frame : str
+        The time frame to compare, e.g. "1d", "4h", "15m"
+    """
+
+    df = read_rmse_csv(model, time_frame)
 
     # Only get the coin
     df = df.loc[coin]
@@ -102,8 +129,19 @@ def rmse_outliers_coin(model_dir: str, coin: str, time_frame: str):
             print(f"High outliers for {model}: {high_outliers}")
 
 
-def all_models_outliers(model_dir: str, time_frame: str):
-    df = read_rmse_csv(model_dir, time_frame)
+def all_models_outliers(model: str, time_frame: str):
+    """
+    Prints all model outliers for each available coin for a given time frame
+
+    Parameters
+    ----------
+    model_dir : str
+        One of the models declared in the config
+    time_frame : str
+        The time frame to compare, e.g. "1d", "4h", "15m"
+    """
+
+    df = read_rmse_csv(model, time_frame)
 
     # Average the RMSEs
     df = df.applymap(lambda x: np.mean(x))
@@ -125,23 +163,34 @@ def all_models_outliers(model_dir: str, time_frame: str):
     print(high_outliers)
 
 
-def compare_to_raw(coin: str, time_frame: str):
+def compare_two_predictions(
+    model_1: str = raw_model,
+    model_2: str = transformed_model,
+    coin: str = "BTC",
+    time_frame: str = "1d",
+):
     """
     Compares the prediction of the original price models to the logarithmic return models.
 
     Parameters
     ----------
+    model_1 : str
+        The model to compare, e.g. "raw_model", "transformed_model"
+    model_2 : str
+        The model to compare to, e.g. "raw_model", "transformed_model"
     coin : str
-        _description_
+        The coin to compare, e.g. "BTC", "ETH", "LTC"
     time_frame : str
-        _description_
+        The time frame to compare, e.g. "1d", "4h", "15m"
     """
 
     # Get the predictions
-    raw_predictions, _ = all_model_predictions("raw_models", coin, time_frame)
-    test = raw_predictions[list(raw_predictions.keys())[0]][1]
+    model_1_pred, _ = all_model_predictions(model_1, coin, time_frame)
 
-    log_as_price = all_model_log_returns_as_price(coin, time_frame)
+    # The test results are the same for both models
+    test = model_1_pred[list(model_1_pred.keys())[0]][1]
+
+    model_2_pred, _ = all_model_predictions(model_2, coin, time_frame)
 
     # Create a new figure
     fig = go.Figure()
@@ -157,7 +206,7 @@ def compare_to_raw(coin: str, time_frame: str):
     )
 
     # Plot each model's predictions
-    for model_name, (pred, _, _) in raw_predictions.items():
+    for model_name, (pred, _, _) in model_1_pred.items():
         fig.add_trace(
             go.Scatter(
                 y=pred.univariate_values(),
@@ -168,10 +217,10 @@ def compare_to_raw(coin: str, time_frame: str):
             )
         )
 
-    for model_name, pred in log_as_price.items():
+    for model_name, (pred, _, _) in model_2_pred.items():
         fig.add_trace(
             go.Scatter(
-                y=pred,
+                y=pred.univariate_values(),
                 mode="lines",
                 name=f"Transformed {model_name}",
                 visible="legendonly",  # This line is hidden initially

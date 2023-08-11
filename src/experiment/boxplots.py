@@ -84,10 +84,10 @@ def plotly_boxplot(
 
 
 def plotly_boxplot_comparison(
-    trans_log_returns: pd.DataFrame,
-    raw: pd.DataFrame,
+    model_1_rmse: pd.DataFrame,
+    model_2_rmse: pd.DataFrame,
     plot_items: list,
-    labels: list,
+    labels: list = None,
     title_prefix: str = "Boxplot",
     show_points: bool = False,
 ):
@@ -121,40 +121,40 @@ def plotly_boxplot_comparison(
 
     # Calculate total number of traces
     # * 2 for the second df
-    total_traces = len(plot_items) * len(trans_log_returns.columns) * 2
+    total_traces = len(plot_items) * len(model_1_rmse.columns)
 
     # Add traces, one for each item
     for i, item in enumerate(plot_items):
         # Add a box trace for the current item
         for (label, rmse_1), (_, rmse_2) in zip(
-            trans_log_returns.loc[item].items(), raw.loc[item].items()
+            model_1_rmse.loc[item].items(), model_2_rmse.loc[item].items()
         ):
             fig.add_trace(
                 go.Box(
-                    y=rmse_1,
-                    name=f"Trans {label}",
+                    y=rmse_2,
+                    name=label,
                     boxpoints=boxpoints,
                     visible=i == 0,
                     legendgroup=label,
                 )
             )
+
             fig.add_trace(
                 go.Box(
-                    y=rmse_2,
-                    name=f"Raw {label}",
+                    y=rmse_1,
+                    name=f"Transformed {label}",
                     boxpoints=boxpoints,
                     visible=i == 0,
                     legendgroup=label,
                     showlegend=False,
                 )
             )
+
         # Create a visibility list for current item
         visibility = [False] * total_traces
         visibility[
-            i
-            * len(trans_log_returns.columns) : (i + 1)
-            * len(trans_log_returns.columns)
-        ] = [True] * len(trans_log_returns.columns)
+            i * len(model_1_rmse.columns) : (i + 1) * len(model_1_rmse.columns)
+        ] = [True] * len(model_1_rmse.columns)
 
         # Add a button for the current item
         button = dict(
@@ -174,26 +174,51 @@ def plotly_boxplot_comparison(
     fig.update_layout(title_text=f"{title_prefix} for {plot_items[0]}")
 
     # Use the same x-axis range for all traces
-    # fig.update_xaxes(categoryorder="array", categoryarray=labels)
+    if labels:
+        fig.update_xaxes(categoryorder="array", categoryarray=labels)
 
     fig.show()
 
 
-def plotly_model_boxplot_comparison(time_frame: str):
-    trans = read_rmse_csv(model_dir=transformed_model, time_frame=time_frame)
-    raw = read_rmse_csv(model_dir=raw_model, time_frame=time_frame)
+def plotly_model_boxplot_comparison(
+    time_frame: str, model_1: str = transformed_model, model_2: str = raw_model
+):
+    """
+    Plot a boxplot of the RMSEs for each model.
+
+    Parameters
+    ----------
+    time_frame : str
+        Time frame to plot, options are: "1m", "15m", "4h", "1d".
+    model_1 : str, optional
+        The first model used for comparison, by default transformed_model
+    model_2 : str, optional
+        The second model used for comparison, by default raw_model
+    """
+    model_1_rmse = read_rmse_csv(model=model_1, time_frame=time_frame)
+    model_2_rmse = read_rmse_csv(model=model_2, time_frame=time_frame)
 
     plotly_boxplot_comparison(
-        trans_log_returns=trans.T,
-        raw=raw.T,
+        model_1_rmse=model_1_rmse.T,
+        model_2_rmse=model_2_rmse.T,
         plot_items=all_models,
-        labels=all_coins,
     )
 
 
-def plotly_model_boxplot(model_dir: str, time_frame: str):
+def plotly_model_boxplot(model: str = transformed_model, time_frame: str = "1d"):
+    """
+    Plots a boxplot of the RMSEs for each coin for the given model.
+
+    Parameters
+    ----------
+    model : str
+        The model to plot, e.g. transformed_model.
+    time_frame : str
+        Time frame to plot, options are: "1m", "15m", "4h", "1d".
+    """
+
     # For model boxplot, call like this
-    df = read_rmse_csv(model_dir=model_dir, time_frame=time_frame)
+    df = read_rmse_csv(model_dir=model, time_frame=time_frame)
 
     plotly_boxplot(
         df=df.T,
@@ -202,9 +227,20 @@ def plotly_model_boxplot(model_dir: str, time_frame: str):
     )
 
 
-def plotly_coin_boxplot(model_dir: str, time_frame: str):
+def plotly_coin_boxplot(model: str = transformed_model, time_frame: str = "1d"):
+    """
+    Plots a boxplot of the RMSEs for each model for the given coin.
+
+    Parameters
+    ----------
+    model : str
+        The model to plot, e.g. transformed_model.
+    time_frame : str
+        Time frame to plot, options are: "1m", "15m", "4h", "1d".
+    """
+
     # For coin boxplot, call like this
-    df = read_rmse_csv(model_dir=model_dir, time_frame=time_frame)
+    df = read_rmse_csv(model=model, time_frame=time_frame)
 
     plotly_boxplot(
         df=df,
@@ -214,7 +250,7 @@ def plotly_coin_boxplot(model_dir: str, time_frame: str):
 
 
 def plt_boxplot(
-    model_dir: str,
+    model: str,
     df_subset: str,
     title: str = "Boxplot of RMSEs",
     time_frame: str = None,
@@ -237,7 +273,7 @@ def plt_boxplot(
     """
 
     # Read in the dataframe
-    df = read_rmse_csv(model_dir=model_dir, time_frame=time_frame)
+    df = read_rmse_csv(model=model, time_frame=time_frame)
 
     # Subset the dataframe
     if df_subset != "all models":
@@ -267,12 +303,12 @@ def plt_boxplot(
 
 
 def plt_model_boxplot(model_dir: str, model: str, time_frame: str):
-    plt_boxplot(model_dir=model_dir, df_subset=model, time_frame=time_frame)
+    plt_boxplot(model=model_dir, df_subset=model, time_frame=time_frame)
 
 
 def plt_coin_boxplot(model_dir, coin, time_frame):
-    plt_boxplot(model_dir=model_dir, df_subset=coin, time_frame=time_frame)
+    plt_boxplot(model=model_dir, df_subset=coin, time_frame=time_frame)
 
 
 def all_models_boxplot(model_dir, time_frame):
-    plt_boxplot(model_dir=model_dir, df_subset="all models", time_frame=time_frame)
+    plt_boxplot(model=model_dir, df_subset="all models", time_frame=time_frame)

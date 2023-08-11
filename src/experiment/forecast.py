@@ -108,20 +108,20 @@ def get_model(model_name: str, coin: str, time_frame: str):
 
 
 def generate_forecasts(
-    model_name: str, coin: str, time_frame: str, raw: bool = False, scaled: bool = False
+    model_dir: str,
+    model_name: str,
+    coin: str,
+    time_frame: str,
 ):
     # Set default values
     col = "log returns"
     scale = False
-    model_dir = log_returns_model_dir
 
-    if raw:
+    if model_dir == raw_model_dir:
         col = "close"
-        model_dir = raw_model_dir
 
-    if scaled:
+    elif model_dir == scaled_model_dir:
         scale = True
-        model_dir = scaled_model_dir
 
     # Get the training and testing data for each period
     train_set, test_set, time_series = get_train_test(
@@ -228,25 +228,11 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
 
 
 def forecast_model(
-    model_name,
-    start_from_coin="BTC",
-    start_from_time_frame="1m",
-    raw: bool = False,
-    scaled: bool = False,
-    extended: bool = False,
+    model_dir: str,
+    model_name: str,
+    start_from_coin: str = all_coins[0],
+    start_from_time_frame: str = timeframes[0],
 ):
-    # Set default values
-    model_dir = log_returns_model_dir
-
-    if raw:
-        model_dir = raw_model_dir
-
-    if scaled:
-        model_dir = scaled_model_dir
-
-    if extended:
-        model_dir = extended_model_dir
-
     for coin in all_coins[all_coins.index(start_from_coin) :]:
         for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
             # Create directories
@@ -255,47 +241,57 @@ def forecast_model(
                 exist_ok=True,
             )
 
-            if extended:
+            if model_dir == extended_model_dir:
                 generate_extended_forecasts(model_name, coin, time_frame)
             else:
                 generate_forecasts(
+                    model_dir=model_dir,
                     model_name=model_name,
                     coin=coin,
                     time_frame=time_frame,
-                    raw=raw,
-                    scaled=scaled,
                 )
 
 
 def forecast_all(
-    start_from_model=None,
-    start_from_coin=None,
-    start_from_time_frame=None,
-    ignore_model=[],
-    raw: bool = False,
-    scaled: bool = False,
+    model_dir: str == log_returns_model_dir,
+    start_from_model: str = None,
+    start_from_coin: str = None,
+    start_from_time_frame: str = None,
+    ignore_model: list = [],
 ):
     models = all_models
+    
+    if model_dir == extended_model_dir:
+        models = ml_models
 
     if start_from_model:
         models = models[models.index(start_from_model) :]
 
     for model in tqdm(models, desc="Generating forecast for all models", leave=False):
+        # Skip the models in the ignore list
         if model in ignore_model:
             continue
 
-        coin = "BTC"
-        time_frame = "1m"
+        # Reset the coin and time frame
+        coin = all_coins[0]
+        time_frame = timeframes[0]
 
+        # Start from coin can only be used if start from model is used
         if start_from_coin and start_from_model == model:
             coin = start_from_coin
+
+            # Start from time frame can only be used if start from coin is used
             if start_from_time_frame:
                 time_frame = start_from_time_frame
 
-        forecast_model(model, coin, time_frame, raw=raw, scaled=scaled)
+        forecast_model(model_dir, model, coin, time_frame)
 
 
 def test_models():
+    """
+    Test if all models work with their optimized hyperparameters
+    """
+
     for model in all_models:
         for coin in all_coins:
             for time_frame in timeframes:
@@ -303,11 +299,14 @@ def test_models():
                 get_model(model, coin, time_frame)
 
 
-def find_missing_forecasts(folder_name, models=[]):
+def find_missing_forecasts(model_dir: str, models=[]):
     all_models = all_models
 
     if models:
         all_models = models
+
+    if model_dir == extended_model_dir:
+        all_models = ml_models
 
     missing = []
 
@@ -315,7 +314,7 @@ def find_missing_forecasts(folder_name, models=[]):
         for coin in all_coins:
             for time_frame in timeframes:
                 for period in range(5):
-                    file_path = f"data/{folder_name}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+                    file_path = f"{model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
                     if not os.path.exists(file_path):
                         missing.append((model_name, coin, time_frame))
                         print(f"Missing {file_path}")
@@ -329,7 +328,7 @@ def find_missing_forecasts(folder_name, models=[]):
     return missing
 
 
-def create_missing_forecasts(model_dir=log_returns_model_dir, models=[]):
+def create_missing_forecasts(model_dir: str = log_returns_model_dir, models: list = []):
     if model_dir in [log_returns_model_dir, raw_model_dir, scaled_model_dir]:
         generate_func = generate_forecasts
     elif model_dir == extended_model_dir:

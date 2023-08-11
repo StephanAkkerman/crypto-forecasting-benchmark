@@ -60,4 +60,13 @@ extended_model_dir = f"{model_output_dir}/{extended_model}"
 transformed_model_dir = f"{model_output_dir}/{transformed_model}"
 scaled_model_dir = f"{model_output_dir}/{scaled_model}"
 
+# List of all available models
+model_dirs = [
+    log_returns_model_dir,
+    raw_model_dir,
+    extended_model_dir,
+    transformed_model_dir,
+    scaled_model_dir,
+]
+
 rmse_dir = "output/rmse"

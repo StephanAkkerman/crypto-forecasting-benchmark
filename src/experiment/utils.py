@@ -49,35 +49,6 @@ def all_model_predictions(
     return model_predictions, rmse_df
 
 
-def all_model_log_returns_as_price(coin: str, time_frame: str) -> dict:
-    """
-    Returns a dictionary of the predictions for each model.
-    The predictions are converted from log returns to price.
-
-    Parameters
-    ----------
-    coin : str
-        Options are such as "BTC", "ETH", etc.
-    time_frame : str
-        Options are "1m", "15m", "4h", "1d".
-
-    Returns
-    -------
-    dict
-        Dictionary of the predictions for each model, with key as the model name.
-    """
-    model_predictions = {}
-
-    for model in all_models:
-        df = pd.read_csv(
-            f"{log_returns_model_dir}/{model}/{coin}/{time_frame}/price_from_log_returns.csv"
-        )
-
-        model_predictions[model] = df["prediction"].tolist()
-
-    return model_predictions
-
-
 def get_predictions(
     model_dir: str,
     model_name: str,

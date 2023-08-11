@@ -438,7 +438,7 @@ def plot_lines(complete_df: pd.DataFrame):
     return avg_line, overall_median_line, overall_q3_line, overall_q1_line
 
 
-def plot_train_test_periods(complete_df: pd.DataFrame, ax):
+def plot_train_test_periods(complete_df: pd.DataFrame, ax: plt.Axes):
     """
     Plots the training, validation, and testing periods on the graph.
 
@@ -446,13 +446,13 @@ def plot_train_test_periods(complete_df: pd.DataFrame, ax):
     ----------
     complete_df : pd.DataFrame
         The dataframe containing the volatility data for all coins.
-    ax : _type_
-        _description_
+    ax : plt.Axes
+        The axes to plot the lines on.
 
     Returns
     -------
-    _type_
-        _description_
+    list, list, list
+        The lines for the training, validation, and testing periods.
     """
 
     ts_length = 999
@@ -522,6 +522,15 @@ def plot_train_test_periods(complete_df: pd.DataFrame, ax):
     return training_lines, validation_lines, testing_lines
 
 def plot_periods(timeframe="1d"):
+    """
+    Plots the number of periods and the training, validation, and testing periods.
+
+    Parameters
+    ----------
+    timeframe : str, optional
+        The time frame of the data, by default "1d"
+    """
+    
     # Get the volatility data
     complete_df = get_volatility_data(timeframe)
     

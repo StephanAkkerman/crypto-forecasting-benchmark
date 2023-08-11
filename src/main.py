@@ -13,6 +13,7 @@ from data_analysis import (
     volatility,
 )
 from experiment import forecast, analysis, train_test, utils, boxplots, rmse
+import config
 
 
 def methods():
@@ -48,17 +49,8 @@ def methods():
 
 if __name__ == "__main__":
     # analysis.compare_predictions("extended_models", "BTC", "1d")
-    # boxplots.plotly_coin_boxplot(model_dir="models", time_frame="1d")
-    # boxplots.plotly_model_boxplot(model_dir="models", time_frame="1d")
-    # utils.extended_model_predictions("BTC", "1d")
-    # forecast.fix_extended_test_train()
-    # utils.build_rmse_database(model_dir="extended_models")
-    # utils.all_model_predictions("extended_models", "BTC", "1d")
-    # utils.build_rmse_database("raw_models", skip_existing=False)
-    # forecast.generate_extended_forecasts("GRU", "BTC", "1d")
-    # forecast.extend_all()
-    # utils.all_log_returns_to_price("models")
-    # analysis.compare_to_raw("BTC", "1m")
+    boxplots.plotly_coin_boxplot(model=config.log_returns_model, time_frame="1d")
+    boxplots.plotly_model_boxplot(model=config.log_returns_model, time_frame="1d")
+    # analysis.compare_two_predictions()
     # boxplots.plotly_model_boxplot_comparison("1d")
     # rmse.rmse_comparison()
-    volatility.plot_periods()
