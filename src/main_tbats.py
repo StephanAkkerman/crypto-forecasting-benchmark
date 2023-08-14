@@ -1,6 +1,7 @@
 import torch
 import os
 
+import config
 from experiment import forecast
 
 if __name__ == "__main__":
@@ -16,4 +17,4 @@ if __name__ == "__main__":
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use only the first GPU.
 
-    forecast.raw_forecast_model("TBATS")
+    forecast.forecast_model(model_dir=config.scaled_model_dir, model_name="TBATS")

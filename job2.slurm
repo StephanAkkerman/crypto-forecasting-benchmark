@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### Job name
-#SBATCH --job-name=TBATS_forecast
+#SBATCH --job-name=scaled_TBATS
 
 ### Email
 #SBATCH --mail-type=BEGIN,END,FAIL

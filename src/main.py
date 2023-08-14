@@ -49,8 +49,11 @@ def methods():
 
 if __name__ == "__main__":
     # analysis.compare_predictions("extended_models", "BTC", "1d")
-    boxplots.plotly_coin_boxplot(model=config.log_returns_model, time_frame="1d")
-    boxplots.plotly_model_boxplot(model=config.log_returns_model, time_frame="1d")
+    # boxplots.plotly_coin_boxplot(model=config.log_returns_model, time_frame="1d")
+    # boxplots.plotly_model_boxplot(model=config.log_returns_model, time_frame="1d")
     # analysis.compare_two_predictions()
     # boxplots.plotly_model_boxplot_comparison("1d")
     # rmse.rmse_comparison()
+    forecast.forecast_all(
+        model_dir=config.scaled_model_dir, ignore_model=["TBATS", "Prophet"]
+    )
