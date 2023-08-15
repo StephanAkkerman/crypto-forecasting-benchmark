@@ -54,6 +54,7 @@ if __name__ == "__main__":
     # analysis.compare_two_predictions()
     # boxplots.plotly_model_boxplot_comparison("1d")
     # rmse.rmse_comparison()
-    forecast.forecast_all(
-        model_dir=config.scaled_model_dir, ignore_model=["TBATS", "Prophet"]
-    )
+    # forecast.forecast_all(
+    #    model_dir=config.scaled_model_dir, ignore_model=["TBATS", "Prophet"]
+    # )
+    forecast.forecast_model(model_dir=config.scaled_model_dir, model_name="Prophet")

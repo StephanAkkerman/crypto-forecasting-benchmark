@@ -104,7 +104,7 @@ def pred_plot(model_name: str, coin: str, time_frame: str, save: bool = True):
 
 def get_analysis(model_name, coin, time_frame, keep_mae=False):
     # Read the results
-    save_loc = f"data/{results_folder}/{model_name}/{coin}/{time_frame}/"
+    save_loc = f"{results_folder}/{model_name}/{coin}/{time_frame}/"
 
     # Get the analysis.csv
     results = pd.read_csv(f"{save_loc}analysis.csv")
