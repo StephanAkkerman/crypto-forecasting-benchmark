@@ -31,10 +31,10 @@ from config import (
     all_models,
     ml_models,
     model_output_dir,
-    log_returns_model_dir,
-    raw_model_dir,
-    extended_model_dir,
-    scaled_model_dir,
+    log_returns_model,
+    raw_model,
+    scaled_model,
+    extended_model,
 )
 
 # Ignore fbprophet warnings
@@ -108,8 +108,8 @@ def get_model(model_name: str, coin: str, time_frame: str):
 
 
 def generate_forecasts(
-    model_dir: str,
-    model_name: str,
+    model: str,
+    forecasting_model_name: str,
     coin: str,
     time_frame: str,
 ):
@@ -117,10 +117,10 @@ def generate_forecasts(
     col = "log returns"
     scale = False
 
-    if model_dir == raw_model_dir:
+    if model == raw_model:
         col = "close"
 
-    elif model_dir == scaled_model_dir:
+    elif model == scaled_model:
         scale = True
 
     # Get the training and testing data for each period
@@ -131,23 +131,23 @@ def generate_forecasts(
     # Certain models need to be retrained for each period
     retrain = False
     train_length = None
-    if model_name in ["Prophet", "TBATS", "ARIMA"]:
+    if forecasting_model_name in ["Prophet", "TBATS", "ARIMA"]:
         retrain = True
         train_length = len(train_set[0])
 
     for period in tqdm(
         range(n_periods),
-        desc=f"Forecasting periods for {model_name}/{coin}/{time_frame}",
+        desc=f"Forecasting periods for {forecasting_model_name}/{coin}/{time_frame}",
         leave=False,
     ):
         # Reset the model
-        model = get_model(model_name, coin, time_frame)
+        forecasting_model = get_model(forecasting_model_name, coin, time_frame)
 
         # Fit on the training data
-        model.fit(series=train_set[period])
+        forecasting_model.fit(series=train_set[period])
 
         # Generate the historical forecast
-        pred = model.historical_forecasts(
+        pred = forecasting_model.historical_forecasts(
             time_series[period],
             start=len(train_set[period]),
             forecast_horizon=1,  # 1 step ahead forecasting
@@ -157,7 +157,9 @@ def generate_forecasts(
             verbose=False,
         )
 
-        save_dir = f"{model_dir}/{model_name}/{coin}/{time_frame}"
+        save_dir = (
+            f"{model_output_dir}/{model}/{forecasting_model_name}/{coin}/{time_frame}"
+        )
 
         # Save all important information
         pred.pd_dataframe().to_csv(f"{save_dir}/pred_{period}.csv")
@@ -165,9 +167,11 @@ def generate_forecasts(
         test_set[period].pd_dataframe().to_csv(f"{save_dir}/test_{period}.csv")
 
 
-def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
-    save_dir = f"{extended_model_dir}/{model_name}/{coin}/{time_frame}"
-    
+def generate_extended_forecasts(forecasting_model: str, coin: str, time_frame: str):
+    save_dir = (
+        f"{model_output_dir}/{extended_model}/{forecasting_model}/{coin}/{time_frame}"
+    )
+
     # Get the training and testing data for each period
     train_set, test_set, time_series = get_train_test(
         coin=coin,
@@ -186,13 +190,13 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
     # Start from the final period and add training + test to it
     for period in tqdm(
         reversed_periods,
-        desc=f"Forecasting periods for {model_name}/{coin}/{time_frame}",
+        desc=f"Forecasting periods for {forecasting_model}/{coin}/{time_frame}",
         leave=False,
     ):
         extended_train = complete_ts[: -len(final_test)]
 
         # Reset the model
-        model = get_model(model_name, coin, time_frame)
+        model = get_model(forecasting_model, coin, time_frame)
         model.fit(series=extended_train)
 
         pred = model.historical_forecasts(
@@ -206,17 +210,11 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
         )
 
         # Save all important information
-        pred.pd_dataframe().to_csv(
-            f"{save_dir}/pred_{period}.csv"
-        )
+        pred.pd_dataframe().to_csv(f"{save_dir}/pred_{period}.csv")
         # The training data keeps increase backwards
-        extended_train.pd_dataframe().to_csv(
-            f"{save_dir}/train_{period}.csv"
-        )
+        extended_train.pd_dataframe().to_csv(f"{save_dir}/train_{period}.csv")
         # Test set is always the same
-        final_test.pd_dataframe().to_csv(
-            f"{save_dir}/test_{period}.csv"
-        )
+        final_test.pd_dataframe().to_csv(f"{save_dir}/test_{period}.csv")
 
         # Period 0 is last, meaning this model used the most training data
         if period == 0:
@@ -230,8 +228,8 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
 
 
 def forecast_model(
-    model_dir: str,
-    model_name: str,
+    model: str,
+    forecasting_model: str,
     start_from_coin: str = all_coins[0],
     start_from_time_frame: str = timeframes[0],
 ):
@@ -239,39 +237,41 @@ def forecast_model(
         for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
             # Create directories
             os.makedirs(
-                f"{model_dir}/{model_name}/{coin}/{time_frame}",
+                f"{model_output_dir}/{model}/{forecasting_model}/{coin}/{time_frame}",
                 exist_ok=True,
             )
 
-            if model_dir == extended_model_dir:
-                generate_extended_forecasts(model_name, coin, time_frame)
+            if model == extended_model:
+                generate_extended_forecasts(forecasting_model, coin, time_frame)
             else:
                 generate_forecasts(
-                    model_dir=model_dir,
-                    model_name=model_name,
+                    model=model,
+                    forecasting_model_name=forecasting_model,
                     coin=coin,
                     time_frame=time_frame,
                 )
 
 
 def forecast_all(
-    model_dir: str == log_returns_model_dir,
+    model: str == log_returns_model,
     start_from_model: str = None,
     start_from_coin: str = None,
     start_from_time_frame: str = None,
     ignore_model: list = [],
 ):
     models = all_models
-    
-    if model_dir == extended_model_dir:
+
+    if model == extended_model:
         models = ml_models
 
     if start_from_model:
         models = models[models.index(start_from_model) :]
 
-    for model in tqdm(models, desc="Generating forecast for all models", leave=False):
+    for forecasting_model in tqdm(
+        models, desc="Generating forecast for all models", leave=False
+    ):
         # Skip the models in the ignore list
-        if model in ignore_model:
+        if forecasting_model in ignore_model:
             continue
 
         # Reset the coin and time frame
@@ -279,14 +279,14 @@ def forecast_all(
         time_frame = timeframes[0]
 
         # Start from coin can only be used if start from model is used
-        if start_from_coin and start_from_model == model:
+        if start_from_coin and start_from_model == forecasting_model:
             coin = start_from_coin
 
             # Start from time frame can only be used if start from coin is used
             if start_from_time_frame:
                 time_frame = start_from_time_frame
 
-        forecast_model(model_dir, model, coin, time_frame)
+        forecast_model(model, forecasting_model, coin, time_frame)
 
 
 def test_models():
@@ -301,13 +301,13 @@ def test_models():
                 get_model(model, coin, time_frame)
 
 
-def find_missing_forecasts(model_dir: str, models=[]):
+def find_missing_forecasts(model: str, models=[]):
     all_models = all_models
 
     if models:
         all_models = models
 
-    if model_dir == extended_model_dir:
+    if model == extended_model:
         all_models = ml_models
 
     missing = []
@@ -316,7 +316,7 @@ def find_missing_forecasts(model_dir: str, models=[]):
         for coin in all_coins:
             for time_frame in timeframes:
                 for period in range(5):
-                    file_path = f"{model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+                    file_path = f"{model_output_dir}/{model}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
                     if not os.path.exists(file_path):
                         missing.append((model_name, coin, time_frame))
                         print(f"Missing {file_path}")
@@ -330,22 +330,22 @@ def find_missing_forecasts(model_dir: str, models=[]):
     return missing
 
 
-def create_missing_forecasts(model_dir: str = log_returns_model_dir, models: list = []):
-    if model_dir in [log_returns_model_dir, raw_model_dir, scaled_model_dir]:
+def create_missing_forecasts(model: str = log_returns_model, models: list = []):
+    if model in [log_returns_model, raw_model, scaled_model]:
         generate_func = generate_forecasts
-    elif model_dir == extended_model_dir:
+    elif model == extended_model:
         generate_func = generate_extended_forecasts
 
     # Create directory
-    for model_name, coin, time_frame in find_missing_forecasts(model_dir, models):
+    for model_name, coin, time_frame in find_missing_forecasts(model, models):
         os.makedirs(
-            f"{model_output_dir}/{model_dir}/{model_name}/{coin}/{time_frame}/",
+            f"{model_output_dir}/{model}/{model_name}/{coin}/{time_frame}/",
             exist_ok=True,
         )
 
-        if model_dir == raw_model_dir:
+        if model == raw_model:
             generate_func(model_name, coin, time_frame, raw=True)
-        elif model_dir == scaled_model_dir:
+        elif model == scaled_model:
             generate_func(model_name, coin, time_frame, scaled=True)
         else:
             generate_func(model_name, coin, time_frame)

@@ -12,9 +12,7 @@ from config import (
     timeframes,
     all_models,
     ml_models,
-    log_returns_model_dir,
     model_output_dir,
-    transformed_model_dir,
     log_returns_model,
     raw_model,
     transformed_model,
@@ -155,7 +153,8 @@ def log_returns_to_price(model_dir: str, model: str, coin: str, time_frame: str)
     price_df = read_csv(coin=coin, timeframe=time_frame, col_names=["close"])
 
     # Create a directory to save the predictions
-    os.makedirs(f"{transformed_model_dir}/{model}/{coin}/{time_frame}", exist_ok=True)
+    save_loc = f"{model_output_dir}{transformed_model}/{model}/{coin}/{time_frame}"
+    os.makedirs(save_loc, exist_ok=True)
 
     for i, prediction in enumerate(preds):
         # Start with 1 before the prediction
@@ -187,10 +186,8 @@ def log_returns_to_price(model_dir: str, model: str, coin: str, time_frame: str)
         test = test.iloc[1:]
 
         # Save it as a .csv
-        close.to_csv(
-            f"{transformed_model_dir}/{model}/{coin}/{time_frame}/pred_{i}.csv"
-        )
-        test.to_csv(f"{transformed_model_dir}/{model}/{coin}/{time_frame}/test_{i}.csv")
+        close.to_csv(f"{save_loc}/pred_{i}.csv")
+        test.to_csv(f"{save_loc}/test_{i}.csv")
 
         # Reset close list
         close = []

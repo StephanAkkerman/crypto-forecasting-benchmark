@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from experiment.rmse import read_rmse_csv
+from experiment.rmse import read_rmse_csv, extended_rmse_df
 import config
 from config import all_models, all_coins, raw_model, transformed_model
 
@@ -318,19 +318,13 @@ def all_models_boxplot(model_dir, time_frame):
 
 
 def plotly_extended_model_rmse(time_frame):
-    # Get RMSE data
-    rmse_df = read_rmse_csv(model=config.extended_model, time_frame=time_frame)
+    df = extended_rmse_df(time_frame=time_frame)
 
-    # Get the first value of each list in the dataframe -> period 0
-    # Change the format that the first column is the period and forget about coin names
-    data = {}
-    for model in rmse_df.columns:
-        # Get the RMSEs for the given model
-        data[model] = rmse_df[model].iloc[: config.n_periods].tolist()
-    df = pd.DataFrame(data, index=range(config.n_periods))
-    plotly_boxplot(
-        df=df.T, labels=list(range(config.n_periods)), plot_items=config.ml_models
-    )
+    # Change index
+    labels = [f"Until Period {i}" for i in df.index.tolist()]
+    df.index = labels
+
+    plotly_boxplot(df=df.T, labels=labels, plot_items=config.ml_models)
 
 
 def plt_extended_model_rmse(time_frame: str):

@@ -105,29 +105,64 @@ def rmse_comparison(
     plot_rmse_heatmap(
         percentual_difference,
         title=f"RMSE percentual comparison between {model_1} model and {model_2} model for {time_frame} time frame",
+        flip_colors=True,
     )
 
     # To save to a new CSV
     # percentual_difference.to_csv('percentual_difference.csv', index=False)
 
 
+def extended_rmse_df(time_frame: str) -> pd.DataFrame:
+    # Get RMSE data
+    rmse_df = read_rmse_csv(model=config.extended_model, time_frame=time_frame)
+
+    # Get the first value of each list in the dataframe -> period 0
+    # Change the format that the first column is the period and forget about coin names
+    data = {}
+    for model in rmse_df.columns:
+        # Get the RMSEs for the given model
+        data[model] = rmse_df[model].iloc[: config.n_periods].tolist()
+
+    return pd.DataFrame(data, index=range(config.n_periods))
+
+
 def rmse_heatmap(time_frame: str, model=log_returns_model):
-    rmse = read_rmse_csv(model, time_frame)
+    if model == extended_model:
+        rmse = extended_rmse_df(time_frame)
+        decimals = 4
+    else:
+        rmse = read_rmse_csv(model, time_frame)
+        decimals = 2
+
+    # Round the values in the list
     rmse = rmse.applymap(lambda x: np.mean(x))
+
+    # Add average column at the right
+    rmse["Average"] = rmse.mean(axis=1)
+
     plot_rmse_heatmap(
         rmse,
         title=f"RMSE heatmap for {model} model for {time_frame} time frame",
+        round_decimals=decimals,
     )
 
 
-def plot_rmse_heatmap(df: pd.DataFrame, title: str):
+def plot_rmse_heatmap(
+    df: pd.DataFrame, title: str, flip_colors: bool = False, round_decimals: int = 2
+):
+    if flip_colors:
+        cmap = "RdYlGn"
+    else:
+        # Green low, red high
+        cmap = "RdYlGn_r"
+
     plt.figure(figsize=(15, 10))
     plt.rcParams["axes.grid"] = False
     sns.heatmap(
         df,
         annot=True,
-        cmap="RdYlGn",
-        fmt=".2f",
+        cmap=cmap,
+        fmt=f".{round_decimals}f",
     )
     plt.title(title)
     plt.show()
