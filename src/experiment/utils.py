@@ -24,23 +24,26 @@ from data.csv_data import read_csv
 
 
 def all_model_predictions(
-    model_dir: str, coin: str, time_frame: str
+    model: str, coin: str, time_frame: str
 ) -> (dict, pd.DataFrame):
     # Save the predictions and tests for each model
     model_predictions = {}
 
-    if model_dir == extended_model:
+    if model == extended_model:
         models = ml_models
     else:
         models = all_models
 
-    for model in models:
+    for model_name in models:
         preds, tests, rmses = get_predictions(
-            model_dir=model_dir, model_name=model, coin=coin, time_frame=time_frame
+            model=model,
+            model_name=model_name,
+            coin=coin,
+            time_frame=time_frame,
         )
         # If the model does not exist, skip it
         if preds is not None:
-            model_predictions[model] = (preds, tests, rmses)
+            model_predictions[model_name] = (preds, tests, rmses)
 
     # Only use the third value in the tuple (the rmse) and convert to a dict
     rmses = {model: rmse for model, (_, _, rmse) in model_predictions.items()}
@@ -50,7 +53,7 @@ def all_model_predictions(
 
 
 def get_predictions(
-    model_dir: str,
+    model: str,
     model_name: str,
     coin: str,
     time_frame: str,
@@ -79,17 +82,17 @@ def get_predictions(
     tests = []
     rmses = []
 
-    if model_dir in [log_returns_model, extended_model]:
+    if model in [log_returns_model, extended_model]:
         value_cols = ["log returns"]
-    elif model_dir in [raw_model, transformed_model]:
+    elif model in [raw_model, transformed_model]:
         value_cols = ["close"]
 
     for period in range(5):
-        file_path = f"{model_output_dir}/{model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
-        test_path = f"{model_output_dir}/{model_dir}/{model_name}/{coin}/{time_frame}/test_{period}.csv"
+        file_path = f"{model_output_dir}/{model}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+        test_path = f"{model_output_dir}/{model}/{model_name}/{coin}/{time_frame}/test_{period}.csv"
         if not os.path.exists(file_path):
             print(
-                f"Warning the following file does not exist: {model_output_dir}/{model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+                f"Warning the following file does not exist: {model_output_dir}/{model}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
             )
             return None, None, None
 
@@ -108,7 +111,7 @@ def get_predictions(
         tests.append(test)
 
     # Make it one big TimeSeries
-    if model_dir != "extended_models" and concatenated:
+    if model != extended_model and concatenated:
         preds = concatenate(preds, axis=0)
         tests = concatenate(tests, axis=0)
     else:
@@ -141,7 +144,7 @@ def all_log_returns_to_price(model_dir: str = log_returns_model):
 def log_returns_to_price(model_dir: str, model: str, coin: str, time_frame: str):
     """Convert a series of logarithmic returns to price series."""
     preds, _, _ = get_predictions(
-        model_dir=model_dir,
+        model=model_dir,
         model_name=model,
         coin=coin,
         time_frame=time_frame,

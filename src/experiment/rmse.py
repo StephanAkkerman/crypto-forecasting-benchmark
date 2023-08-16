@@ -6,15 +6,19 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Local imports
+import config
 from config import (
     all_coins,
     timeframes,
     all_models,
+    ml_models,
     rmse_dir,
     transformed_model,
     log_returns_model,
+    extended_model,
     raw_model,
     rmse_dir,
+    n_periods,
 )
 from experiment.utils import all_model_predictions
 
@@ -31,7 +35,7 @@ def read_rmse_csv(model: str, time_frame: str) -> pd.DataFrame:
     return df
 
 
-def build_rmse_database(model: str = "log_returns", skip_existing: bool = True):
+def build_rmse_database(model: str = log_returns_model, skip_existing: bool = True):
     os.makedirs(f"{rmse_dir}/{model}", exist_ok=True)
 
     for tf in timeframes:
@@ -49,7 +53,7 @@ def build_rmse_database(model: str = "log_returns", skip_existing: bool = True):
         for coin in all_coins:
             # Get the predictions
             _, rmse_df_coin = all_model_predictions(
-                model_dir=model, coin=coin, time_frame=tf
+                model=model, coin=coin, time_frame=tf
             )
             # Convert the dataframe to a list of lists
             rmse_df_list = pd.DataFrame(

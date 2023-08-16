@@ -166,6 +166,8 @@ def generate_forecasts(
 
 
 def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
+    save_dir = f"{extended_model_dir}/{model_name}/{coin}/{time_frame}"
+    
     # Get the training and testing data for each period
     train_set, test_set, time_series = get_train_test(
         coin=coin,
@@ -205,15 +207,15 @@ def generate_extended_forecasts(model_name: str, coin: str, time_frame: str):
 
         # Save all important information
         pred.pd_dataframe().to_csv(
-            f"{extended_model_dir}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+            f"{save_dir}/pred_{period}.csv"
         )
         # The training data keeps increase backwards
         extended_train.pd_dataframe().to_csv(
-            f"{extended_model_dir}/{model_name}/{coin}/{time_frame}/train_{period}.csv"
+            f"{save_dir}/train_{period}.csv"
         )
         # Test set is always the same
         final_test.pd_dataframe().to_csv(
-            f"{extended_model_dir}/{model_name}/{coin}/{time_frame}/test_{period}.csv"
+            f"{save_dir}/test_{period}.csv"
         )
 
         # Period 0 is last, meaning this model used the most training data

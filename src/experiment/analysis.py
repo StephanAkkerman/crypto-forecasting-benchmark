@@ -1,21 +1,21 @@
 import numpy as np
 import plotly.graph_objects as go
 
-from config import raw_model, transformed_model
+from config import raw_model, transformed_model, extended_model
 from experiment.utils import (
     all_model_predictions,
 )
 from experiment.rmse import read_rmse_csv
 
 
-def compare_predictions(model_dir: str, coin: str, time_frame: str):
+def compare_predictions(model: str, coin: str, time_frame: str):
     """
     Compare the predictions of all models for a given coin and time frame to their test data
 
     Parameters
     ----------
     model_dir : str
-        One of the model directories declared in the config
+        One of the models declared in the config
     coin : str
         The coin to compare, e.g. "BTC", "ETH", "LTC"
     time_frame : str
@@ -23,7 +23,7 @@ def compare_predictions(model_dir: str, coin: str, time_frame: str):
     """
 
     # Get the predictions
-    model_predictions, _ = all_model_predictions(model_dir, coin, time_frame)
+    model_predictions, _ = all_model_predictions(model, coin, time_frame)
     test = model_predictions[list(model_predictions.keys())[0]][1]
 
     # Create a new figure
@@ -42,7 +42,7 @@ def compare_predictions(model_dir: str, coin: str, time_frame: str):
     # Plot each model's predictions
     for model_name, (pred, _, _) in model_predictions.items():
         # If the model is extended models, plot each prediction separately
-        if model_dir == "extended_models":
+        if model == extended_model:
             for i, p in enumerate(pred):
                 fig.add_trace(
                     go.Scatter(
@@ -50,6 +50,8 @@ def compare_predictions(model_dir: str, coin: str, time_frame: str):
                         mode="lines",
                         name=f"{model_name} {i}",
                         visible="legendonly",  # This line is hidden initially
+                        legendgroup=model_name,
+                        showlegend=True if i == 0 else False,
                     )
                 )
         else:

@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from experiment.rmse import read_rmse_csv
+import config
 from config import all_models, all_coins, raw_model, transformed_model
 
 
@@ -25,9 +26,11 @@ def plotly_boxplot(
     df : pd.DataFrame
         DataFrame with the RMSEs for each model and item.
     plot_items : list
-        List of items to plot boxplots for, often the names of the coins.
+        List of items to plot boxplots for, often the names of the coins. The values displayed on the x-axis.
+        Should be the same as the index values.
     labels : list
-        List of labels for each boxplot, often the names of the models.
+        List of labels for each boxplot, often the names of the models. The values displayed in the selection box.
+        Should be the same as the column names.
     title_prefix : str
         Prefix for the plot title.
     """
@@ -312,3 +315,73 @@ def plt_coin_boxplot(model_dir, coin, time_frame):
 
 def all_models_boxplot(model_dir, time_frame):
     plt_boxplot(model=model_dir, df_subset="all models", time_frame=time_frame)
+
+
+def plotly_extended_model_rmse(time_frame):
+    # Get RMSE data
+    rmse_df = read_rmse_csv(model=config.extended_model, time_frame=time_frame)
+
+    # Get the first value of each list in the dataframe -> period 0
+    # Change the format that the first column is the period and forget about coin names
+    data = {}
+    for model in rmse_df.columns:
+        # Get the RMSEs for the given model
+        data[model] = rmse_df[model].iloc[: config.n_periods].tolist()
+    df = pd.DataFrame(data, index=range(config.n_periods))
+    plotly_boxplot(
+        df=df.T, labels=list(range(config.n_periods)), plot_items=config.ml_models
+    )
+
+
+def plt_extended_model_rmse(time_frame: str):
+    # Get RMSE data
+    rmse_df = read_rmse_csv(model=config.extended_model, time_frame=time_frame)
+
+    data = {}
+    for model in rmse_df.columns:
+        # Get the RMSEs for the given model
+        data[model] = rmse_df[model].iloc[: config.n_periods].tolist()
+
+    n_models = len(data)
+    n_periods = len(next(iter(data.values())))
+
+    # Generate a list of unique colors for each model
+    colors = plt.cm.viridis(np.linspace(0, 1, n_models))
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # For each period
+    for period in range(n_periods):
+        # For each model
+        for model_idx, model_name in enumerate(data):
+            # Plot the boxplot for this model and this period with the model's unique color
+            box = ax.boxplot(
+                data[model_name][period],
+                positions=[period * n_models + model_idx],
+                widths=0.6,
+                patch_artist=True,
+            )
+            for patch in box["boxes"]:
+                patch.set_facecolor(colors[model_idx])
+
+    # Set the x-ticks for each model within each period
+    ax.set_xticks([i for i in range(n_models * n_periods)])
+
+    # Set the x-tick labels to be the model names, repeated for each period
+    ax.set_xticklabels(list(data.keys()) * n_periods, rotation=45, ha="right")
+
+    ax.set_title("Comparison of RMSE values across models and periods")
+    ax.set_xlabel("Period and Model")
+    ax.set_ylabel("RMSE")
+
+    # Create a custom legend
+    from matplotlib.lines import Line2D
+
+    legend_elements = [
+        Line2D([0], [0], color=colors[i], lw=4, label=model_name)
+        for i, model_name in enumerate(data)
+    ]
+    ax.legend(handles=legend_elements)
+
+    plt.tight_layout()
+    plt.show()

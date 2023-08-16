@@ -54,6 +54,11 @@ if __name__ == "__main__":
     # analysis.compare_two_predictions()
     # boxplots.plotly_model_boxplot_comparison("1d")
     # rmse.rmse_comparison()
-    forecast.forecast_all(
-        model_dir=config.scaled_model_dir, ignore_model=["TBATS", "Prophet"]
-    )
+    # forecast.forecast_all(
+    #    model_dir=config.scaled_model_dir, ignore_model=["TBATS", "Prophet"]
+    # )
+    # analysis.compare_predictions(
+    #    model=config.extended_model, coin="BTC", time_frame="1d"
+    # )
+    # rmse.extended_models_comparison_per_model(model_name="RNN", time_frame="1d")
+    boxplots.plotly_extended_model_rmse(time_frame="1d")
