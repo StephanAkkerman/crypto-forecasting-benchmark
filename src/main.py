@@ -62,4 +62,5 @@ if __name__ == "__main__":
     # )
     # rmse.extended_models_comparison_per_model(model_name="RNN", time_frame="1d")
     # boxplots.plotly_extended_model_rmse(time_frame="1d")
-    rmse.rmse_heatmap(time_frame="1d", model=config.extended_model)
+    # rmse.rmse_heatmap(time_frame="1d", model=config.extended_model)
+    rmse.baseline_comparison()
