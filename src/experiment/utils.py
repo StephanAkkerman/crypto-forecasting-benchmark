@@ -5,6 +5,8 @@ import pandas as pd
 from darts.metrics import rmse
 from darts import concatenate
 from darts.timeseries import TimeSeries
+from sklearn.preprocessing import MinMaxScaler
+from darts.dataprocessing.transformers import Scaler
 
 # Local imports
 from config import (
@@ -23,6 +25,7 @@ from config import (
     scaled_to_log_model,
     raw_to_log_model,
 )
+from experiment.train_test import get_train_test
 from data.csv_data import read_csv
 
 
@@ -40,7 +43,7 @@ def all_model_predictions(
     for model_name in models:
         preds, tests, rmses = get_predictions(
             model=model,
-            model_name=model_name,
+            forecasting_model=model_name,
             coin=coin,
             time_frame=time_frame,
         )
@@ -57,7 +60,7 @@ def all_model_predictions(
 
 def get_predictions(
     model: str,
-    model_name: str,
+    forecasting_model: str,
     coin: str,
     time_frame: str,
     concatenated: bool = True,
@@ -69,7 +72,7 @@ def get_predictions(
     ----------
     model_dir : str
         Options are: "models" or "raw_models"
-    model_name : str
+    forecasting_model : str
         Options are the models that were trained, for instance "ARIMA"
     coin : str
         This can be any of the 21 coins that were trained on
@@ -97,7 +100,7 @@ def get_predictions(
         value_cols = ["close"]
 
     for period in range(5):
-        file_loc = f"{model_output_dir}/{model}/{model_name}/{coin}/{time_frame}"
+        file_loc = f"{model_output_dir}/{model}/{forecasting_model}/{coin}/{time_frame}"
         pred_path = f"{file_loc}/pred_{period}.csv"
         test_path = f"{file_loc}/test_{period}.csv"
         if not os.path.exists(pred_path):
@@ -122,14 +125,118 @@ def get_predictions(
     if model != extended_model and concatenated:
         preds = concatenate(preds, axis=0)
         tests = concatenate(tests, axis=0)
-    else:
-        # All are the same
-        tests = tests[0]
-
     return preds, tests, rmses
 
 
-def all_log_returns_to_price(model: str = log_returns_model):
+def unscale_model():
+    # Create scaled_to_log model data
+    for forecasting_model in all_models:
+        for coin in all_coins:
+            print("Unscaling log returns for", forecasting_model, coin)
+            for time_frame in timeframes:
+                scaled_to_log(
+                    model=scaled_model,
+                    forecasting_model=forecasting_model,
+                    coin=coin,
+                    time_frame=time_frame,
+                )
+
+
+def scaled_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
+    preds, _, _ = get_predictions(
+        model=model,
+        forecasting_model=forecasting_model,
+        coin=coin,
+        time_frame=time_frame,
+        concatenated=False,
+    )
+
+    # Get the log data
+    trains, tests, _ = get_train_test(coin=coin, time_frame=time_frame, scale=False)
+
+    # Create a directory to save the predictions
+    save_loc = f"{model_output_dir}/{scaled_to_log_model}/{forecasting_model}/{coin}/{time_frame}"
+    os.makedirs(save_loc, exist_ok=True)
+
+    # Loop over both lists
+    for i, (pred, train, test) in enumerate(zip(preds, trains, tests)):
+        # Build the scaler
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        transformer = Scaler(scaler)
+
+        # Fit only on the training data
+        transformer.fit(train)
+
+        # Unscale the data
+        pred_unscaled = transformer.inverse_transform(pred)
+
+        # Convert to a dataframe
+        pred_unscaled = pred_unscaled.pd_dataframe()
+        test = test.pd_dataframe()
+
+        # Save it as a .csv
+        pred_unscaled.to_csv(f"{save_loc}/pred_{i}.csv")
+        test.to_csv(f"{save_loc}/test_{i}.csv")
+
+
+def raw_model_to_log():
+    # Create raw_to_log model data
+    for forecasting_model in all_models:
+        for coin in all_coins:
+            print("Converting price data to log returns for", forecasting_model, coin)
+            for time_frame in timeframes:
+                raw_to_log(
+                    model=raw_model,
+                    forecasting_model=forecasting_model,
+                    coin=coin,
+                    time_frame=time_frame,
+                )
+
+
+def raw_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
+    preds, tests, _ = get_predictions(
+        model=model,
+        forecasting_model=forecasting_model,
+        coin=coin,
+        time_frame=time_frame,
+        concatenated=False,
+    )
+
+    # Create a directory to save the predictions
+    save_loc = (
+        f"{model_output_dir}/{raw_to_log_model}/{forecasting_model}/{coin}/{time_frame}"
+    )
+    os.makedirs(save_loc, exist_ok=True)
+
+    # Loop over both lists
+    for i, (pred, test) in enumerate(zip(preds, tests)):
+        # Convert pred and test to df
+        pred = pred.pd_dataframe()
+        test = test.pd_dataframe()
+
+        # Convert to log returns
+        pred["log returns"] = np.log(pred["close"]).diff()
+        test["log returns"] = np.log(test["close"]).diff()
+
+        # Drop the first row -> NaN
+        pred = pred.iloc[1:]
+        test = test.iloc[1:]
+
+        # Drop close column
+        pred = pred.drop(columns=["close"])
+        test = test.drop(columns=["close"])
+
+        # Save it as a .csv
+        pred.to_csv(f"{save_loc}/pred_{i}.csv")
+        test.to_csv(f"{save_loc}/test_{i}.csv")
+
+
+def all_log_models_to_price():
+    for model in [log_returns_model, scaled_to_log_model, extended_model]:
+        log_model_to_price(model=model)
+
+
+def log_model_to_price(model: str = log_returns_model):
     if model == extended_model:
         models = ml_models
 
@@ -192,6 +299,10 @@ def log_returns_to_price(
     os.makedirs(save_loc, exist_ok=True)
 
     for i, prediction in enumerate(preds):
+        # Check if the prediction is empty
+        if f"{save_loc}/pred_{i}.csv" in os.listdir(save_loc):
+            continue
+
         # Start with 1 before the prediction
         start_pos = price_df.index.get_loc(prediction.start_time()) - 1
         end_pos = price_df.index.get_loc(prediction.end_time()) + 1

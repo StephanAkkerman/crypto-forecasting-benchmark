@@ -1,7 +1,7 @@
 import numpy as np
 import plotly.graph_objects as go
 
-from config import raw_model, transformed_model, extended_model
+from config import raw_model, extended_model, log_to_raw_model
 from experiment.utils import (
     all_model_predictions,
 )
@@ -167,7 +167,7 @@ def all_models_outliers(model: str, time_frame: str):
 
 def compare_two_predictions(
     model_1: str = raw_model,
-    model_2: str = transformed_model,
+    model_2: str = log_to_raw_model,
     coin: str = "BTC",
     time_frame: str = "1d",
 ):

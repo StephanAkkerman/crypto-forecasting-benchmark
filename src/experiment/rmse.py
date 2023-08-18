@@ -13,7 +13,7 @@ from config import (
     all_models,
     ml_models,
     rmse_dir,
-    transformed_model,
+    log_to_raw_model,
     log_returns_model,
     extended_model,
     raw_model,
@@ -75,12 +75,12 @@ def build_rmse_database(model: str = log_returns_model, skip_existing: bool = Tr
 
 def build_all_rmse_databases():
     # Cannot be done for extended_models
-    for model_dir in [log_returns_model, raw_model, transformed_model]:
+    for model_dir in [log_returns_model, raw_model, log_to_raw_model]:
         build_rmse_database(model=model_dir)
 
 
 def rmse_comparison(
-    time_frame: str = "1d", model_1=transformed_model, model_2=raw_model
+    time_frame: str = "1d", model_1=log_to_raw_model, model_2=raw_model
 ):
     # 1. Load the data
     rmse_1 = read_rmse_csv(model_1, time_frame)

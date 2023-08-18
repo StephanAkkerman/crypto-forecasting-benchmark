@@ -8,7 +8,7 @@ from plotly.subplots import make_subplots
 
 from experiment.rmse import read_rmse_csv, extended_rmse_df
 import config
-from config import all_models, all_coins, raw_model, transformed_model
+from config import all_models, all_coins, raw_model, log_to_raw_model
 
 
 def plotly_boxplot(
@@ -184,7 +184,7 @@ def plotly_boxplot_comparison(
 
 
 def plotly_model_boxplot_comparison(
-    time_frame: str, model_1: str = transformed_model, model_2: str = raw_model
+    time_frame: str, model_1: str = log_to_raw_model, model_2: str = raw_model
 ):
     """
     Plot a boxplot of the RMSEs for each model.
@@ -208,7 +208,7 @@ def plotly_model_boxplot_comparison(
     )
 
 
-def plotly_model_boxplot(model: str = transformed_model, time_frame: str = "1d"):
+def plotly_model_boxplot(model: str = log_to_raw_model, time_frame: str = "1d"):
     """
     Plots a boxplot of the RMSEs for each coin for the given model.
 
@@ -230,14 +230,14 @@ def plotly_model_boxplot(model: str = transformed_model, time_frame: str = "1d")
     )
 
 
-def plotly_coin_boxplot(model: str = transformed_model, time_frame: str = "1d"):
+def plotly_coin_boxplot(model: str = log_to_raw_model, time_frame: str = "1d"):
     """
     Plots a boxplot of the RMSEs for each model for the given coin.
 
     Parameters
     ----------
     model : str
-        The model to plot, e.g. transformed_model.
+        The model to plot, e.g. log_to_raw_model.
     time_frame : str
         Time frame to plot, options are: "1m", "15m", "4h", "1d".
     """

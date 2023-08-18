@@ -63,4 +63,7 @@ if __name__ == "__main__":
     # rmse.extended_models_comparison_per_model(model_name="RNN", time_frame="1d")
     # boxplots.plotly_extended_model_rmse(time_frame="1d")
     # rmse.rmse_heatmap(time_frame="1d", model=config.extended_model)
-    rmse.baseline_comparison()
+    # rmse.baseline_comparison()
+    # analysis.compare_predictions(config.raw_model, coin="BTC", time_frame="1d")
+    # volatility.plot_periods()
+    utils.log_model_to_price(config.scaled_to_log_model)
