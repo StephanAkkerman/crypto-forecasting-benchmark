@@ -52,5 +52,11 @@ model_output_dir = "output/model_output"
 log_returns_model = "log_returns"
 raw_model = "raw"
 extended_model = "extended"
-transformed_model = "transformed"
 scaled_model = "scaled"
+
+# Transformed models
+log_to_raw_model = "log_to_raw"
+raw_to_log_model = "raw_to_log"
+scaled_to_log_model = "scaled_to_log"
+scaled_to_raw_model = "scaled_to_raw"
+extended_to_raw_model = "extended_to_raw"

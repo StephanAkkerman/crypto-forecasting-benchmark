@@ -15,8 +15,13 @@ from config import (
     model_output_dir,
     log_returns_model,
     raw_model,
-    transformed_model,
     extended_model,
+    scaled_model,
+    log_to_raw_model,
+    scaled_to_raw_model,
+    extended_to_raw_model,
+    scaled_to_log_model,
+    raw_to_log_model,
 )
 from data.csv_data import read_csv
 
@@ -80,22 +85,27 @@ def get_predictions(
     tests = []
     rmses = []
 
-    if model in [log_returns_model, extended_model]:
+    if model in [
+        log_returns_model,
+        extended_model,
+        scaled_model,
+        scaled_to_log_model,
+        raw_to_log_model,
+    ]:
         value_cols = ["log returns"]
-    elif model in [raw_model, transformed_model]:
+    elif model in [raw_model, extended_to_raw_model, scaled_to_raw_model]:
         value_cols = ["close"]
 
     for period in range(5):
-        file_path = f"{model_output_dir}/{model}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
-        test_path = f"{model_output_dir}/{model}/{model_name}/{coin}/{time_frame}/test_{period}.csv"
-        if not os.path.exists(file_path):
-            print(
-                f"Warning the following file does not exist: {model_output_dir}/{model}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
-            )
+        file_loc = f"{model_output_dir}/{model}/{model_name}/{coin}/{time_frame}"
+        pred_path = f"{file_loc}/pred_{period}.csv"
+        test_path = f"{file_loc}/test_{period}.csv"
+        if not os.path.exists(pred_path):
+            print(f"Warning the following file does not exist: {pred_path}")
             return None, None, None
 
         # Create the prediction TimeSeries
-        pred = pd.read_csv(file_path)
+        pred = pd.read_csv(pred_path)
         pred = TimeSeries.from_dataframe(pred, time_col="time", value_cols=value_cols)
 
         test = pd.read_csv(test_path)
@@ -119,41 +129,66 @@ def get_predictions(
     return preds, tests, rmses
 
 
-def all_log_returns_to_price(model_dir: str = log_returns_model):
-    # These already use the close price
-    if model_dir == raw_model:
-        return
-
-    if model_dir == extended_model:
+def all_log_returns_to_price(model: str = log_returns_model):
+    if model == extended_model:
         models = ml_models
 
-    if model_dir == log_returns_model:
+    if model in [log_returns_model, scaled_to_log_model]:
+        # Scaled to log returns can be converted to raw
         models = all_models
 
-    for model in models:
+    for forecasting_model in models:
         for coin in all_coins:
-            print("Converting log returns to price for", model, coin)
+            print("Converting log returns to price for", forecasting_model, coin)
             for time_frame in timeframes:
                 log_returns_to_price(
-                    model_dir=model_dir, model=model, coin=coin, time_frame=time_frame
+                    model=model,
+                    forecasting_model=forecasting_model,
+                    coin=coin,
+                    time_frame=time_frame,
                 )
 
 
-def log_returns_to_price(model_dir: str, model: str, coin: str, time_frame: str):
-    """Convert a series of logarithmic returns to price series."""
+def log_returns_to_price(
+    model: str, forecasting_model: str, coin: str, time_frame: str
+):
+    """
+    Convert a series of logarithmic returns to price series.
+
+    Parameters
+    ----------
+    model : str
+        The model that was used to predict the log returns
+    forecasting_model : str
+        The name of the forecasting model to get the predictions from
+    coin : str
+        The coin to get the predictions for
+    time_frame : str
+        The time frame to get the predictions for
+    """
     preds, _, _ = get_predictions(
-        model=model_dir,
-        model_name=model,
+        model=model,
+        forecasting_model=forecasting_model,
         coin=coin,
         time_frame=time_frame,
         concatenated=False,
     )
 
+    if model == log_returns_model:
+        transformed_model = log_to_raw_model
+    elif model == extended_model:
+        transformed_model = extended_to_raw_model
+    elif model == scaled_to_log_model:
+        transformed_model = scaled_to_raw_model
+    else:
+        print("This model cannot be converted to price.")
+        return
+
     # Get the price of test data
     price_df = read_csv(coin=coin, timeframe=time_frame, col_names=["close"])
 
     # Create a directory to save the predictions
-    save_loc = f"{model_output_dir}{transformed_model}/{model}/{coin}/{time_frame}"
+    save_loc = f"{model_output_dir}/{transformed_model}/{forecasting_model}/{coin}/{time_frame}"
     os.makedirs(save_loc, exist_ok=True)
 
     for i, prediction in enumerate(preds):
