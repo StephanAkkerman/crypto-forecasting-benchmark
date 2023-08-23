@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 # Local imports
 import config
@@ -305,7 +306,7 @@ def all_models_comparison2(
     plt.show()
 
 
-def all_models_comparison3(time_frame: str = "1d", log_data: bool = True):
+def all_models_stacked_bar(time_frame: str = "1d", log_data: bool = True):
     # Read the data
     if log_data:
         models = [
@@ -332,8 +333,17 @@ def all_models_comparison3(time_frame: str = "1d", log_data: bool = True):
     # Create a new DataFrame for plotting
     plot_df = pd.DataFrame(df_dict, index=models)
 
+    # Generate a list of colors from a colormap
+    colors = [
+        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+        '#1a55FF', '#55a832', '#d45500', '#db0d73', '#9c9c9c',
+        '#f7c6b2', '#c7f464', '#6b4226', '#d8dcd6', '#8a2be2',
+        '#5f9ea0', '#7fff00', '#d2691e', '#ff69b4', '#00bfff'
+    ]
+
     # Plot the Data
-    plot_df.plot(kind="bar", stacked=True, figsize=(10, 6))
+    plot_df.plot(kind="bar", stacked=True, figsize=(15, 8), color=colors)
 
     plt.xlabel("Dataset")
     plt.ylabel("Aggregated RMSE")
