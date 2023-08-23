@@ -9,6 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 from darts.dataprocessing.transformers import Scaler
 
 # Local imports
+import config
 from config import (
     all_coins,
     timeframes,
@@ -88,15 +89,14 @@ def get_predictions(
     tests = []
     rmses = []
 
+    value_cols = ["log returns"]
+
     if model in [
-        log_returns_model,
-        extended_model,
-        scaled_model,
-        scaled_to_log_model,
-        raw_to_log_model,
+        config.raw_model,
+        config.extended_to_raw_model,
+        config.log_to_raw_model,
+        config.scaled_to_raw_model,
     ]:
-        value_cols = ["log returns"]
-    elif model in [raw_model, extended_to_raw_model, scaled_to_raw_model]:
         value_cols = ["close"]
 
     for period in range(5):
@@ -213,6 +213,15 @@ def raw_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
         # Convert pred and test to df
         pred = pred.pd_dataframe()
         test = test.pd_dataframe()
+
+        # Add the last row of the previous pred and test at the front
+        if i > 0:
+            prev_pred = preds[i - 1].pd_dataframe()
+            prev_test = tests[i - 1].pd_dataframe()
+
+            # Add last row of previous pred
+            pred = pd.concat([prev_pred.iloc[-1:], pred])
+            test = pd.concat([prev_test.iloc[-1:], test])
 
         # Convert to log returns
         pred["log returns"] = np.log(pred["close"]).diff()

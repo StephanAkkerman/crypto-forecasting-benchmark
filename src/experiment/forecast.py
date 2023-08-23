@@ -302,23 +302,23 @@ def test_models():
 
 
 def find_missing_forecasts(model: str, models=[]):
-    all_models = all_models
-
-    if models:
-        all_models = models
+    forecasting_models = all_models
+    
+    if models != []:
+        forecasting_models = models
 
     if model == extended_model:
-        all_models = ml_models
+        forecasting_models = ml_models
 
     missing = []
 
-    for model_name in all_models:
+    for forecasting_model in forecasting_models:
         for coin in all_coins:
             for time_frame in timeframes:
                 for period in range(5):
-                    file_path = f"{model_output_dir}/{model}/{model_name}/{coin}/{time_frame}/pred_{period}.csv"
+                    file_path = f"{model_output_dir}/{model}/{forecasting_model}/{coin}/{time_frame}/pred_{period}.csv"
                     if not os.path.exists(file_path):
-                        missing.append((model_name, coin, time_frame))
+                        missing.append((forecasting_model, coin, time_frame))
                         print(f"Missing {file_path}")
                         break
 

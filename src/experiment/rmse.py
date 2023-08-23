@@ -23,6 +23,23 @@ from config import (
 from experiment.utils import all_model_predictions
 
 
+def build_comlete_rmse_database(skip_existing: bool = True):
+    """Build the RMSE database for all models and time frames."""
+    models = [
+        config.log_returns_model,
+        config.log_to_raw_model,
+        config.raw_model,
+        config.raw_to_log_model,
+        config.scaled_model,
+        config.scaled_to_log_model,
+        config.scaled_to_raw_model,
+        config.extended_model,
+    ]
+
+    for model in models:
+        build_rmse_database(model=model, skip_existing=skip_existing)
+
+
 def read_rmse_csv(model: str, time_frame: str) -> pd.DataFrame:
     df = pd.read_csv(f"{rmse_dir}/{model}/rmse_{time_frame}.csv", index_col=0)
 
@@ -71,12 +88,6 @@ def build_rmse_database(model: str = log_returns_model, skip_existing: bool = Tr
         nan_values = rmse_df.isna().sum().sum()
         if nan_values > 0:
             print(f"Number of NaN values in {tf} for {model}: {nan_values}")
-
-
-def build_all_rmse_databases():
-    # Cannot be done for extended_models
-    for model_dir in [log_returns_model, raw_model, log_to_raw_model]:
-        build_rmse_database(model=model_dir)
 
 
 def rmse_comparison(
@@ -213,6 +224,32 @@ def baseline_comparison(model: str = log_returns_model, baseline_model: str = "A
     )
 
 
-def raw_to_log_returns():
-    # Necessary to compare RMSE values in raw model, otherwise BTC will dominate
-    pass
+def all_models_comparison(time_frame: str, log_data: bool):
+    # Read the data
+    if log_data:
+        models = [
+            config.log_returns_model,
+            config.raw_to_log_model,
+            config.scaled_to_log_model,
+        ]
+    else:
+        models = [config.log_to_raw_model, config.raw_model, config.scaled_to_raw_model]
+
+    # Read the RMSE data
+    dfs = []
+    for model in models:
+        rmse_df = read_rmse_csv(model, time_frame)
+
+        rmse_df = rmse_df.melt(var_name="Model", value_name="RMSE")
+
+        dfs.append(rmse_df)
+
+    # Combine the melted dataframes
+    combined_df = pd.concat(dfs)
+
+    # Plot
+    plt.figure(figsize=(15, 10))
+    sns.boxplot(data=combined_df, x="Condition", y="RMSE", hue="Model")
+    plt.xticks(rotation=45)
+    plt.title("RMSE comparison across models")
+    plt.show()

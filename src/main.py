@@ -66,4 +66,7 @@ if __name__ == "__main__":
     # rmse.baseline_comparison()
     # analysis.compare_predictions(config.raw_model, coin="BTC", time_frame="1d")
     # volatility.plot_periods()
-    utils.log_model_to_price(config.scaled_to_log_model)
+    # utils.log_model_to_price(config.scaled_to_log_model)
+    # forecast.find_missing_forecasts(config.scaled_model)
+    rmse.build_comlete_rmse_database()
+    # utils.raw_model_to_log()
