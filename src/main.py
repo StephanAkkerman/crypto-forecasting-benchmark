@@ -68,5 +68,9 @@ if __name__ == "__main__":
     # volatility.plot_periods()
     # utils.log_model_to_price(config.scaled_to_log_model)
     # forecast.find_missing_forecasts(config.scaled_model)
-    rmse.build_comlete_rmse_database()
-    # utils.raw_model_to_log()
+    # rmse.all_models_comparison3(time_frame="1d", log_data=True)
+    # rmse.rmse_heatmap(time_frame="1d", model=config.log_returns_model)
+    boxplots.plotly_boxplot_comparison(
+        model_1=config.raw_to_log_model, model_2=config.log_returns_model
+    )
+    # boxplots.plotly_model_boxplot(model=config.raw_to_log_model, time_frame="1d")

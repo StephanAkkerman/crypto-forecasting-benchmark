@@ -224,13 +224,14 @@ def baseline_comparison(model: str = log_returns_model, baseline_model: str = "A
     )
 
 
-def all_models_comparison(time_frame: str, log_data: bool):
+def all_models_comparison(time_frame: str = "1d", log_data: bool = True):
     # Read the data
     if log_data:
         models = [
             config.log_returns_model,
             config.raw_to_log_model,
             config.scaled_to_log_model,
+            config.extended_model,
         ]
     else:
         models = [config.log_to_raw_model, config.raw_model, config.scaled_to_raw_model]
@@ -239,17 +240,104 @@ def all_models_comparison(time_frame: str, log_data: bool):
     dfs = []
     for model in models:
         rmse_df = read_rmse_csv(model, time_frame)
-
-        rmse_df = rmse_df.melt(var_name="Model", value_name="RMSE")
-
-        dfs.append(rmse_df)
-
-    # Combine the melted dataframes
-    combined_df = pd.concat(dfs)
+        rmse_df = rmse_df.applymap(lambda x: np.mean(x))
+        dfs.append((model, rmse_df))
 
     # Plot
-    plt.figure(figsize=(15, 10))
-    sns.boxplot(data=combined_df, x="Condition", y="RMSE", hue="Model")
-    plt.xticks(rotation=45)
-    plt.title("RMSE comparison across models")
+    fig, axes = plt.subplots(nrows=1, ncols=len(models), figsize=(20, 10))
+
+    for i, (model, df) in enumerate(dfs):
+        sns.heatmap(df, cmap="coolwarm", ax=axes[i], cbar=False)
+        axes[i].set_title(model)
+
+    # Display a colorbar on the right
+    cbar_ax = fig.add_axes([0.92, 0.15, 0.02, 0.7])
+    sns.heatmap(dfs[0][1], cmap="coolwarm", ax=axes[0], cbar_ax=cbar_ax)
+
+    plt.tight_layout(rect=[0, 0, 0.9, 1])
+    plt.show()
+
+
+def all_models_comparison2(
+    time_frame: str = "1d", log_data: bool = True, coin_on_x: bool = True
+):
+    # Read the data
+    if log_data:
+        models = [
+            config.log_returns_model,
+            config.raw_to_log_model,
+            config.scaled_to_log_model,
+            config.extended_model,
+        ]
+    else:
+        models = [config.log_to_raw_model, config.raw_model, config.scaled_to_raw_model]
+
+    # Read the RMSE data
+    dfs = []
+    for model in models:
+        rmse_df = read_rmse_csv(model, time_frame)
+        rmse_df = rmse_df.applymap(lambda x: np.mean(x))
+
+        if not coin_on_x:
+            rmse_df = rmse_df.T
+
+        dfs.append(rmse_df.T)
+
+    # Aggregate the RMSE values for each cryptocurrency across the models
+    df_dict = {x: y.sum(axis=1) for x, y in zip(models, dfs)}
+
+    # Create a new DataFrame for plotting
+    plot_df = pd.DataFrame(df_dict)
+
+    # Plot the Data
+    plot_df.plot(kind="bar", stacked=True, figsize=(10, 6))
+
+    if coin_on_x:
+        x_label = "Cryptocurrency"
+    else:
+        x_label = "Model"
+
+    plt.xlabel(x_label)
+    plt.ylabel("Aggregated RMSE")
+    plt.title("Aggregated RMSE values for each dataset across models")
+    plt.legend(title="Datasets")
+    plt.tight_layout()
+    plt.show()
+
+
+def all_models_comparison3(time_frame: str = "1d", log_data: bool = True):
+    # Read the data
+    if log_data:
+        models = [
+            config.log_returns_model,
+            config.raw_to_log_model,
+            config.scaled_to_log_model,
+            # config.extended_model,
+        ]
+    else:
+        models = [config.log_to_raw_model, config.raw_model, config.scaled_to_raw_model]
+
+    # Read the RMSE data
+    dfs = []
+    for model in models:
+        rmse_df = read_rmse_csv(model, time_frame)
+        rmse_df = rmse_df.applymap(lambda x: np.mean(x))
+        dfs.append(rmse_df.sum(axis=0))
+
+    # Create dict key = coin, value = list of RMSE values for each model
+    df_dict = {}
+    for model in dfs[0].index:
+        df_dict[model] = [df[model] for df in dfs]
+
+    # Create a new DataFrame for plotting
+    plot_df = pd.DataFrame(df_dict, index=models)
+
+    # Plot the Data
+    plot_df.plot(kind="bar", stacked=True, figsize=(10, 6))
+
+    plt.xlabel("Dataset")
+    plt.ylabel("Aggregated RMSE")
+    plt.title("Aggregated RMSE values for each model across cryptocurrencies")
+    plt.legend(title="Cryptocurrencies")
+    plt.tight_layout()
     plt.show()
