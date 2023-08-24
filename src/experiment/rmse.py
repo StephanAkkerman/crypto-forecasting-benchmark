@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 
 # Local imports
 import config
@@ -225,7 +224,7 @@ def baseline_comparison(model: str = log_returns_model, baseline_model: str = "A
     )
 
 
-def all_models_comparison(time_frame: str = "1d", log_data: bool = True):
+def all_models_heatmap(time_frame: str = "1d", log_data: bool = True):
     # Read the data
     if log_data:
         models = [
@@ -259,7 +258,7 @@ def all_models_comparison(time_frame: str = "1d", log_data: bool = True):
     plt.show()
 
 
-def all_models_comparison2(
+def forecasting_models_stacked(
     time_frame: str = "1d", log_data: bool = True, coin_on_x: bool = True
 ):
     # Read the data
@@ -306,7 +305,9 @@ def all_models_comparison2(
     plt.show()
 
 
-def all_models_stacked_bar(time_frame: str = "1d", log_data: bool = True):
+def stacked_bar_plot(
+    time_frame: str = "1d", log_data: bool = True, ignore_models: list = []
+):
     # Read the data
     if log_data:
         models = [
@@ -323,31 +324,96 @@ def all_models_stacked_bar(time_frame: str = "1d", log_data: bool = True):
     for model in models:
         rmse_df = read_rmse_csv(model, time_frame)
         rmse_df = rmse_df.applymap(lambda x: np.mean(x))
-        dfs.append(rmse_df.sum(axis=0))
+        rmse_df = rmse_df.sum(axis=0)
+
+        dfs.append(rmse_df)
 
     # Create dict key = coin, value = list of RMSE values for each model
     df_dict = {}
     for model in dfs[0].index:
+        if model in ignore_models:
+            continue
         df_dict[model] = [df[model] for df in dfs]
 
     # Create a new DataFrame for plotting
     plot_df = pd.DataFrame(df_dict, index=models)
 
-    # Generate a list of colors from a colormap
-    colors = [
-        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
-        '#1a55FF', '#55a832', '#d45500', '#db0d73', '#9c9c9c',
-        '#f7c6b2', '#c7f464', '#6b4226', '#d8dcd6', '#8a2be2',
-        '#5f9ea0', '#7fff00', '#d2691e', '#ff69b4', '#00bfff'
-    ]
-
     # Plot the Data
-    plot_df.plot(kind="bar", stacked=True, figsize=(15, 8), color=colors)
+    plot_df.plot(kind="bar", stacked=True, figsize=(15, 8), color=plt.cm.Paired.colors)
 
     plt.xlabel("Dataset")
     plt.ylabel("Aggregated RMSE")
     plt.title("Aggregated RMSE values for each model across cryptocurrencies")
-    plt.legend(title="Cryptocurrencies")
+    plt.legend(title="Forecasting Models", loc="best", ncols=3)
     plt.tight_layout()
+    plt.show()
+
+
+def stacked_bar_plot_all_tf(log_data=True, ignore_models=[]):
+    fig, axes = plt.subplots(2, 2, figsize=(15, 8))
+    axes = axes.flatten()
+
+    forecasting_models = []
+
+    for i, time_frame in enumerate(config.timeframes):
+        ax = axes[i]
+
+        if log_data:
+            models = [
+                config.log_returns_model,
+                config.raw_to_log_model,
+                config.scaled_to_log_model,
+            ]
+        else:
+            models = [
+                config.log_to_raw_model,
+                config.raw_model,
+                config.scaled_to_raw_model,
+            ]
+
+        dfs = []
+        for model in models:
+            # Replace read_rmse_csv with your function to read the RMSE data
+            rmse_df = read_rmse_csv(model, time_frame)  # Dummy data
+            rmse_df = rmse_df.applymap(lambda x: np.mean(x))
+            rmse_df = rmse_df.sum(axis=0)
+            dfs.append(rmse_df)
+
+        df_dict = {}
+        forecasting_models = [
+            model for model in dfs[0].index if model not in ignore_models
+        ]
+        for model in forecasting_models:
+            if model in ignore_models:
+                continue
+            df_dict[model] = [df[model] for df in dfs]
+
+        plot_df = pd.DataFrame(df_dict, index=models)
+        plot_df.plot(kind="bar", stacked=True, ax=ax, color=plt.cm.Paired.colors)
+
+        ax.set_xlabel("Dataset")
+        ax.set_ylabel("Aggregated RMSE")
+        ax.set_title(f"Aggregated RMSE values for {time_frame} time frame")
+
+        ax.patch.set_edgecolor("black")
+        ax.patch.set_linewidth(1)
+
+        # Remove legend for individual subplots
+        ax.get_legend().remove()
+
+        # Get handles and labels for the last subplot
+        handles, labels = ax.get_legend_handles_labels()
+
+    # Add a single legend for the entire figure
+    fig.legend(
+        handles,
+        labels,
+        title="Forecasting Models",
+        loc=7,
+        ncols=1,
+    )
+
+    plt.tight_layout()
+    plt.subplots_adjust(right=0.88)
+
     plt.show()

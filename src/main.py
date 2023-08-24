@@ -48,10 +48,12 @@ def methods():
 
 
 if __name__ == "__main__":
-    # rmse.all_models_comparison2()
-    # rmse.all_models_stacked_bar(log_data=False)
-    # boxplots.plotly_model_boxplot(model=config.log_to_raw_model)
-    # boxplots.plotly_model_boxplot(model=config.log_returns_model)
-    boxplots.plotly_boxplot_comparison(
-        model_1=config.log_to_raw_model, model_2=config.raw_model
-    )
+    rmse.all_models_comparison()
+    # rmse.all_models_stacked_bar(
+    #    log_data=True, ignore_models=["TFT"]
+    # )  # , ignore_models=["NBEATS", "NHiTS"])
+# boxplots.plotly_model_boxplot(model=config.log_to_raw_model)
+# boxplots.plotly_model_boxplot(model=config.log_returns_model)
+# boxplots.plotly_boxplot_comparison(
+#    model_1=config.log_to_raw_model, model_2=config.raw_model
+# )
