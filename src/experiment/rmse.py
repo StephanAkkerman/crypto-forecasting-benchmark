@@ -305,7 +305,7 @@ def forecasting_models_stacked(
     plt.show()
 
 
-def stacked_bar_plot(
+def get_summed_RMSE(
     time_frame: str = "1d", log_data: bool = True, ignore_models: list = []
 ):
     # Read the data
@@ -336,10 +336,16 @@ def stacked_bar_plot(
         df_dict[model] = [df[model] for df in dfs]
 
     # Create a new DataFrame for plotting
-    plot_df = pd.DataFrame(df_dict, index=models)
+    return pd.DataFrame(df_dict, index=models)
 
+
+def stacked_bar_plot(
+    time_frame: str = "1d", log_data: bool = True, ignore_models: list = []
+):
     # Plot the Data
-    plot_df.plot(kind="bar", stacked=True, figsize=(15, 8), color=plt.cm.Paired.colors)
+    get_summed_RMSE(
+        time_frame=time_frame, log_data=log_data, ignore_models=ignore_models
+    ).plot(kind="bar", stacked=True, figsize=(15, 8), color=plt.cm.Paired.colors)
 
     plt.xlabel("Dataset")
     plt.ylabel("Aggregated RMSE")
@@ -353,42 +359,13 @@ def stacked_bar_plot_all_tf(log_data=True, ignore_models=[]):
     fig, axes = plt.subplots(2, 2, figsize=(15, 8))
     axes = axes.flatten()
 
-    forecasting_models = []
-
     for i, time_frame in enumerate(config.timeframes):
         ax = axes[i]
 
-        if log_data:
-            models = [
-                config.log_returns_model,
-                config.raw_to_log_model,
-                config.scaled_to_log_model,
-            ]
-        else:
-            models = [
-                config.log_to_raw_model,
-                config.raw_model,
-                config.scaled_to_raw_model,
-            ]
+        plot_df = get_summed_RMSE(
+            time_frame=time_frame, log_data=log_data, ignore_models=ignore_models
+        )
 
-        dfs = []
-        for model in models:
-            # Replace read_rmse_csv with your function to read the RMSE data
-            rmse_df = read_rmse_csv(model, time_frame)  # Dummy data
-            rmse_df = rmse_df.applymap(lambda x: np.mean(x))
-            rmse_df = rmse_df.sum(axis=0)
-            dfs.append(rmse_df)
-
-        df_dict = {}
-        forecasting_models = [
-            model for model in dfs[0].index if model not in ignore_models
-        ]
-        for model in forecasting_models:
-            if model in ignore_models:
-                continue
-            df_dict[model] = [df[model] for df in dfs]
-
-        plot_df = pd.DataFrame(df_dict, index=models)
         plot_df.plot(kind="bar", stacked=True, ax=ax, color=plt.cm.Paired.colors)
 
         ax.set_xlabel("Dataset")
