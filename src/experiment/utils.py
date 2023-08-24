@@ -42,7 +42,7 @@ def all_model_predictions(
         models = all_models
 
     for model_name in models:
-        preds, tests, rmses = get_predictions(
+        preds, _, tests, rmses = get_predictions(
             model=model,
             forecasting_model=model_name,
             coin=coin,
@@ -86,6 +86,7 @@ def get_predictions(
         The forecast (prediction), actual values, and the rmse for each period
     """
     preds = []
+    trains = []
     tests = []
     rmses = []
 
@@ -99,33 +100,41 @@ def get_predictions(
     ]:
         value_cols = ["close"]
 
-    for period in range(5):
+    for period in range(config.n_periods):
         file_loc = f"{model_output_dir}/{model}/{forecasting_model}/{coin}/{time_frame}"
         pred_path = f"{file_loc}/pred_{period}.csv"
+        train_path = f"{file_loc}/train_{period}.csv"
         test_path = f"{file_loc}/test_{period}.csv"
         if not os.path.exists(pred_path):
             print(f"Warning the following file does not exist: {pred_path}")
             return None, None, None
 
         # Create the prediction TimeSeries
-        pred = pd.read_csv(pred_path)
-        pred = TimeSeries.from_dataframe(pred, time_col="time", value_cols=value_cols)
-
-        test = pd.read_csv(test_path)
-        test = TimeSeries.from_dataframe(test, time_col="date", value_cols=value_cols)
+        pred = TimeSeries.from_dataframe(
+            pd.read_csv(pred_path), time_col="time", value_cols=value_cols
+        )
+        train = TimeSeries.from_dataframe(
+            pd.read_csv(train_path), time_col="date", value_cols=value_cols
+        )
+        test = TimeSeries.from_dataframe(
+            pd.read_csv(test_path), time_col="date", value_cols=value_cols
+        )
 
         # Calculate the RMSE for this period and add it to the list
         rmses.append(rmse(test, pred))
 
         # Add it to list
         preds.append(pred)
+        trains.append(train)
         tests.append(test)
 
     # Make it one big TimeSeries
     if model != extended_model and concatenated:
         preds = concatenate(preds, axis=0)
+        trains = concatenate(trains, axis=0)
         tests = concatenate(tests, axis=0)
-    return preds, tests, rmses
+
+    return preds, trains, tests, rmses
 
 
 def unscale_model():
@@ -143,7 +152,7 @@ def unscale_model():
 
 
 def scaled_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
-    preds, _, _ = get_predictions(
+    preds, _, _, _ = get_predictions(
         model=model,
         forecasting_model=forecasting_model,
         coin=coin,
@@ -194,7 +203,7 @@ def raw_model_to_log():
 
 
 def raw_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
-    preds, tests, _ = get_predictions(
+    preds, _, tests, _ = get_predictions(
         model=model,
         forecasting_model=forecasting_model,
         coin=coin,
@@ -282,7 +291,7 @@ def log_returns_to_price(
     time_frame : str
         The time frame to get the predictions for
     """
-    preds, _, _ = get_predictions(
+    preds, _, _, _ = get_predictions(
         model=model,
         forecasting_model=forecasting_model,
         coin=coin,

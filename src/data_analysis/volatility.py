@@ -27,7 +27,7 @@ def volatility_tests():
     window_analysis()
     vol_diff()
     plot_percentiles()
-    percentiles_table()
+    get_percentiles(display=True)
 
 
 def window_analysis(coin="BTC", time="1d"):
@@ -203,12 +203,12 @@ def plot_all_volatilies(timeframe="1d"):
         The time frame to use, by default "1d"
     """
 
-    complete_df = get_volatility_data(timeframe=timeframe)
+    volatility_df = get_all_volatility_data(timeframe=timeframe)
 
-    ax = complete_df.plot(figsize=(12, 6), alpha=0.3, legend=False)
+    ax = volatility_df.plot(figsize=(12, 6), alpha=0.3, legend=False)
 
     # Calculate the average of all volatilities
-    avg_volatility = complete_df.mean(axis=1)
+    avg_volatility = volatility_df.mean(axis=1)
 
     # Plot the average volatility as a big red line with increased width
     avg_line = plt.plot(
@@ -245,21 +245,21 @@ def plot_percentiles(timeframe="1d"):
         The time frame to use for the data, by default "1d"
     """
 
-    complete_df = pd.DataFrame()
+    volatility_df = pd.DataFrame()
 
     for coin in all_coins:
         coin_df = read_csv(coin, timeframe, ["volatility"]).dropna()
 
         # Set the index to the dates from coin_df
-        if complete_df.empty:
-            complete_df.index = coin_df.index
+        if volatility_df.empty:
+            volatility_df.index = coin_df.index
 
-        complete_df[coin] = coin_df["volatility"].tolist()
+        volatility_df[coin] = coin_df["volatility"].tolist()
 
-    ax = complete_df.plot(figsize=(12, 6), alpha=0.3, legend=False)
+    ax = volatility_df.plot(figsize=(12, 6), alpha=0.3, legend=False)
 
     # Calculate the overall 50th percentile (median) of all volatilities
-    overall_median_volatility = complete_df.stack().median()
+    overall_median_volatility = volatility_df.stack().median()
 
     # Plot the overall median volatility as a horizontal blue line
     overall_median_line = plt.axhline(
@@ -270,7 +270,7 @@ def plot_percentiles(timeframe="1d"):
     )
 
     # Calculate the overall 75th percentile of all volatilities
-    overall_q3_volatility = complete_df.stack().quantile(0.75)
+    overall_q3_volatility = volatility_df.stack().quantile(0.75)
     print(overall_q3_volatility)
 
     # Plot the overall 75th percentile volatility as a horizontal green line
@@ -281,7 +281,7 @@ def plot_percentiles(timeframe="1d"):
         label="Overall 75th Percentile Volatility",
     )
 
-    overall_q1_volatility = complete_df.stack().quantile(0.25)
+    overall_q1_volatility = volatility_df.stack().quantile(0.25)
     print(overall_q1_volatility)
 
     # Plot the overall 25th percentile volatility as a horizontal blue line
@@ -305,29 +305,41 @@ def plot_percentiles(timeframe="1d"):
     plt.show()
 
 
-def percentiles_table():
+def get_percentile(volatility_df):
+    quantile25 = volatility_df.stack().quantile(0.25)
+    quantile75 = volatility_df.stack().quantile(0.75)
+
+    return quantile25, quantile75
+
+
+def get_percentiles():
     """
     Displays the 25th and 75th percentile for each time frame.
     """
 
-    complete_df = pd.DataFrame()
-
     for timeframe in timeframes:
-        for coin in all_coins:
-            coin_df = read_csv(coin, timeframe, ["volatility"]).dropna()
+        quantile25, quantile75 = get_percentile(
+            get_all_volatility_data(timeframe=timeframe)
+        )
 
-            # Set the index to the dates from coin_df
-            if complete_df.empty:
-                complete_df.index = coin_df.index
-
-            complete_df[coin] = coin_df["volatility"].tolist()
-
-        print(f"25th percentile for {timeframe}: {complete_df.stack().quantile(0.25)}")
-        print(f"75th percentile for {timeframe}: {complete_df.stack().quantile(0.75)}")
+        print(f"25th percentile for {timeframe}: {quantile25}")
+        print(f"75th percentile for {timeframe}: {quantile75}")
         print()
 
 
-def get_volatility_data(timeframe: str = "1d") -> pd.DataFrame:
+def get_volatility(coin, time_frame):
+    # Get the volatility
+    coin_df = read_csv(
+        coin=coin, timeframe=time_frame, col_names=["volatility"]
+    ).dropna()
+
+    # Convert to dataframe
+    return pd.DataFrame(
+        data=coin_df["volatility"].tolist(), columns=[coin], index=coin_df.index
+    )
+
+
+def get_all_volatility_data(timeframe: str = "1d") -> pd.DataFrame:
     """
     Gets the volatility data for all coins in the given timeframe.
 
@@ -343,31 +355,34 @@ def get_volatility_data(timeframe: str = "1d") -> pd.DataFrame:
     """
 
     # Save the data in this dataframe
-    complete_df = pd.DataFrame()
+    volatility_df = pd.DataFrame()
 
     for coin in all_coins:
-        # Get the volatility
-        coin_df = read_csv(
-            coin=coin, timeframe=timeframe, col_names=["volatility"]
-        ).dropna()
+        volatility_df = pd.concat(
+            [volatility_df, get_volatility(coin, timeframe)], axis=1
+        )
 
-        # Set the index
-        if complete_df.empty:
-            complete_df.index = coin_df.index
+    # Identify columns with NaN at the first index
+    cols_with_nan_at_first = volatility_df.columns[volatility_df.iloc[0].isna()]
 
-        # Add it to the complete dataframe
-        complete_df[coin] = coin_df["volatility"].tolist()
+    # Shift up the columns with NaN at the first index
+    volatility_df[cols_with_nan_at_first] = volatility_df[cols_with_nan_at_first].shift(
+        -1
+    )
 
-    return complete_df
+    # Drop the last row
+    volatility_df = volatility_df.iloc[:-1]
+
+    return volatility_df
 
 
-def calculate_percentiles(complete_df: pd.DataFrame):
+def calculate_percentiles(volatility_df: pd.DataFrame):
     """
     Calculates the median, 0.75, and 0.25 percentiles for the given dataframe.
 
     Parameters
     ----------
-    complete_df : pd.DataFrame
+    volatility_df : pd.DataFrame
         The dataframe to calculate the percentiles for
 
     Returns
@@ -376,20 +391,20 @@ def calculate_percentiles(complete_df: pd.DataFrame):
         median, 0.75, and 0.25 percentiles
     """
 
-    overall_median_volatility = complete_df.stack().median()
-    overall_q3_volatility = complete_df.stack().quantile(0.75)
-    overall_q1_volatility = complete_df.stack().quantile(0.25)
+    overall_median_volatility = volatility_df.stack().median()
+    overall_q3_volatility = volatility_df.stack().quantile(0.75)
+    overall_q1_volatility = volatility_df.stack().quantile(0.25)
 
     return overall_median_volatility, overall_q3_volatility, overall_q1_volatility
 
 
-def plot_lines(complete_df: pd.DataFrame):
+def plot_lines(volatility_df: pd.DataFrame):
     """
     Plots the average volatility, median volatility, and 0.75 and 0.25 percentiles.
 
     Parameters
     ----------
-    complete_df : pd.DataFrame
+    volatility_df : pd.DataFrame
         The dataframe to plot the lines for
 
     Returns
@@ -398,7 +413,7 @@ def plot_lines(complete_df: pd.DataFrame):
         The lines for the average volatility, median volatility, 0.75 percentile, and 0.25 percentile
     """
 
-    avg_volatility = complete_df.mean(axis=1)
+    avg_volatility = volatility_df.mean(axis=1)
     avg_line = plt.plot(
         avg_volatility,
         color="dodgerblue",
@@ -411,7 +426,7 @@ def plot_lines(complete_df: pd.DataFrame):
         overall_median_volatility,
         overall_q3_volatility,
         overall_q1_volatility,
-    ) = calculate_percentiles(complete_df)
+    ) = calculate_percentiles(volatility_df)
 
     overall_median_line = plt.axhline(
         y=overall_median_volatility,
@@ -438,13 +453,13 @@ def plot_lines(complete_df: pd.DataFrame):
     return avg_line, overall_median_line, overall_q3_line, overall_q1_line
 
 
-def plot_train_test_periods(complete_df: pd.DataFrame, ax: plt.Axes):
+def plot_train_test_periods(volatility_df: pd.DataFrame, ax: plt.Axes):
     """
     Plots the training, validation, and testing periods on the graph.
 
     Parameters
     ----------
-    complete_df : pd.DataFrame
+    volatility_df : pd.DataFrame
         The dataframe containing the volatility data for all coins.
     ax : plt.Axes
         The axes to plot the lines on.
@@ -471,19 +486,19 @@ def plot_train_test_periods(complete_df: pd.DataFrame, ax: plt.Axes):
         train_start = i * test_size
         train_end = train_start + train_size
 
-        date_min = complete_df.index.min()
-        date_max = complete_df.index.max()
+        date_min = volatility_df.index.min()
+        date_max = volatility_df.index.max()
 
-        train_line_start = (complete_df.index[train_start] - date_min) / (
+        train_line_start = (volatility_df.index[train_start] - date_min) / (
             date_max - date_min
         )
-        train_line_end = (complete_df.index[train_end] - date_min) / (
+        train_line_end = (volatility_df.index[train_end] - date_min) / (
             date_max - date_min
         )
-        val_end = (complete_df.index[train_end + val_size] - date_min) / (
+        val_end = (volatility_df.index[train_end + val_size] - date_min) / (
             date_max - date_min
         )
-        test_end = (complete_df.index[min(train_end + test_size, 969)] - date_min) / (
+        test_end = (volatility_df.index[min(train_end + test_size, 969)] - date_min) / (
             date_max - date_min
         )
 
@@ -521,6 +536,7 @@ def plot_train_test_periods(complete_df: pd.DataFrame, ax: plt.Axes):
 
     return training_lines, validation_lines, testing_lines
 
+
 def plot_periods(timeframe="1d"):
     """
     Plots the number of periods and the training, validation, and testing periods.
@@ -530,21 +546,21 @@ def plot_periods(timeframe="1d"):
     timeframe : str, optional
         The time frame of the data, by default "1d"
     """
-    
+
     # Get the volatility data
-    complete_df = get_volatility_data(timeframe)
-    
+    volatility_df = get_all_volatility_data(timeframe)
+
     # Plot the volatility data
-    ax = complete_df.plot(figsize=(12, 6), alpha=0.2, color="grey", legend=False)
+    ax = volatility_df.plot(figsize=(12, 6), alpha=0.2, color="grey", legend=False)
 
     # Get the lines for the average volatility, median volatility, and 0.75 and 0.25 percentiles
     avg_line, overall_median_line, overall_q3_line, overall_q1_line = plot_lines(
-        complete_df
+        volatility_df
     )
-    
+
     # Get the lines for the training, validation, and testing periods
     training_lines, validation_lines, testing_lines = plot_train_test_periods(
-        complete_df, ax
+        volatility_df, ax
     )
 
     # Create first legend
@@ -583,7 +599,7 @@ def plotly_volatility(time_frame="1d", percentile_per_group=False):
         If the percentile should be calculated by market cap group, by default False
     """
 
-    vol_df = get_volatility_data(time_frame)
+    vol_df = get_all_volatility_data(time_frame)
 
     # Group by coin
     small_cap_df = vol_df[small_cap]

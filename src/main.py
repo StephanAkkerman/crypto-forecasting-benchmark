@@ -10,9 +10,8 @@ from data_analysis import (
     stationarity,
     stochasticity,
     trend,
-    volatility,
 )
-from experiment import forecast, analysis, train_test, utils, boxplots, rmse
+from experiment import forecast, analysis, train_test, utils, boxplots, rmse, volatility
 import config
 
 
@@ -41,19 +40,11 @@ def methods():
     correlation.correlation_tests()
 
     # Volatility
-    volatility.volatility_tests()
+    # volatility.volatility_tests()
 
     # Stochasticity
     stochasticity.calc_hurst()
 
 
 if __name__ == "__main__":
-    rmse.all_models_comparison()
-    # rmse.all_models_stacked_bar(
-    #    log_data=True, ignore_models=["TFT"]
-    # )  # , ignore_models=["NBEATS", "NHiTS"])
-# boxplots.plotly_model_boxplot(model=config.log_to_raw_model)
-# boxplots.plotly_model_boxplot(model=config.log_returns_model)
-# boxplots.plotly_boxplot_comparison(
-#    model_1=config.log_to_raw_model, model_2=config.raw_model
-# )
+    volatility.get_test_train("BTC", "1m")
