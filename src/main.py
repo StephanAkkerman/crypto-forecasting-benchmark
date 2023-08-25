@@ -47,8 +47,8 @@ def methods():
 
 
 if __name__ == "__main__":
-    # volatility.tf_vol_data("1d")
     volatility.create_all_volatility_data()
+    # volatility.create_all_volatility_data()
     # rmse.forecasting_models_stacked()
     # rmse.stacked_bar_plot_all_tf()
 
