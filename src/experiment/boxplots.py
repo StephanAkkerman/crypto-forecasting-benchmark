@@ -207,7 +207,7 @@ def plotly_model_boxplot(model: str = log_to_raw_model, time_frame: str = "1d"):
     """
 
     # For model boxplot, call like this
-    df = read_rmse_csv(model_di=model, time_frame=time_frame)
+    df = read_rmse_csv(model=model, time_frame=time_frame)
 
     plotly_boxplot(
         df=df.T,

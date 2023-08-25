@@ -305,11 +305,15 @@ def plot_percentiles(timeframe="1d"):
     plt.show()
 
 
-def get_percentile(volatility_df):
+def get_percentile(volatility_df) -> (float, float):
     quantile25 = volatility_df.stack().quantile(0.25)
     quantile75 = volatility_df.stack().quantile(0.75)
 
     return quantile25, quantile75
+
+
+def get_tf_percentile(time_frame: str) -> (float, float):
+    return get_percentile(get_all_volatility_data(timeframe=time_frame))
 
 
 def get_percentiles():

@@ -47,5 +47,9 @@ def methods():
 
 
 if __name__ == "__main__":
-    volatility.tf_vol_data("1d")
-    volatility.vol_coin_plot()
+    # volatility.tf_vol_data("1d")
+    volatility.create_all_volatility_data()
+    # rmse.forecasting_models_stacked()
+    # rmse.stacked_bar_plot_all_tf()
+
+    # boxplots.plotly_model_boxplot(model=config.log_returns_model)

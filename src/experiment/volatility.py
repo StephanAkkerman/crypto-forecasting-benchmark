@@ -1,165 +1,102 @@
 import os
-import json
 
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 import config
 from data_analysis.volatility import (
-    get_all_volatility_data,
-    get_percentile,
+    get_tf_percentile,
     get_volatility,
 )
-from experiment.utils import get_predictions
+from experiment.train_test import get_train_test
 
 
-def volatility_map(coin, time_frame):
-    vol = get_volatility(coin=coin, time_frame=time_frame)
-    low, high = get_percentile(vol)
-
-    # create a mask for each category
-    mask_low = vol < low
-    mask_high = vol > high
-    mask_mid = (vol >= low) & (vol <= high)
-
-    vol[mask_low] = "low"
-    vol[mask_high] = "high"
-    vol[mask_mid] = "mid"
-
-    return vol
-
-
-def all_volatility_maps():
-    timeframes = ["1m", "15m", "4h", "1d"]
-    volatility_data = {}
-
-    for time_frame in timeframes:
-        volatility_data[time_frame] = volatility_map(time_frame)
-
-
-def get_volatility_counts(vol_series):
-    """Get the count of each volatility level ('low', 'mid', 'high') from a time series."""
-    return vol_series.value_counts().to_dict()
-
-
-def plot_rmse_vs_volatility(df):
-    """Plot the RMSE against the train and test volatilities."""
-    plt.figure(figsize=(10, 6))
-    sns.boxplot(
-        x="main_train_volatility", y="rmse", hue="main_test_volatility", data=df
-    )
-    plt.title("Impact of Train and Test Volatility on RMSE")
-    plt.show()
-
-
-def coin_vol_data(
-    model: str = config.log_returns_model, coin: str = "BTC", time_frame: str = "1d"
-):
-    """Analyze and plot the impact of volatility on RMSE for different train-test splits."""
-
-    if model in [config.extended_model, config.extended_to_raw_model]:
-        models = config.ml_models
+def get_volatility_class(volatility, percentile25, percentile75):
+    if volatility < percentile25:
+        return "low"
+    elif volatility > percentile75:
+        return "high"
     else:
-        models = config.all_models
-
-    vol_data = {}
-    for forecasting_model in models:
-        _, trains, tests, rmses = get_predictions(
-            model=model,
-            forecasting_model=forecasting_model,
-            coin=coin,
-            time_frame=time_frame,
-            concatenated=False,
-        )
-
-        vol_map = volatility_map(coin=coin, time_frame=time_frame)
-        forecasting_data = {}
-
-        for i, (train, test, rmse) in enumerate(zip(trains, tests, rmses)):
-            vol_train = vol_map.loc[train.start_time() : train.end_time()]
-            vol_test = vol_map.loc[test.start_time() : test.end_time()]
-
-            train_volatility_counts = get_volatility_counts(vol_train)
-            test_volatility_counts = get_volatility_counts(vol_test)
-
-            # Remove tuples from dict
-            train_volatility_counts = {k[0]: v for k, v in train_volatility_counts.items()}
-            test_volatility_counts = {k[0]: v for k, v in test_volatility_counts.items()}
-
-            forecasting_data[i] = {
-                "train": train_volatility_counts,
-                "test": test_volatility_counts,
-                "rmse": rmse,
-            }
-        vol_data[forecasting_model] = forecasting_data
-
-    return vol_data
+        return "normal"
 
 
-def tf_vol_data(time_frame):
-    for model in [
-        config.log_returns_model,
-        # config.log_to_raw_model,
-        # config.extended_model,
-        # config.extended_to_raw_model,
-        # config.raw_model,
-        # config.raw_to_log_model,
-        # config.scaled_model,
-        # config.scaled_to_log_model,
-        # config.scaled_to_raw_model,
-        # config.scaled_to_raw_model,
-    ]:
-        save_loc = f"{config.volatility_dir}/{model}"
+def model_volatility_data(model: str = config.log_returns_model):
+    """Analyze and plot the impact of volatility on RMSE for different train-test splits."""
+    save_loc = f"{config.volatility_dir}/{model}"
+    os.makedirs(save_loc, exist_ok=True)
 
-        vol_dict = {}
+    for time_frame in config.timeframes:
+        # Calculate the percentiles for this time frame
+        percentile25, percentile75 = get_tf_percentile(time_frame=time_frame)
+
+        volatility_df = pd.DataFrame()
+
         for coin in config.all_coins:
-            vol_dict[coin] = coin_vol_data(
-                model=model, coin=coin, time_frame=time_frame
+            # Get the volatility for the coin
+            volatility = get_volatility(coin=coin, time_frame=time_frame)
+
+            # Get the train and test times
+            trains, tests, _ = get_train_test(coin=coin, time_frame=time_frame)
+
+            # Save the data here
+            train_volatilty = []
+            test_volatilty = []
+
+            # Loop over each period
+            for train, test in zip(trains, tests):
+                # Determine the train and test volatility
+                vol_train = volatility.loc[train.start_time() : train.end_time()]
+                vol_test = volatility.loc[test.start_time() : test.end_time()]
+
+                # Calculate the mean volatility for train and test
+                mean_vol_train = vol_train.mean().values[0]
+                mean_vol_test = vol_test.mean().values[0]
+
+                # Calculate the volatility class for train and test
+                train_volatilty.append(
+                    get_volatility_class(
+                        volatility=mean_vol_train,
+                        percentile25=percentile25,
+                        percentile75=percentile75,
+                    )
+                )
+
+                test_volatilty.append(
+                    get_volatility_class(
+                        volatility=mean_vol_test,
+                        percentile25=percentile25,
+                        percentile75=percentile75,
+                    )
+                )
+
+            # Create a dataframe for the coin
+            coin_df = pd.DataFrame(
+                data=[
+                    {
+                        "train_volatility": train_volatilty,
+                        "test_volatility": test_volatilty,
+                    }
+                ],
+                index=[coin],
             )
 
-        # Save the data as dataframe
-        df = pd.DataFrame(vol_dict)
+            # Add to df
+            volatility_df = pd.concat([volatility_df, coin_df])
 
-        # Create path
-        os.makedirs(save_loc, exist_ok=True)
-
-        # Save the dataframe as a CSV file
-        df.to_csv(f"{save_loc}/vol_{time_frame}.csv")
-        print(f"Saved {model} volatility data for {time_frame} time frame.")
+        # Save: volatility classification
+        volatility_df.to_csv(f"{save_loc}/vol_{time_frame}.csv")
 
 
-def vol_coin_plot(
-    coin: str = "BTC",
-    time_frame: str = "1d",
-    model: str = config.log_returns_model,
-    forecasting_model: str = "ARIMA",
-):
-    # Read the data
-    df = pd.read_csv(
-        f"{config.volatility_dir}/{model}/vol_{time_frame}.csv", index_col=0
-    )
-
-    # Get the data for the coin
-    coin_data = df[coin]
-
-    # Get the data for the forecasting model
-    model_data = coin_data[forecasting_model]
-    model_data = json.loads(model_data)
-
-    df_list = [
-        {
-            "index": idx,
-            "main_train_volatility": max(data["train"], key=data["train"].get),
-            "main_test_volatility": max(data["test"], key=data["test"].get),
-            "rmse": data["rmse"],
-        }
-        for idx, data in model_data.items()
-    ]
-
-    df = pd.DataFrame(df_list)
-    print(
-        df.groupby(["main_train_volatility", "main_test_volatility"])["rmse"].describe()
-    )
-
-    plot_rmse_vs_volatility(df)
+def create_all_volatility_data():
+    for model in [
+        config.log_returns_model,
+        config.log_to_raw_model,
+        config.extended_model,
+        config.extended_to_raw_model,
+        config.raw_model,
+        config.raw_to_log_model,
+        config.scaled_model,
+        config.scaled_to_log_model,
+        config.scaled_to_raw_model,
+        config.scaled_to_raw_model,
+    ]:
+        model_volatility_data(model=model)

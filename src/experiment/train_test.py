@@ -12,7 +12,7 @@ def get_train_test(
     time_frame="1d",
     col="log returns",
     scale: bool = False,
-):
+) -> (list, list, list):
     # Read data from a CSV file
     data = read_csv(coin, time_frame, [col]).dropna()
     data["date"] = data.index
