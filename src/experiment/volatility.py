@@ -1,4 +1,5 @@
 import os
+import json
 
 import pandas as pd
 import seaborn as sns
@@ -82,6 +83,10 @@ def coin_vol_data(
             train_volatility_counts = get_volatility_counts(vol_train)
             test_volatility_counts = get_volatility_counts(vol_test)
 
+            # Remove tuples from dict
+            train_volatility_counts = {k[0]: v for k, v in train_volatility_counts.items()}
+            test_volatility_counts = {k[0]: v for k, v in test_volatility_counts.items()}
+
             forecasting_data[i] = {
                 "train": train_volatility_counts,
                 "test": test_volatility_counts,
@@ -94,16 +99,16 @@ def coin_vol_data(
 
 def tf_vol_data(time_frame):
     for model in [
-        # config.log_returns_model,
-        config.log_to_raw_model,
-        config.extended_model,
-        config.extended_to_raw_model,
-        config.raw_model,
-        config.raw_to_log_model,
-        config.scaled_model,
-        config.scaled_to_log_model,
-        config.scaled_to_raw_model,
-        config.scaled_to_raw_model,
+        config.log_returns_model,
+        # config.log_to_raw_model,
+        # config.extended_model,
+        # config.extended_to_raw_model,
+        # config.raw_model,
+        # config.raw_to_log_model,
+        # config.scaled_model,
+        # config.scaled_to_log_model,
+        # config.scaled_to_raw_model,
+        # config.scaled_to_raw_model,
     ]:
         save_loc = f"{config.volatility_dir}/{model}"
 
@@ -124,8 +129,24 @@ def tf_vol_data(time_frame):
         print(f"Saved {model} volatility data for {time_frame} time frame.")
 
 
-def temp():
-    return
+def vol_coin_plot(
+    coin: str = "BTC",
+    time_frame: str = "1d",
+    model: str = config.log_returns_model,
+    forecasting_model: str = "ARIMA",
+):
+    # Read the data
+    df = pd.read_csv(
+        f"{config.volatility_dir}/{model}/vol_{time_frame}.csv", index_col=0
+    )
+
+    # Get the data for the coin
+    coin_data = df[coin]
+
+    # Get the data for the forecasting model
+    model_data = coin_data[forecasting_model]
+    model_data = json.loads(model_data)
+
     df_list = [
         {
             "index": idx,
@@ -133,7 +154,7 @@ def temp():
             "main_test_volatility": max(data["test"], key=data["test"].get),
             "rmse": data["rmse"],
         }
-        for idx, data in analysis_data.items()
+        for idx, data in model_data.items()
     ]
 
     df = pd.DataFrame(df_list)

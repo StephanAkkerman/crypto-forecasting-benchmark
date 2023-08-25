@@ -48,3 +48,4 @@ def methods():
 
 if __name__ == "__main__":
     volatility.tf_vol_data("1d")
+    volatility.vol_coin_plot()
