@@ -47,4 +47,4 @@ def methods():
 
 
 if __name__ == "__main__":
-    volatility.get_test_train("BTC", "1m")
+    volatility.tf_vol_data("1d")

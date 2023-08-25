@@ -36,7 +36,7 @@ def all_model_predictions(
     # Save the predictions and tests for each model
     model_predictions = {}
 
-    if model == extended_model:
+    if model in [config.extended_model, config.extended_to_raw_model]:
         models = ml_models
     else:
         models = all_models
@@ -107,15 +107,18 @@ def get_predictions(
         test_path = f"{file_loc}/test_{period}.csv"
         if not os.path.exists(pred_path):
             print(f"Warning the following file does not exist: {pred_path}")
-            return None, None, None
+            return None, None, None, None
 
         # Create the prediction TimeSeries
         pred = TimeSeries.from_dataframe(
             pd.read_csv(pred_path), time_col="time", value_cols=value_cols
         )
-        train = TimeSeries.from_dataframe(
-            pd.read_csv(train_path), time_col="date", value_cols=value_cols
-        )
+        try:
+            train = TimeSeries.from_dataframe(
+                pd.read_csv(train_path), time_col="date", value_cols=value_cols
+            )
+        except Exception:
+            train = None
         test = TimeSeries.from_dataframe(
             pd.read_csv(test_path), time_col="date", value_cols=value_cols
         )
@@ -185,6 +188,7 @@ def scaled_to_log(model: str, forecasting_model: str, coin: str, time_frame: str
 
         # Save it as a .csv
         pred_unscaled.to_csv(f"{save_loc}/pred_{i}.csv")
+        train.to_csv(f"{save_loc}/train_{i}.csv")
         test.to_csv(f"{save_loc}/test_{i}.csv")
 
 
@@ -217,8 +221,13 @@ def raw_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
     )
     os.makedirs(save_loc, exist_ok=True)
 
+    # Get the train data
+    trains, _, _ = get_train_test(
+        coin=coin, time_frame=time_frame, col="log returns", scale=False
+    )
+
     # Loop over both lists
-    for i, (pred, test) in enumerate(zip(preds, tests)):
+    for i, (pred, train, test) in enumerate(zip(preds, trains, tests)):
         # Convert pred and test to df
         pred = pred.pd_dataframe()
         test = test.pd_dataframe()
@@ -247,6 +256,7 @@ def raw_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
         # Save it as a .csv
         pred.to_csv(f"{save_loc}/pred_{i}.csv")
         test.to_csv(f"{save_loc}/test_{i}.csv")
+        train.to_csv(f"{save_loc}/train_{i}.csv")
 
 
 def all_log_models_to_price():
@@ -264,7 +274,7 @@ def log_model_to_price(model: str = log_returns_model):
 
     for forecasting_model in models:
         for coin in all_coins:
-            print("Converting log returns to price for", forecasting_model, coin)
+            print(f"Converting {model} data to price for", forecasting_model, coin)
             for time_frame in timeframes:
                 log_returns_to_price(
                     model=model,
@@ -312,14 +322,19 @@ def log_returns_to_price(
     # Get the price of test data
     price_df = read_csv(coin=coin, timeframe=time_frame, col_names=["close"])
 
+    # Get the train data
+    trains, _, _ = get_train_test(
+        coin=coin, time_frame=time_frame, col="close", scale=False
+    )
+
     # Create a directory to save the predictions
     save_loc = f"{model_output_dir}/{transformed_model}/{forecasting_model}/{coin}/{time_frame}"
     os.makedirs(save_loc, exist_ok=True)
 
-    for i, prediction in enumerate(preds):
+    for i, (train, prediction) in enumerate(zip(trains, preds)):
         # Check if the prediction is empty
-        if f"{save_loc}/pred_{i}.csv" in os.listdir(save_loc):
-            continue
+        # if f"{save_loc}/pred_{i}.csv" in os.listdir(save_loc):
+        #    continue
 
         # Start with 1 before the prediction
         start_pos = price_df.index.get_loc(prediction.start_time()) - 1
@@ -351,6 +366,7 @@ def log_returns_to_price(
 
         # Save it as a .csv
         close.to_csv(f"{save_loc}/pred_{i}.csv")
+        train.to_csv(f"{save_loc}/train_{i}.csv")
         test.to_csv(f"{save_loc}/test_{i}.csv")
 
         # Reset close list

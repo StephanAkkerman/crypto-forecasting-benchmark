@@ -44,6 +44,7 @@ coin_dir = "data/coins"
 statistics_dir = "output/statistics"
 plots_dir = "output/plots"
 rmse_dir = "output/rmse"
+volatility_dir = "output/volatility"
 
 # Model directories
 model_output_dir = "output/model_output"
