@@ -3,10 +3,6 @@ import os
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import scipy.stats as stats
-from statsmodels.formula.api import ols
-import statsmodels.api as sm
-
 
 import config
 from data_analysis.volatility import (
