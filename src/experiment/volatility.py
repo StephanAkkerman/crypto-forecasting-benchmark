@@ -3,6 +3,10 @@ import os
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import scipy.stats as stats
+from statsmodels.formula.api import ols
+import statsmodels.api as sm
+
 
 import config
 from data_analysis.volatility import (
@@ -254,7 +258,7 @@ def volatility_rmse_heatmap(
 
     # Create new labels for the second axis that contain only the model names
     ax1_labels = [label.split("-")[1] for label in current_labels]
-    ax2_labels = [label.split("-")[0] for label in current_labels]
+    ax2_labels = [label.split("-")[0].capitalize() for label in current_labels]
 
     ax1.set_yticklabels(ax1_labels)
 
@@ -264,6 +268,11 @@ def volatility_rmse_heatmap(
     # Now set the ticks
     ax2.set_yticks(ax1.get_yticks())
     ax2.set_yticklabels(ax2_labels)
+
+    # Capitalize x-axis labels
+    ax1.set_xticklabels(
+        [label.get_text().capitalize() for label in ax1.get_xticklabels()]
+    )
 
     # Set y-axis labels
     ax1.set_ylabel("Forecasting Model")
