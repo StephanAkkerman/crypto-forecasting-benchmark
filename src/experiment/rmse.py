@@ -21,6 +21,7 @@ def build_comlete_rmse_database(skip_existing: bool = True):
         config.scaled_to_log_model,
         config.scaled_to_raw_model,
         config.extended_model,
+        config.extended_to_raw_model,
     ]
 
     for model in models:

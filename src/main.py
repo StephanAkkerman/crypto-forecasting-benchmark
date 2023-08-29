@@ -8,7 +8,16 @@ from data_analysis import (
     stochasticity,
     trend,
 )
-from experiment import forecast, analysis, train_test, utils, boxplots, rmse, volatility
+from experiment import (
+    forecast,
+    analysis,
+    train_test,
+    utils,
+    boxplots,
+    rmse,
+    volatility,
+    baseline,
+)
 import config
 
 
@@ -45,10 +54,14 @@ def methods():
 
 if __name__ == "__main__":
     # Run this on cluster
-    forecast.stress_test_all(
-        model=config.log_returns_model, ignore_model=["Prophet", "TBATS"]
-    )
-    forecast.stress_test_all(
-        model=config.scaled_model, ignore_model=["Prophet", "TBATS"]
-    )
-    forecast.stress_test_all(model=config.raw_model, ignore_model=["Prophet", "TBATS"])
+    # forecast.stress_test_all(
+    #    model=config.log_returns_model, ignore_model=["Prophet", "TBATS"]
+    # )
+    # forecast.stress_test_all(
+    #    model=config.scaled_model, ignore_model=["Prophet", "TBATS"]
+    # )
+    # forecast.stress_test_all(model=config.raw_model, ignore_model=["Prophet", "TBATS"])
+
+    # baseline.create_baseline_comparison()
+    # rmse.build_comlete_rmse_database()
+    baseline.create_all_baseline_comparison()

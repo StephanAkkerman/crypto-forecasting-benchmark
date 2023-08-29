@@ -132,7 +132,10 @@ def get_predictions(
         tests.append(test)
 
     # Make it one big TimeSeries
-    if model != extended_model and concatenated:
+    if (
+        model not in [config.extended_to_raw_model, config.extended_model]
+        and concatenated
+    ):
         preds = concatenate(preds, axis=0)
         trains = concatenate(trains, axis=0)
         tests = concatenate(tests, axis=0)
