@@ -61,3 +61,6 @@ raw_to_log_model = "raw_to_log"
 scaled_to_log_model = "scaled_to_log"
 scaled_to_raw_model = "scaled_to_raw"
 extended_to_raw_model = "extended_to_raw"
+
+# Stress test output
+stress_test_dir = "output/stress_test"

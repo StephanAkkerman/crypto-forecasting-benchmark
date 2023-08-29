@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### Job name
-#SBATCH --job-name=forecast
+#SBATCH --job-name=stress_test_all
 
 ### Email
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -14,7 +14,8 @@
 
 ### Request the time you need for execution in minutes
 ### The format for the parameter is: [hour:]minute:second,
-#SBATCH -t 240:00:00
+#SBATCH -t 360:00:00
+# 15 days
 
 ### Memory your job needs per node, e. g. 1 GB
 #SBATCH --mem 100G

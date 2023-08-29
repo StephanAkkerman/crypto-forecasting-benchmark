@@ -1,6 +1,3 @@
-import torch
-import os
-
 # Local imports
 from data_analysis import (
     auto_correlation,
@@ -47,9 +44,11 @@ def methods():
 
 
 if __name__ == "__main__":
-    # volatility.create_all_volatility_data()
-    volatility.volatility_rmse_heatmap()
-    # rmse.forecasting_models_stacked()
-    # rmse.stacked_bar_plot_all_tf()
-
-    # boxplots.plotly_model_boxplot(model=config.log_returns_model)
+    # Run this on cluster
+    forecast.stress_test_all(
+        model=config.log_returns_model, ignore_model=["Prophet", "TBATS"]
+    )
+    forecast.stress_test_all(
+        model=config.scaled_model, ignore_model=["Prophet", "TBATS"]
+    )
+    forecast.stress_test_all(model=config.raw_model, ignore_model=["Prophet", "TBATS"])

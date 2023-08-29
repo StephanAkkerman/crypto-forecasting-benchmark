@@ -35,6 +35,7 @@ from config import (
     raw_model,
     scaled_model,
     extended_model,
+    stress_test_dir,
 )
 
 # Ignore fbprophet warnings
@@ -113,6 +114,12 @@ def generate_forecasts(
     coin: str,
     time_frame: str,
 ):
+    # Create directories
+    save_dir = (
+        f"{model_output_dir}/{model}/{forecasting_model_name}/{coin}/{time_frame}"
+    )
+    os.makedirs(save_dir, exist_ok=True)
+
     # Set default values
     col = "log returns"
     scale = False
@@ -157,10 +164,6 @@ def generate_forecasts(
             verbose=False,
         )
 
-        save_dir = (
-            f"{model_output_dir}/{model}/{forecasting_model_name}/{coin}/{time_frame}"
-        )
-
         # Save all important information
         pred.pd_dataframe().to_csv(f"{save_dir}/pred_{period}.csv")
         train_set[period].pd_dataframe().to_csv(f"{save_dir}/train_{period}.csv")
@@ -168,9 +171,11 @@ def generate_forecasts(
 
 
 def generate_extended_forecasts(forecasting_model: str, coin: str, time_frame: str):
+    # Create dirs
     save_dir = (
         f"{model_output_dir}/{extended_model}/{forecasting_model}/{coin}/{time_frame}"
     )
+    os.makedirs(save_dir, exist_ok=True)
 
     # Get the training and testing data for each period
     train_set, test_set, time_series = get_train_test(
@@ -235,12 +240,6 @@ def forecast_model(
 ):
     for coin in all_coins[all_coins.index(start_from_coin) :]:
         for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
-            # Create directories
-            os.makedirs(
-                f"{model_output_dir}/{model}/{forecasting_model}/{coin}/{time_frame}",
-                exist_ok=True,
-            )
-
             if model == extended_model:
                 generate_extended_forecasts(forecasting_model, coin, time_frame)
             else:
@@ -289,6 +288,121 @@ def forecast_all(
         forecast_model(model, forecasting_model, coin, time_frame)
 
 
+def stress_test_forecast(
+    model: str,
+    forecasting_model_name: str,
+    coin: str,
+    time_frame: str,
+):
+    # Make the directories
+    save_dir = f"{stress_test_dir}/{model}/{forecasting_model_name}/{coin}/{time_frame}"
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Set default values
+    col = "log returns"
+    scale = False
+
+    if model == raw_model:
+        col = "close"
+
+    elif model == scaled_model:
+        scale = True
+
+    # Get the training and testing data for each period
+    train_set, test_set, time_series = get_train_test(
+        coin=coin, time_frame=time_frame, col=col, scale=scale
+    )
+
+    # Certain models need to be retrained for each period
+    retrain = False
+    train_length = None
+    if forecasting_model_name in ["Prophet", "TBATS", "ARIMA"]:
+        retrain = True
+        train_length = len(train_set[0])
+
+    # Get the model and only train on period 0
+    forecasting_model = get_model(forecasting_model_name, coin, time_frame)
+
+    # Fit on the training data
+    forecasting_model.fit(series=train_set[0])
+
+    for period in tqdm(
+        range(n_periods),
+        desc=f"Forecasting periods for {forecasting_model_name}/{coin}/{time_frame}",
+        leave=False,
+    ):
+        # Generate the historical forecast
+        pred = forecasting_model.historical_forecasts(
+            time_series[period],
+            start=len(train_set[0]),
+            forecast_horizon=1,  # 1 step ahead forecasting
+            stride=1,  # 1 step ahead forecasting
+            retrain=retrain,
+            train_length=train_length,
+            verbose=False,
+        )
+
+        # Save all important information
+        pred.pd_dataframe().to_csv(f"{save_dir}/pred_{period}.csv")
+        train_set[period].pd_dataframe().to_csv(f"{save_dir}/train_{period}.csv")
+        test_set[period].pd_dataframe().to_csv(f"{save_dir}/test_{period}.csv")
+
+
+def stress_test_model(
+    model: str,
+    forecasting_model: str,
+    start_from_coin: str = all_coins[0],
+    start_from_time_frame: str = timeframes[0],
+):
+    # Loop over all coins
+    for coin in all_coins[all_coins.index(start_from_coin) :]:
+        # Loop over all time frames
+        for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
+            stress_test_forecast(
+                model=model,
+                forecasting_model_name=forecasting_model,
+                coin=coin,
+                time_frame=time_frame,
+            )
+
+
+def stress_test_all(
+    model: str == log_returns_model,
+    start_from_model: str = None,
+    start_from_coin: str = None,
+    start_from_time_frame: str = None,
+    ignore_model: list = [],
+):
+    models = all_models
+
+    if model == extended_model:
+        models = ml_models
+
+    if start_from_model:
+        models = models[models.index(start_from_model) :]
+
+    for forecasting_model in tqdm(
+        models, desc="Generating forecast for all models", leave=False
+    ):
+        # Skip the models in the ignore list
+        if forecasting_model in ignore_model:
+            continue
+
+        # Reset the coin and time frame
+        coin = all_coins[0]
+        time_frame = timeframes[0]
+
+        # Start from coin can only be used if start from model is used
+        if start_from_coin and start_from_model == forecasting_model:
+            coin = start_from_coin
+
+            # Start from time frame can only be used if start from coin is used
+            if start_from_time_frame:
+                time_frame = start_from_time_frame
+
+        stress_test_forecast(model, forecasting_model, coin, time_frame)
+
+
 def test_models():
     """
     Test if all models work with their optimized hyperparameters
@@ -303,7 +417,7 @@ def test_models():
 
 def find_missing_forecasts(model: str, models=[]):
     forecasting_models = all_models
-    
+
     if models != []:
         forecasting_models = models
 

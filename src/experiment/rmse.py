@@ -7,19 +7,6 @@ import matplotlib.pyplot as plt
 
 # Local imports
 import config
-from config import (
-    all_coins,
-    timeframes,
-    all_models,
-    ml_models,
-    rmse_dir,
-    log_to_raw_model,
-    log_returns_model,
-    extended_model,
-    raw_model,
-    rmse_dir,
-    n_periods,
-)
 from experiment.utils import all_model_predictions
 
 
@@ -41,7 +28,7 @@ def build_comlete_rmse_database(skip_existing: bool = True):
 
 
 def read_rmse_csv(model: str, time_frame: str) -> pd.DataFrame:
-    df = pd.read_csv(f"{rmse_dir}/{model}/rmse_{time_frame}.csv", index_col=0)
+    df = pd.read_csv(f"{config.rmse_dir}/{model}/rmse_{time_frame}.csv", index_col=0)
 
     # Convert string to list of floats
     df = df.applymap(lambda x: x.strip("[]").split(", "))
@@ -52,22 +39,26 @@ def read_rmse_csv(model: str, time_frame: str) -> pd.DataFrame:
     return df
 
 
-def build_rmse_database(model: str = log_returns_model, skip_existing: bool = True):
-    os.makedirs(f"{rmse_dir}/{model}", exist_ok=True)
+def build_rmse_database(
+    model: str = config.log_returns_model, skip_existing: bool = True
+):
+    os.makedirs(f"{config.rmse_dir}/{model}", exist_ok=True)
 
-    for tf in timeframes:
+    for tf in config.timeframes:
         # Skip if the file already exists
         if skip_existing:
-            if os.path.exists(f"{rmse_dir}/{model}/rmse_{tf}.csv"):
-                print(f"{rmse_dir}/{model}/rmse_{tf}.csv already exists, skipping...")
+            if os.path.exists(f"{config.rmse_dir}/{model}/rmse_{tf}.csv"):
+                print(
+                    f"{config.rmse_dir}/{model}/rmse_{tf}.csv already exists, skipping..."
+                )
                 continue
 
-        print(f"Building {rmse_dir}/{model}/rmse_{tf}.csv...")
+        print(f"Building {config.rmse_dir}/{model}/rmse_{tf}.csv...")
 
         # Data will be added to this DataFrame
         rmse_df = pd.DataFrame()
 
-        for coin in all_coins:
+        for coin in config.all_coins:
             # Get the predictions
             _, rmse_df_coin = all_model_predictions(
                 model=model, coin=coin, time_frame=tf
@@ -82,45 +73,12 @@ def build_rmse_database(model: str = log_returns_model, skip_existing: bool = Tr
             rmse_df = pd.concat([rmse_df, rmse_df_list])
 
         # Save the dataframe to a csv
-        rmse_df.to_csv(f"{rmse_dir}/{model}/rmse_{tf}.csv", index=True)
+        rmse_df.to_csv(f"{config.rmse_dir}/{model}/rmse_{tf}.csv", index=True)
 
         # Print number on Nan values
         nan_values = rmse_df.isna().sum().sum()
         if nan_values > 0:
             print(f"Number of NaN values in {tf} for {model}: {nan_values}")
-
-
-def rmse_comparison(
-    time_frame: str = "1d", model_1=log_to_raw_model, model_2=raw_model
-):
-    # 1. Load the data
-    rmse_1 = read_rmse_csv(model_1, time_frame)
-    rmse_2 = read_rmse_csv(model_2, time_frame)
-
-    # 2. Average the lists in the dataframe
-    rmse_1 = rmse_1.applymap(lambda x: np.mean(x))
-    rmse_2 = rmse_2.applymap(lambda x: np.mean(x))
-
-    # 3. Calculate the percentual difference
-    percentual_difference = ((rmse_2 - rmse_1) / rmse_1) * 100
-
-    # Add average row at the bottom
-    percentual_difference.loc["Average"] = percentual_difference.mean()
-
-    # Add average column at the right
-    percentual_difference["Average"] = percentual_difference.mean(axis=1)
-
-    # 4. Display or save the resulting table
-    print(percentual_difference)
-
-    plot_rmse_heatmap(
-        percentual_difference,
-        title=f"RMSE percentual comparison between {model_1} model and {model_2} model for {time_frame} time frame",
-        flip_colors=True,
-    )
-
-    # To save to a new CSV
-    # percentual_difference.to_csv('percentual_difference.csv', index=False)
 
 
 def extended_rmse_df(time_frame: str) -> pd.DataFrame:
@@ -137,8 +95,8 @@ def extended_rmse_df(time_frame: str) -> pd.DataFrame:
     return pd.DataFrame(data, index=range(config.n_periods))
 
 
-def rmse_heatmap(time_frame: str, model=log_returns_model):
-    if model == extended_model:
+def rmse_heatmap(time_frame: str, model=config.log_returns_model):
+    if model == config.extended_model:
         rmse = extended_rmse_df(time_frame)
         decimals = 4
     else:
@@ -191,37 +149,6 @@ def plot_rmse_heatmap(
     )
     plt.title(title)
     plt.show()
-
-
-def baseline_comparison(model: str = log_returns_model, baseline_model: str = "ARIMA"):
-    """Compare the RMSE of the baseline model (ARIMA) to the other models."""
-
-    rmse_df = read_rmse_csv(model, time_frame="1d")
-
-    # Round the values in the list
-    rmse_df = rmse_df.applymap(lambda x: np.mean(x))
-
-    # get the baseline
-    baseline = rmse_df[baseline_model]
-
-    # drop the baseline
-    rmse_df = rmse_df.drop(columns=[baseline_model])
-
-    # Calculate the percentual difference
-    # percentual_difference = ((rmse_df - baseline[:, None]) / baseline[:, None]) * 100
-    # Higher is better
-    percentual_difference = (
-        (baseline.values[:, None] - rmse_df.values) / baseline.values[:, None]
-    ) * 100
-
-    # visualize
-    plot_rmse_heatmap(
-        percentual_difference,
-        title=f"RMSE percentual comparison between {model} model and ARIMA model for 1d time frame",
-        flip_colors=True,
-        vmin=-3,
-        vmax=3,
-    )
 
 
 def all_models_heatmap(time_frame: str = "1d", log_data: bool = True):
@@ -394,3 +321,36 @@ def stacked_bar_plot_all_tf(log_data=True, ignore_models=[]):
     plt.subplots_adjust(right=0.88)
 
     plt.show()
+
+
+def rmse_comparison(
+    time_frame: str = "1d", model_1=config.log_to_raw_model, model_2=config.raw_model
+):
+    # 1. Load the data
+    rmse_1 = read_rmse_csv(model_1, time_frame)
+    rmse_2 = read_rmse_csv(model_2, time_frame)
+
+    # 2. Average the lists in the dataframe
+    rmse_1 = rmse_1.applymap(lambda x: np.mean(x))
+    rmse_2 = rmse_2.applymap(lambda x: np.mean(x))
+
+    # 3. Calculate the percentual difference
+    percentual_difference = ((rmse_2 - rmse_1) / rmse_1) * 100
+
+    # Add average row at the bottom
+    percentual_difference.loc["Average"] = percentual_difference.mean()
+
+    # Add average column at the right
+    percentual_difference["Average"] = percentual_difference.mean(axis=1)
+
+    # 4. Display or save the resulting table
+    print(percentual_difference)
+
+    plot_rmse_heatmap(
+        percentual_difference,
+        title=f"RMSE percentual comparison between {model_1} model and {model_2} model for {time_frame} time frame",
+        flip_colors=True,
+    )
+
+    # To save to a new CSV
+    # percentual_difference.to_csv('percentual_difference.csv', index=False)

@@ -17,6 +17,8 @@ if __name__ == "__main__":
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use only the first GPU.
 
-    forecast.forecast_model(
-        model_dir=config.scaled_model_dir, forecasting_model="TBATS"
+    forecast.stress_test_model(
+        model=config.log_returns_model, forecasting_model="TBATS"
     )
+    forecast.stress_test_model(model=config.scaled_model, forecasting_model="TBATS")
+    forecast.stress_test_model(model=config.raw_model, forecasting_model="TBATS")
