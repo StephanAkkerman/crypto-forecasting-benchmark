@@ -64,4 +64,7 @@ if __name__ == "__main__":
 
     # baseline.create_baseline_comparison()
     # rmse.build_comlete_rmse_database()
-    baseline.create_all_baseline_comparison()
+    # analysis.compare_predictions(
+    #    model=config.log_returns_model, coin="BTC", time_frame="1d"
+    # )
+    baseline.baseline_comparison_heatmap()

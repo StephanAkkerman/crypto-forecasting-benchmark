@@ -137,7 +137,7 @@ def get_predictions(
         and concatenated
     ):
         preds = concatenate(preds, axis=0)
-        trains = concatenate(trains, axis=0)
+        #trains = concatenate(trains, axis=0)
         tests = concatenate(tests, axis=0)
 
     return preds, trains, tests, rmses

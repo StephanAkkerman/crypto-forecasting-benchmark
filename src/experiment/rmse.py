@@ -107,9 +107,6 @@ def rmse_heatmap(time_frame: str, model=config.log_returns_model):
     # Round the values in the list
     rmse = rmse.applymap(lambda x: np.mean(x))
 
-    # Add average column at the right
-    rmse["Average"] = rmse.mean(axis=1)
-
     plot_rmse_heatmap(
         rmse,
         title=f"RMSE heatmap for {model} model for {time_frame} time frame",
@@ -124,7 +121,16 @@ def plot_rmse_heatmap(
     round_decimals: int = 2,
     vmin: float = None,
     vmax: float = None,
+    avg_y: bool = True,
+    avg_x: bool = True,
 ):
+    if avg_y:
+        # Add average column at the right
+        df["Average"] = df.mean(axis=1)
+
+    if avg_x:
+        df.loc["Average"] = df.mean()
+
     if flip_colors:
         cmap = "RdYlGn"
     else:
@@ -149,6 +155,56 @@ def plot_rmse_heatmap(
         vmax=vmax,
     )
     plt.title(title)
+    plt.show()
+
+
+def plot_rmse_heatmaps(
+    dfs,
+    title: str,
+    flip_colors=False,
+    round_decimals=0,
+    vmin=None,
+    vmax=None,
+    avg_y=True,
+    avg_x=True,
+):
+    # Create a subplot grid
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    axes = axes.flatten()
+
+    for i, df in enumerate(dfs):
+        df = dfs[i]
+        ax = axes[i]
+
+        if avg_y:
+            df["Average"] = df.mean(axis=1)
+        if avg_x:
+            df.loc["Average"] = df.mean()
+
+        if flip_colors:
+            cmap = "RdYlGn"
+        else:
+            cmap = "RdYlGn_r"
+
+        if vmin is None:
+            vmin = df.min().min()
+        if vmax is None:
+            vmax = df.max().max()
+
+        sns.heatmap(
+            df,
+            annot=True,
+            cmap=cmap,
+            fmt=f".{round_decimals}f",
+            center=0,
+            vmin=vmin,
+            vmax=vmax,
+            ax=ax,
+        )
+        ax.grid(False)
+        ax.set_title(config.timeframes[i])
+
+    plt.tight_layout()
     plt.show()
 
 

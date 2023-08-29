@@ -400,7 +400,7 @@ def stress_test_all(
             if start_from_time_frame:
                 time_frame = start_from_time_frame
 
-        stress_test_forecast(model, forecasting_model, coin, time_frame)
+        stress_test_model(model, forecasting_model, coin, time_frame)
 
 
 def test_models():
