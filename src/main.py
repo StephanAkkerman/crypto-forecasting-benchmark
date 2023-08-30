@@ -67,4 +67,5 @@ if __name__ == "__main__":
     # analysis.compare_predictions(
     #    model=config.log_returns_model, coin="BTC", time_frame="1d"
     # )
-    baseline.baseline_comparison_heatmap()
+    # baseline.baseline_comparison_heatmap()
+    volatility.volatility_boxplot()

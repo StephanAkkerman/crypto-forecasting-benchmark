@@ -139,33 +139,131 @@ def create_all_volatility_data():
         create_volatility_data(model=model)
 
 
-def volatility_boxplot(model: str = config.log_returns_model, time_frame: str = "1d"):
+def boxplot():
+    pass
+
+
+def model_boxplot(model: str = config.log_returns_model, time_frame: str = "1d"):
+    """
+    Shows the correlation between volatility and RMSE for each forecasting model.
+
+    Parameters
+    ----------
+    model : str, optional
+        The model output to use, by default config.log_returns_model
+    time_frame : str, optional
+        The time frame to use, by default "1d"
+    """
+
     # Read the data
     rmse_df = read_rmse_csv(model, time_frame=time_frame)
     vol_df = read_volatility_csv(model, time_frame=time_frame)
 
-    # Determine how the volatility affects the RMSE
-    rmse = rmse_df["ARIMA"]
+    list_of_dfs = []
+
+    # Loop through each model to populate all_flattened_df
+    for model_name in rmse_df.columns:  # Loop through all models
+        rmse = rmse_df[model_name]
+
+        # Create a temporary DataFrame for this model
+        temp_vol_df = vol_df.copy()
+
+        temp_vol_df["rmse"] = rmse
+        temp_vol_df["coin"] = temp_vol_df.index
+        temp_vol_df["model"] = model_name  # Add the model name
+
+        # Reset index and flatten the DataFrame
+        temp_vol_df.reset_index(inplace=True, drop=True)
+        flattened_df = temp_vol_df.apply(lambda x: x.explode())
+
+        list_of_dfs.append(flattened_df)
+
+    # Create a grid of subplots
+    fig, axes = plt.subplots(2, 6, figsize=(22, 10))
+    axes = axes.flatten()
+
+    # Loop through the list of DataFrames and axes to create a boxplot for each
+    for i, (df, ax) in enumerate(zip(list_of_dfs, axes)):
+        sns.boxplot(
+            x="train_volatility_class",
+            y="rmse",
+            hue="test_volatility_class",
+            data=df,
+            palette="Set3",
+            ax=ax,
+            order=["low", "normal", "high"],
+        )
+        # ax.set_xlabel('Volatility Class During Training')
+        # ax.set_ylabel('RMSE')
+        ax.set_title(f"Model: {df['model'].iloc[0]}")
+        ax.get_legend().remove()
+
+    # Remove any remaining empty subplots
+    for ax in axes[len(list_of_dfs) :]:
+        ax.remove()
+
+    # Add a global legend
+    (
+        handles,
+        labels,
+    ) = (
+        ax.get_legend_handles_labels()
+    )  # We can use the handles and labels of the last subplot
+    fig.legend(
+        handles,
+        labels,
+        loc="upper left",
+        bbox_to_anchor=(0.015, 0.99999),
+        title="Test Volatility",
+        ncols=3,
+    )
+
+    # Add a super title for the entire figure
+    plt.suptitle(
+        "Boxplots of RMSE by Volatility Class During Training and Testing for Multiple DataFrames",
+    )
+    plt.tight_layout()
+    plt.show()
+
+
+def coin_boxplot(
+    model: str = config.log_returns_model,
+    time_frame: str = "1d",
+    forecasting_model="ARIMA",
+):
+    # Read the data
+    rmse_df = read_rmse_csv(model, time_frame=time_frame)
+    vol_df = read_volatility_csv(model, time_frame=time_frame)
 
     # Add rmse to vol_df
-    vol_df["rmse"] = rmse
+    vol_df["rmse"] = rmse_df[forecasting_model]
 
-    # Flatten the dataframe
-    df_flat = vol_df.apply(lambda x: x.explode()).reset_index()
-
-    grouped = df_flat.groupby(["train_volatility_class", "test_volatility_class"])
-
-    # Print out the statistics for each group
-    for name, group in grouped:
-        print(f"Group: {name}")
-        print("Statistics:", group["rmse"].describe())
-        print("---")
-
-    plt.figure(figsize=(12, 8))
-    sns.boxplot(
-        x="train_volatility_class", y="rmse", hue="test_volatility_class", data=df_flat
+    # Explode the lists into individual rows
+    df_exploded = (
+        vol_df.apply(pd.Series.explode).reset_index().rename(columns={"index": "Coin"})
     )
-    plt.title("Impact of Train and Test Volatility on RMSE")
+
+    # Create the multi-level boxplot using Seaborn
+    g = sns.catplot(
+        x="train_volatility_class",
+        y="rmse",
+        hue="test_volatility_class",
+        col="Coin",
+        kind="box",
+        data=df_exploded,
+        palette="Set3",
+        height=6,
+        aspect=1,
+        col_wrap=6,
+    )
+
+    # Add labels and title
+    g.fig.subplots_adjust(top=0.9)
+    g.fig.suptitle(
+        "Multi-Level Boxplot of RMSE by Volatility Class During Training and Testing, Grouped by Coin"
+    )
+
+    # Show the plot
     plt.show()
 
 
@@ -274,3 +372,9 @@ def volatility_rmse_heatmap(
     ax1.set_ylabel("Forecasting Model")
 
     plt.show()
+
+
+# Other options:
+# multi-level boxplot
+# 3d scatter plot
+# facet grid scatter plot
