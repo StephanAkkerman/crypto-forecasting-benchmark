@@ -139,8 +139,64 @@ def create_all_volatility_data():
         create_volatility_data(model=model)
 
 
-def boxplot():
-    pass
+def boxplot(model: str = config.log_returns_model, time_frame: str = "1d"):
+    """
+    Shows the correlation between volatility and RMSE for each forecasting model, aggregated into one boxplot.
+
+    Parameters
+    ----------
+    model : str, optional
+        The model output to use, by default config.log_returns_model
+    time_frame : str, optional
+        The time frame to use, by default "1d"
+    """
+
+    # Read the data
+    rmse_df = read_rmse_csv(model, time_frame=time_frame)
+    vol_df = read_volatility_csv(model, time_frame=time_frame)
+
+    list_of_dfs = []
+
+    # Loop through each model to populate all_flattened_df
+    for model_name in rmse_df.columns:  # Loop through all models
+        rmse = rmse_df[model_name]
+
+        # Create a temporary DataFrame for this model
+        temp_vol_df = vol_df.copy()
+
+        temp_vol_df["rmse"] = rmse
+        temp_vol_df["coin"] = temp_vol_df.index
+        temp_vol_df["model"] = model_name  # Add the model name
+
+        # Reset index and flatten the DataFrame
+        temp_vol_df.reset_index(inplace=True, drop=True)
+        flattened_df = temp_vol_df.apply(lambda x: x.explode())
+
+        list_of_dfs.append(flattened_df)
+
+    # Combine all DataFrames in list_of_dfs into one DataFrame
+    combined_df = pd.concat(list_of_dfs, ignore_index=True)
+
+    # Create the single boxplot
+    plt.figure(figsize=(16, 10))
+    sns.boxplot(
+        x="train_volatility_class",
+        y="rmse",
+        hue="test_volatility_class",
+        data=combined_df,
+        palette="Set3",
+        order=["low", "normal", "high"],
+    )
+
+    plt.xlabel("Volatility Class During Training")
+    plt.ylabel("RMSE")
+    plt.title(
+        "Boxplots of RMSE by Volatility Class During Training and Testing (Aggregated)"
+    )
+    plt.legend(title="Test Volatility", loc="upper left", bbox_to_anchor=(1, 1))
+
+    plt.tight_layout()
+    plt.show()
 
 
 def model_boxplot(model: str = config.log_returns_model, time_frame: str = "1d"):

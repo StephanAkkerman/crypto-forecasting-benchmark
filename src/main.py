@@ -68,4 +68,4 @@ if __name__ == "__main__":
     #    model=config.log_returns_model, coin="BTC", time_frame="1d"
     # )
     # baseline.baseline_comparison_heatmap()
-    volatility.volatility_boxplot()
+    volatility.boxplot()
