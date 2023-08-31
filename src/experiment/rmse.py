@@ -159,8 +159,9 @@ def plot_rmse_heatmap(
 
 
 def plot_rmse_heatmaps(
-    dfs,
+    dfs: list[pd.DataFrame],
     title: str,
+    titles: list[str],
     flip_colors=False,
     round_decimals=0,
     vmin=None,
@@ -202,9 +203,11 @@ def plot_rmse_heatmaps(
             ax=ax,
         )
         ax.grid(False)
-        ax.set_title(config.timeframes[i])
+        ax.set_title(titles[i])
 
     plt.tight_layout()
+    fig.subplots_adjust(top=0.95)
+    fig.suptitle(title)
     plt.show()
 
 

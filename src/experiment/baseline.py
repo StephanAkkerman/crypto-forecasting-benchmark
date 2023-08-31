@@ -2,6 +2,8 @@ import os
 
 import numpy as np
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 import config
 from experiment.rmse import read_rmse_csv, plot_rmse_heatmaps
@@ -31,7 +33,7 @@ def create_baseline_comparison(
     time_frame: str = "1d",
     baseline_model: str = "ARIMA",
 ):
-    """Compare the RMSE of the baseline model (ARIMA) to the other models."""
+    """Compare the RMSE of the baseline model (ARIMA) to the other models and saves the data as .csv"""
 
     rmse_df = read_rmse_csv(model, time_frame=time_frame)
 
@@ -95,18 +97,82 @@ def create_all_baseline_comparison():
             create_baseline_comparison(model=model, time_frame=time_frame)
 
 
-def baseline_comparison_heatmap(model: str = config.log_returns_model):
-    """Compare the RMSE of the baseline model (ARIMA) to the other models."""
-
+def get_all_baseline_comparison(model: str = config.log_returns_model, ignore_model=[]):
     dfs = []
     for time_frame in config.timeframes:
-        dfs.append(read_comparison_csv(model, time_frame=time_frame))
+        comparison_df = read_comparison_csv(model, time_frame=time_frame).drop(
+            columns=ignore_model
+        )
+        dfs.append(comparison_df)
+    return dfs
 
+
+def baseline_comparison_heatmap(model: str = config.log_returns_model, ignore_model=[]):
     # visualize
     plot_rmse_heatmaps(
-        dfs,
-        title=f"RMSE percentual comparison between {model} model and ARIMA model for 1d time frame",
+        get_all_baseline_comparison(model, ignore_model=ignore_model),
+        title=f"RMSE percentual comparison between {model} model and ARIMA model",
+        titles=config.timeframes,
         flip_colors=True,
         vmin=-3,
         vmax=3,
     )
+
+
+def bar_plot(model: str = config.log_returns_model, ignore_model=[]):
+    """
+    Plots the mean of the RMSE for each model in a grouped bar plot.
+
+    Parameters
+    ----------
+    model : str, optional
+        The model output to use, by default config.log_returns_model
+    """
+
+    # Create a grid of subplots
+    fig, axes = plt.subplots(2, 2, figsize=(20, 10))
+    axes = axes.flatten()
+
+    # Loop through the list of DataFrames and axes to create a grouped bar plot for each
+    for i, (rmse_df, ax) in enumerate(
+        zip(get_all_baseline_comparison(model=model, ignore_model=ignore_model), axes)
+    ):
+        sns.barplot(data=rmse_df, orient="h", palette="Set3", ax=ax)
+
+        ax.set_xlabel("RMSE")
+        ax.set_ylabel("Model")
+        ax.set_title(f"Time Frame {config.timeframes[i]}")
+
+    plt.tight_layout()
+    fig.subplots_adjust(top=0.925)
+    fig.suptitle("Comparison of RMSE between ARIMA and other models")
+    plt.show()
+
+
+def box_plot(model: str = config.log_returns_model, ignore_model=[]):
+    """
+    Plots the mean of the RMSE for each model in a boxplot.
+
+    Parameters
+    ----------
+    model : str, optional
+        The model output to use, by default config.log_returns_model
+    """
+    # Create a grid of subplots
+    fig, axes = plt.subplots(2, 2, figsize=(20, 10))
+    axes = axes.flatten()
+
+    # Loop through the list of DataFrames and axes to create a grouped bar plot for each
+    for i, (rmse_df, ax) in enumerate(
+        zip(get_all_baseline_comparison(model=model, ignore_model=ignore_model), axes)
+    ):
+        sns.boxplot(data=rmse_df, orient="h", palette="Set3", ax=ax)
+
+        ax.set_xlabel("RMSE")
+        ax.set_ylabel("Model")
+        ax.set_title(f"Time Frame {config.timeframes[i]}")
+
+    plt.tight_layout()
+    fig.subplots_adjust(top=0.925)
+    fig.suptitle("Comparison of RMSE between ARIMA and other models")
+    plt.show()
