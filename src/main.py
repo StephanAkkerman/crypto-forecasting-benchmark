@@ -52,22 +52,23 @@ def methods():
     stochasticity.calc_hurst()
 
 
+def baseline_plots():
+    baseline.baseline_comparison_heatmap()
+    baseline.bar_plot()
+    baseline.box_plot()
+
+
+def volatility_plots():
+    volatility.boxplot()
+    volatility.model_boxplot()
+    volatility.coin_boxplot()
+    volatility.volatility_rmse_heatmap()
+    volatility.mcap_rmse_boxplot(ignore_model=["TBATS"])
+    volatility.mcap_rmse_heatmap()
+
+
 if __name__ == "__main__":
-    # Run this on cluster
-    # forecast.stress_test_all(
-    #    model=config.log_returns_model, ignore_model=["Prophet", "TBATS"]
-    # )
-    # forecast.stress_test_all(
-    #    model=config.scaled_model, ignore_model=["Prophet", "TBATS"]
-    # )
-    # forecast.stress_test_all(model=config.raw_model, ignore_model=["Prophet", "TBATS"])
-
-    # baseline.create_baseline_comparison()
-    # rmse.build_comlete_rmse_database()
-    # analysis.compare_predictions(
-    #    model=config.log_returns_model, coin="BTC", time_frame="1d"
-    # )
-    # baseline.baseline_comparison_heatmap()
-    # volatility.boxplot()
-
-    baseline.box_plot(config.scaled_model)
+    # baseline_plots()
+    # volatility_plots()
+    # volatility.mcap_rmse_heatmap()
+    volatility.mcap_volatility_boxplot()

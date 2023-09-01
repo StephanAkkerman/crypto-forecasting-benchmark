@@ -10,14 +10,14 @@ from data_analysis.volatility import (
     get_volatility,
 )
 from experiment.train_test import get_train_test
-from experiment.rmse import read_rmse_csv
+from experiment.rmse import read_rmse_csv, assign_mcap_category
 
 
 def strip_quotes(cell):
     return [i.strip("'") for i in cell]
 
 
-def read_volatility_csv(model: str, time_frame: str):
+def read_volatility_csv(model: str, time_frame: str, add_mcap: bool = False):
     df = pd.read_csv(
         f"{config.volatility_dir}/{model}/vol_{time_frame}.csv", index_col=0
     )
@@ -34,6 +34,9 @@ def read_volatility_csv(model: str, time_frame: str):
     df[["train_volatility", "test_volatility"]] = df[
         ["train_volatility", "test_volatility"]
     ].applymap(lambda x: [float(i) for i in x])
+
+    if add_mcap:
+        df["mcap category"] = df.index.map(assign_mcap_category)
 
     return df
 
@@ -239,7 +242,7 @@ def model_boxplot(model: str = config.log_returns_model, time_frame: str = "1d")
     axes = axes.flatten()
 
     # Loop through the list of DataFrames and axes to create a boxplot for each
-    for i, (df, ax) in enumerate(zip(list_of_dfs, axes)):
+    for _, (df, ax) in enumerate(zip(list_of_dfs, axes)):
         sns.boxplot(
             x="train_volatility_class",
             y="rmse",
@@ -249,8 +252,6 @@ def model_boxplot(model: str = config.log_returns_model, time_frame: str = "1d")
             ax=ax,
             order=["low", "normal", "high"],
         )
-        # ax.set_xlabel('Volatility Class During Training')
-        # ax.set_ylabel('RMSE')
         ax.set_title(f"Model: {df['model'].iloc[0]}")
         ax.get_legend().remove()
 
@@ -276,7 +277,7 @@ def model_boxplot(model: str = config.log_returns_model, time_frame: str = "1d")
 
     # Add a super title for the entire figure
     plt.suptitle(
-        "Boxplots of RMSE by Volatility Class During Training and Testing for Multiple DataFrames",
+        f"Boxplots of RMSE by Volatility Class During Training and Testing for Multiple DataFrames. Time Frame: {time_frame}",
     )
     plt.tight_layout()
     plt.show()
@@ -311,12 +312,13 @@ def coin_boxplot(
         height=6,
         aspect=1,
         col_wrap=6,
+        order=["low", "normal", "high"],
     )
 
     # Add labels and title
     g.fig.subplots_adjust(top=0.9)
     g.fig.suptitle(
-        "Multi-Level Boxplot of RMSE by Volatility Class During Training and Testing, Grouped by Coin"
+        f"Boxplot of RMSE by Volatility Class During Training and Testing, Grouped by Coin. Forecasting Model: {forecasting_model}"
     )
 
     # Show the plot
@@ -324,7 +326,7 @@ def coin_boxplot(
 
 
 def volatility_rmse_heatmap(
-    model: str = config.log_returns_model, time_frame: str = "15m"
+    model: str = config.log_returns_model, time_frame: str = "1d"
 ):
     """
     Plots the mean RMSE for each combination of train and test volatility class.
@@ -394,8 +396,10 @@ def volatility_rmse_heatmap(
     ax1.grid(False)
     sns.heatmap(pivot_table, annot=True, cmap="YlGnBu", ax=ax1)
     plt.rcParams["axes.grid"] = False
-    plt.title("Impact of Train and Test Volatility on RMSE Across Models")
-    ax1.set_xlabel("Volatility Class")
+    plt.title(
+        f"Impact of Train and Test Volatility on RMSE Across Models, Time Frame: {time_frame}"
+    )
+    ax1.set_xlabel("Test Volatility Class")
 
     # Invert the y-axis
     ax1.invert_yaxis()
@@ -427,6 +431,138 @@ def volatility_rmse_heatmap(
     # Set y-axis labels
     ax1.set_ylabel("Forecasting Model")
 
+    plt.show()
+
+
+def mcap_rmse_boxplot(model: str = config.log_returns_model, ignore_model=[]):
+    fig, axes = plt.subplots(2, 2, figsize=(20, 10))  # Create a 2x2 grid of subplots
+    axes = axes.flatten()  # Flatten the 2x2 grid to a 1D array
+
+    for i, time_frame in enumerate(config.timeframes):
+        df = read_rmse_csv(
+            model,
+            time_frame=time_frame,
+            avg=True,
+            add_mcap=True,
+            ignore_model=ignore_model,
+        )
+
+        sns.boxplot(
+            x="mcap category",
+            y="value",
+            hue="variable",
+            data=pd.melt(df, id_vars="mcap category"),
+            palette="Set2",
+            ax=axes[i],  # Specify which subplot to use
+        )
+
+        axes[i].set_title(f"Time Frame: {time_frame}")
+        axes[i].set_xlabel("Market Cap Category")
+        axes[i].set_ylabel("RMSE")
+        axes[i].legend(
+            title="Forecasting Model", bbox_to_anchor=(1, 1), loc="upper left"
+        )
+        axes[i].set_xticklabels(axes[i].get_xticklabels(), rotation=45)
+
+    plt.tight_layout()
+    # Add title
+    fig.subplots_adjust(top=0.9)
+    fig.suptitle(f"Boxplot of RMSE values by Market Cap Category for {model}")
+    plt.show()
+
+
+def mcap_rmse_heatmap(model: str = config.log_returns_model, ignore_model=[]):
+    fig, axes = plt.subplots(2, 2, figsize=(20, 10))  # Create a 2x2 grid of subplots
+    axes = axes.flatten()  # Flatten the 2x2 grid to a 1D array
+
+    for i, time_frame in enumerate(config.timeframes):
+        df = read_rmse_csv(model, time_frame=time_frame, avg=True, add_mcap=True)
+
+        # Grouping by 'mcap category' and calculating the mean RMSE for each group
+        grouped_df = df.groupby("mcap category").mean()
+
+        sns.heatmap(
+            grouped_df,
+            annot=True,
+            cmap="YlGnBu",
+            ax=axes[i],  # Specify which subplot to use
+        )
+        axes[i].grid(False)
+
+        axes[i].set_title(f"RMSE Heatmap for {model} - {time_frame}")
+        axes[i].set_xlabel("Forecasting Model")
+        axes[i].set_ylabel("Market Cap Category")
+
+    plt.tight_layout()
+    plt.show()
+
+
+def mcap_volatility_boxplot(model: str = config.log_returns_model, ignore_model=[]):
+    df = read_volatility_csv(model, time_frame="1d", add_mcap=True)
+
+    # Initialize empty lists to hold the flattened records
+    flattened_data = {
+        "coin": [],
+        "mcap_category": [],
+        "volatility_class": [],
+        "set_type": [],
+    }
+
+    # Flatten the DataFrame
+    for idx, row in df.iterrows():
+        mcap_category = row["mcap category"]
+        train_volatility_classes = row["train_volatility_class"]
+        test_volatility_classes = row["test_volatility_class"]
+
+        for train_class in train_volatility_classes:
+            flattened_data["coin"].append(idx)
+            flattened_data["mcap_category"].append(mcap_category)
+            flattened_data["volatility_class"].append(train_class)
+            flattened_data["set_type"].append("Train")
+
+        for test_class in test_volatility_classes:
+            flattened_data["coin"].append(idx)
+            flattened_data["mcap_category"].append(mcap_category)
+            flattened_data["volatility_class"].append(test_class)
+            flattened_data["set_type"].append("Test")
+
+    # Create a new DataFrame from the flattened data
+    df_flattened = pd.DataFrame(flattened_data)
+
+    # Create crosstab tables for training and testing sets
+    train_crosstab = pd.crosstab(
+        df_flattened[df_flattened["set_type"] == "Train"]["mcap_category"],
+        df_flattened[df_flattened["set_type"] == "Train"]["volatility_class"],
+    ).reindex(columns=['low', 'normal', 'high'])
+
+    test_crosstab = pd.crosstab(
+        df_flattened[df_flattened["set_type"] == "Test"]["mcap_category"],
+        df_flattened[df_flattened["set_type"] == "Test"]["volatility_class"],
+    ).reindex(columns=['low', 'normal', 'high'])
+
+    
+    print(train_crosstab)
+
+    # Create the heatmaps
+    plt.figure(figsize=(12, 6))
+
+    plt.subplot(1, 2, 1)
+    sns.heatmap(
+        train_crosstab, annot=True, cmap="coolwarm", fmt=".0f"
+    ).grid(False)
+    plt.title("Train Set: Market Cap vs Volatility Class")
+    plt.xlabel("Volatility Class")
+    plt.ylabel("Market Cap Category")
+
+    plt.subplot(1, 2, 2)
+    sns.heatmap(
+        test_crosstab, annot=True, cmap="coolwarm", fmt=".0f"
+    ).grid(False)
+    plt.title("Test Set: Market Cap vs Volatility Class")
+    plt.xlabel("Volatility Class")
+    plt.ylabel("Market Cap Category")
+
+    plt.tight_layout()
     plt.show()
 
 

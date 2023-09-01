@@ -111,8 +111,8 @@ def baseline_comparison_heatmap(model: str = config.log_returns_model, ignore_mo
     # visualize
     plot_rmse_heatmaps(
         get_all_baseline_comparison(model, ignore_model=ignore_model),
-        title=f"RMSE percentual comparison between {model} model and ARIMA model",
-        titles=config.timeframes,
+        title=f"RMSE percentual comparison between forecasting models and baseline (ARIMA) model for {model}",
+        titles=[f"Time Frame: {tf}" for tf in config.timeframes],
         flip_colors=True,
         vmin=-3,
         vmax=3,

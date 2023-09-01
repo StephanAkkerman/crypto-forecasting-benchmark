@@ -28,8 +28,17 @@ def build_comlete_rmse_database(skip_existing: bool = True):
         build_rmse_database(model=model, skip_existing=skip_existing)
 
 
-def read_rmse_csv(model: str, time_frame: str) -> pd.DataFrame:
-    df = pd.read_csv(f"{config.rmse_dir}/{model}/rmse_{time_frame}.csv", index_col=0)
+def read_rmse_csv(
+    model: str,
+    time_frame: str,
+    avg: bool = False,
+    add_mcap: bool = False,
+    ignore_model=[],
+) -> pd.DataFrame:
+    
+    df = pd.read_csv(
+        f"{config.rmse_dir}/{model}/rmse_{time_frame}.csv", index_col=0
+    ).drop(columns=ignore_model)
 
     # Convert string to list of floats
     df = df.applymap(lambda x: x.strip("[]").split(", "))
@@ -37,7 +46,26 @@ def read_rmse_csv(model: str, time_frame: str) -> pd.DataFrame:
     # Convert list of strings to list of floats
     df = df.applymap(lambda x: [float(i) for i in x])
 
+    # Round the values in the list
+    if avg:
+        df = df.applymap(lambda x: np.mean(x))
+
+    if add_mcap:
+        df["mcap category"] = df.index.map(assign_mcap_category)
+
     return df
+
+
+# Function to assign market capitalization category based on index
+def assign_mcap_category(crypto_index):
+    if crypto_index in config.large_cap:
+        return "large"
+    elif crypto_index in config.mid_cap:
+        return "mid"
+    elif crypto_index in config.small_cap:
+        return "small"
+
+    raise ValueError(f"Invalid crypto index: {crypto_index}")
 
 
 def build_rmse_database(
@@ -82,9 +110,9 @@ def build_rmse_database(
             print(f"Number of NaN values in {tf} for {model}: {nan_values}")
 
 
-def extended_rmse_df(time_frame: str) -> pd.DataFrame:
+def extended_rmse_df(time_frame: str, avg: bool = False) -> pd.DataFrame:
     # Get RMSE data
-    rmse_df = read_rmse_csv(model=config.extended_model, time_frame=time_frame)
+    rmse_df = read_rmse_csv(model=config.extended_model, time_frame=time_frame, avg=avg)
 
     # Get the first value of each list in the dataframe -> period 0
     # Change the format that the first column is the period and forget about coin names
@@ -98,14 +126,11 @@ def extended_rmse_df(time_frame: str) -> pd.DataFrame:
 
 def rmse_heatmap(time_frame: str, model=config.log_returns_model):
     if model == config.extended_model:
-        rmse = extended_rmse_df(time_frame)
+        rmse = extended_rmse_df(time_frame, avg=True)
         decimals = 4
     else:
-        rmse = read_rmse_csv(model, time_frame)
+        rmse = read_rmse_csv(model, time_frame, avg=True)
         decimals = 2
-
-    # Round the values in the list
-    rmse = rmse.applymap(lambda x: np.mean(x))
 
     plot_rmse_heatmap(
         rmse,
@@ -170,7 +195,7 @@ def plot_rmse_heatmaps(
     avg_x=True,
 ):
     # Create a subplot grid
-    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    fig, axes = plt.subplots(2, 2, figsize=(20, 10))
     axes = axes.flatten()
 
     for i, df in enumerate(dfs):
@@ -206,7 +231,7 @@ def plot_rmse_heatmaps(
         ax.set_title(titles[i])
 
     plt.tight_layout()
-    fig.subplots_adjust(top=0.95)
+    fig.subplots_adjust(top=0.925)
     fig.suptitle(title)
     plt.show()
 
@@ -226,8 +251,7 @@ def all_models_heatmap(time_frame: str = "1d", log_data: bool = True):
     # Read the RMSE data
     dfs = []
     for model in models:
-        rmse_df = read_rmse_csv(model, time_frame)
-        rmse_df = rmse_df.applymap(lambda x: np.mean(x))
+        rmse_df = read_rmse_csv(model, time_frame, avg=True)
         dfs.append((model, rmse_df))
 
     # Plot
@@ -262,8 +286,7 @@ def forecasting_models_stacked(
     # Read the RMSE data
     dfs = []
     for model in models:
-        rmse_df = read_rmse_csv(model, time_frame)
-        rmse_df = rmse_df.applymap(lambda x: np.mean(x))
+        rmse_df = read_rmse_csv(model, time_frame, avg=True)
 
         if not coin_on_x:
             rmse_df = rmse_df.T
@@ -309,8 +332,7 @@ def get_summed_RMSE(
     # Read the RMSE data
     dfs = []
     for model in models:
-        rmse_df = read_rmse_csv(model, time_frame)
-        rmse_df = rmse_df.applymap(lambda x: np.mean(x))
+        rmse_df = read_rmse_csv(model, time_frame, avg=True)
         rmse_df = rmse_df.sum(axis=0)
 
         dfs.append(rmse_df)
@@ -386,15 +408,11 @@ def stacked_bar_plot_all_tf(log_data=True, ignore_models=[]):
 def rmse_comparison(
     time_frame: str = "1d", model_1=config.log_to_raw_model, model_2=config.raw_model
 ):
-    # 1. Load the data
-    rmse_1 = read_rmse_csv(model_1, time_frame)
-    rmse_2 = read_rmse_csv(model_2, time_frame)
+    # Load the data
+    rmse_1 = read_rmse_csv(model_1, time_frame, avg=True)
+    rmse_2 = read_rmse_csv(model_2, time_frame, avg=True)
 
-    # 2. Average the lists in the dataframe
-    rmse_1 = rmse_1.applymap(lambda x: np.mean(x))
-    rmse_2 = rmse_2.applymap(lambda x: np.mean(x))
-
-    # 3. Calculate the percentual difference
+    # Calculate the percentual difference
     percentual_difference = ((rmse_2 - rmse_1) / rmse_1) * 100
 
     # Add average row at the bottom
@@ -403,7 +421,7 @@ def rmse_comparison(
     # Add average column at the right
     percentual_difference["Average"] = percentual_difference.mean(axis=1)
 
-    # 4. Display or save the resulting table
+    # Display or save the resulting table
     print(percentual_difference)
 
     plot_rmse_heatmap(
