@@ -328,7 +328,7 @@ def stress_test_forecast(
 
     for period in tqdm(
         range(n_periods),
-        desc=f"Forecasting periods for {forecasting_model_name}/{coin}/{time_frame}",
+        desc=f"Forecasting periods for {model}/{forecasting_model_name}/{coin}/{time_frame}",
         leave=False,
     ):
         # Generate the historical forecast
