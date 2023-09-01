@@ -431,6 +431,5 @@ def volatility_rmse_heatmap(
 
 
 # Other options:
-# multi-level boxplot
 # 3d scatter plot
 # facet grid scatter plot

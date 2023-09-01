@@ -10,8 +10,8 @@ from data_analysis import (
 )
 from experiment import (
     forecast,
-    analysis,
     train_test,
+    ts_analysis,
     utils,
     boxplots,
     rmse,
@@ -68,4 +68,6 @@ if __name__ == "__main__":
     #    model=config.log_returns_model, coin="BTC", time_frame="1d"
     # )
     # baseline.baseline_comparison_heatmap()
-    volatility.boxplot()
+    # volatility.boxplot()
+
+    baseline.box_plot(config.scaled_model)
