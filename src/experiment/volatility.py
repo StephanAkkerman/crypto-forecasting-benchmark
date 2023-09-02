@@ -17,10 +17,8 @@ def strip_quotes(cell):
     return [i.strip("'") for i in cell]
 
 
-def read_volatility_csv(model: str, time_frame: str, add_mcap: bool = False):
-    df = pd.read_csv(
-        f"{config.volatility_dir}/{model}/vol_{time_frame}.csv", index_col=0
-    )
+def read_volatility_csv(time_frame: str, add_mcap: bool = False):
+    df = pd.read_csv(f"{config.volatility_dir}/vol_{time_frame}.csv", index_col=0)
 
     # Convert string to list
     df = df.applymap(lambda x: x.strip("[]").split(", "))
@@ -50,10 +48,8 @@ def get_volatility_class(volatility, percentile25, percentile75):
         return "normal"
 
 
-def create_volatility_data(model: str = config.log_returns_model):
-    """Analyze and plot the impact of volatility on RMSE for different train-test splits."""
-    save_loc = f"{config.volatility_dir}/{model}"
-    os.makedirs(save_loc, exist_ok=True)
+def create_volatility_data():
+    os.makedirs(config.volatility_dir, exist_ok=True)
 
     for time_frame in config.timeframes:
         # Calculate the percentiles for this time frame
@@ -122,7 +118,7 @@ def create_volatility_data(model: str = config.log_returns_model):
             volatility_df = pd.concat([volatility_df, coin_df])
 
         # Save: volatility classification
-        volatility_df.to_csv(f"{save_loc}/vol_{time_frame}.csv")
+        volatility_df.to_csv(f"{config.volatility_dir}/vol_{time_frame}.csv")
 
 
 def create_all_volatility_data():
@@ -156,7 +152,7 @@ def boxplot(model: str = config.log_returns_model, time_frame: str = "1d"):
 
     # Read the data
     rmse_df = read_rmse_csv(model, time_frame=time_frame)
-    vol_df = read_volatility_csv(model, time_frame=time_frame)
+    vol_df = read_volatility_csv(time_frame=time_frame)
 
     list_of_dfs = []
 
@@ -216,7 +212,7 @@ def model_boxplot(model: str = config.log_returns_model, time_frame: str = "1d")
 
     # Read the data
     rmse_df = read_rmse_csv(model, time_frame=time_frame)
-    vol_df = read_volatility_csv(model, time_frame=time_frame)
+    vol_df = read_volatility_csv(time_frame=time_frame)
 
     list_of_dfs = []
 
@@ -290,7 +286,7 @@ def coin_boxplot(
 ):
     # Read the data
     rmse_df = read_rmse_csv(model, time_frame=time_frame)
-    vol_df = read_volatility_csv(model, time_frame=time_frame)
+    vol_df = read_volatility_csv(time_frame=time_frame)
 
     # Add rmse to vol_df
     vol_df["rmse"] = rmse_df[forecasting_model]
@@ -343,7 +339,7 @@ def volatility_rmse_heatmap(
     rmse_df = read_rmse_csv(
         model, time_frame=time_frame
     )  # Assuming this reads RMSE for all models
-    vol_df = read_volatility_csv(model, time_frame=time_frame)
+    vol_df = read_volatility_csv(time_frame=time_frame)
 
     # Initialize an empty DataFrame to store flattened data
     all_flattened_df = pd.DataFrame()
@@ -497,70 +493,69 @@ def mcap_rmse_heatmap(model: str = config.log_returns_model, ignore_model=[]):
     plt.show()
 
 
-def mcap_volatility_boxplot(model: str = config.log_returns_model, ignore_model=[]):
-    df = read_volatility_csv(model, time_frame="1d", add_mcap=True)
+def mcap_volatility_boxplot():
+    fig, axes = plt.subplots(2, len(config.timeframes), figsize=(20, 10))
 
-    # Initialize empty lists to hold the flattened records
-    flattened_data = {
-        "coin": [],
-        "mcap_category": [],
-        "volatility_class": [],
-        "set_type": [],
-    }
+    for i, time_frame in enumerate(config.timeframes):
+        df = read_volatility_csv(time_frame=time_frame, add_mcap=True)
 
-    # Flatten the DataFrame
-    for idx, row in df.iterrows():
-        mcap_category = row["mcap category"]
-        train_volatility_classes = row["train_volatility_class"]
-        test_volatility_classes = row["test_volatility_class"]
+        # Initialize empty lists to hold the flattened records
+        flattened_data = {
+            "coin": [],
+            "mcap_category": [],
+            "volatility_class": [],
+            "set_type": [],
+        }
 
-        for train_class in train_volatility_classes:
-            flattened_data["coin"].append(idx)
-            flattened_data["mcap_category"].append(mcap_category)
-            flattened_data["volatility_class"].append(train_class)
-            flattened_data["set_type"].append("Train")
+        # Flatten the DataFrame
+        for idx, row in df.iterrows():
+            mcap_category = row["mcap category"]
+            train_volatility_classes = row["train_volatility_class"]
+            test_volatility_classes = row["test_volatility_class"]
 
-        for test_class in test_volatility_classes:
-            flattened_data["coin"].append(idx)
-            flattened_data["mcap_category"].append(mcap_category)
-            flattened_data["volatility_class"].append(test_class)
-            flattened_data["set_type"].append("Test")
+            for train_class in train_volatility_classes:
+                flattened_data["coin"].append(idx)
+                flattened_data["mcap_category"].append(mcap_category)
+                flattened_data["volatility_class"].append(train_class)
+                flattened_data["set_type"].append("Train")
 
-    # Create a new DataFrame from the flattened data
-    df_flattened = pd.DataFrame(flattened_data)
+            for test_class in test_volatility_classes:
+                flattened_data["coin"].append(idx)
+                flattened_data["mcap_category"].append(mcap_category)
+                flattened_data["volatility_class"].append(test_class)
+                flattened_data["set_type"].append("Test")
 
-    # Create crosstab tables for training and testing sets
-    train_crosstab = pd.crosstab(
-        df_flattened[df_flattened["set_type"] == "Train"]["mcap_category"],
-        df_flattened[df_flattened["set_type"] == "Train"]["volatility_class"],
-    ).reindex(columns=['low', 'normal', 'high'])
+        # Create a new DataFrame from the flattened data
+        df_flattened = pd.DataFrame(flattened_data)
 
-    test_crosstab = pd.crosstab(
-        df_flattened[df_flattened["set_type"] == "Test"]["mcap_category"],
-        df_flattened[df_flattened["set_type"] == "Test"]["volatility_class"],
-    ).reindex(columns=['low', 'normal', 'high'])
+        # Create crosstab tables
+        train_crosstab = pd.crosstab(
+            df_flattened[df_flattened["set_type"] == "Train"]["mcap_category"],
+            df_flattened[df_flattened["set_type"] == "Train"]["volatility_class"],
+        ).reindex(columns=["low", "normal", "high"])
 
-    
-    print(train_crosstab)
+        test_crosstab = pd.crosstab(
+            df_flattened[df_flattened["set_type"] == "Test"]["mcap_category"],
+            df_flattened[df_flattened["set_type"] == "Test"]["volatility_class"],
+        ).reindex(columns=["low", "normal", "high"])
 
-    # Create the heatmaps
-    plt.figure(figsize=(12, 6))
+        # Calculate subplot row and column indices
+        row_idx = i // 2
+        col_idx = (i % 2) * 2  # Adjusted to fit within the 2x4 grid
 
-    plt.subplot(1, 2, 1)
-    sns.heatmap(
-        train_crosstab, annot=True, cmap="coolwarm", fmt=".0f"
-    ).grid(False)
-    plt.title("Train Set: Market Cap vs Volatility Class")
-    plt.xlabel("Volatility Class")
-    plt.ylabel("Market Cap Category")
+        # Plotting heatmaps for Train set
+        ax1 = axes[row_idx, col_idx]
+        sns.heatmap(train_crosstab, annot=True, cmap="coolwarm", fmt=".0f", ax=ax1).grid(False)
+        ax1.set_title(f"Train Set ({time_frame}): Market Cap vs Volatility Class")
+        ax1.set_xlabel("Volatility Class")
+        ax1.set_ylabel("Market Cap Category")
 
-    plt.subplot(1, 2, 2)
-    sns.heatmap(
-        test_crosstab, annot=True, cmap="coolwarm", fmt=".0f"
-    ).grid(False)
-    plt.title("Test Set: Market Cap vs Volatility Class")
-    plt.xlabel("Volatility Class")
-    plt.ylabel("Market Cap Category")
+        # Plotting heatmaps for Test set
+        ax2 = axes[row_idx, col_idx + 1]
+        sns.heatmap(test_crosstab, annot=True, cmap="coolwarm", fmt=".0f", ax=ax2).grid(False)
+        ax2.set_title(f"Test Set ({time_frame}): Market Cap vs Volatility Class")
+        ax2.set_xlabel("Volatility Class")
+        ax2.set_ylabel("Market Cap Category")
 
     plt.tight_layout()
     plt.show()
