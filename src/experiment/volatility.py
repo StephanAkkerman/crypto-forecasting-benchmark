@@ -1,6 +1,7 @@
 import os
 
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -138,7 +139,12 @@ def create_all_volatility_data():
         create_volatility_data(model=model)
 
 
-def boxplot(model: str = config.log_returns_model, time_frame: str = "1d"):
+def boxplot(
+    model: str = config.log_returns_model,
+    time_frame: str = "1d",
+    log_scale: bool = False,
+    ignore_outliers: bool = True,
+):
     """
     Shows the correlation between volatility and RMSE for each forecasting model, aggregated into one boxplot.
 
@@ -178,7 +184,7 @@ def boxplot(model: str = config.log_returns_model, time_frame: str = "1d"):
 
     # Create the single boxplot
     plt.figure(figsize=(16, 10))
-    sns.boxplot(
+    ax = sns.boxplot(
         x="train_volatility_class",
         y="rmse",
         hue="test_volatility_class",
@@ -186,6 +192,16 @@ def boxplot(model: str = config.log_returns_model, time_frame: str = "1d"):
         palette="Set3",
         order=["low", "normal", "high"],
     )
+
+    if log_scale:
+        ax.set_yscale("log")
+
+    if ignore_outliers:
+        # Calculate the 5th and 95th percentiles for the y-axis limits
+        ymax = np.percentile(combined_df["rmse"].dropna(), 95)
+
+        # Set the y-axis limits
+        ax.set_ylim(combined_df["rmse"].min(), ymax)
 
     plt.xlabel("Volatility Class During Training")
     plt.ylabel("RMSE")
@@ -390,7 +406,7 @@ def volatility_rmse_heatmap(
     # Create the heatmap
     _, ax1 = plt.subplots(figsize=(16, 10))
     ax1.grid(False)
-    sns.heatmap(pivot_table, annot=True, cmap="YlGnBu", ax=ax1)
+    sns.heatmap(pivot_table, annot=True, cmap="YlGnBu", ax=ax1, cbar_kws={"pad": 0.1})
     plt.rcParams["axes.grid"] = False
     plt.title(
         f"Impact of Train and Test Volatility on RMSE Across Models, Time Frame: {time_frame}"
@@ -402,6 +418,7 @@ def volatility_rmse_heatmap(
 
     # Create a twin y-axis
     ax2 = ax1.twinx()
+    ax2.set_ylabel("Train Volatility Class")
 
     # Get the current y-tick labels from the first axis
     current_labels = [item.get_text() for item in ax1.get_yticklabels()]
@@ -430,7 +447,12 @@ def volatility_rmse_heatmap(
     plt.show()
 
 
-def mcap_rmse_boxplot(model: str = config.log_returns_model, ignore_model=[]):
+def mcap_rmse_boxplot(
+    model: str = config.log_returns_model,
+    ignore_model=[],
+    log_scale: bool = False,
+    remove_outliers: bool = True,
+):
     fig, axes = plt.subplots(2, 2, figsize=(20, 10))  # Create a 2x2 grid of subplots
     axes = axes.flatten()  # Flatten the 2x2 grid to a 1D array
 
@@ -443,13 +465,16 @@ def mcap_rmse_boxplot(model: str = config.log_returns_model, ignore_model=[]):
             ignore_model=ignore_model,
         )
 
+        melted_df = pd.melt(df, id_vars="mcap category")
+
         sns.boxplot(
             x="mcap category",
             y="value",
             hue="variable",
-            data=pd.melt(df, id_vars="mcap category"),
+            data=melted_df,
             palette="Set2",
             ax=axes[i],  # Specify which subplot to use
+            order=["Small", "Mid", "Large"],
         )
 
         axes[i].set_title(f"Time Frame: {time_frame}")
@@ -459,6 +484,21 @@ def mcap_rmse_boxplot(model: str = config.log_returns_model, ignore_model=[]):
             title="Forecasting Model", bbox_to_anchor=(1, 1), loc="upper left"
         )
         axes[i].set_xticklabels(axes[i].get_xticklabels(), rotation=45)
+
+        # Apply logarithmic scale if log_scale is True
+        if log_scale:
+            axes[i].set_yscale("log")
+
+        # Remove outliers if remove_outliers is True
+        if remove_outliers:
+            Q1 = melted_df["value"].quantile(0.25)
+            Q3 = melted_df["value"].quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            if lower_bound < 0:
+                lower_bound = 0
+            axes[i].set_ylim(lower_bound, upper_bound)
 
     plt.tight_layout()
     # Add title
@@ -471,17 +511,35 @@ def mcap_rmse_heatmap(model: str = config.log_returns_model, ignore_model=[]):
     fig, axes = plt.subplots(2, 2, figsize=(20, 10))  # Create a 2x2 grid of subplots
     axes = axes.flatten()  # Flatten the 2x2 grid to a 1D array
 
+    all_values = (
+        []
+    )  # List to collect all RMSE values across timeframes and mcap categories
     for i, time_frame in enumerate(config.timeframes):
         df = read_rmse_csv(model, time_frame=time_frame, avg=True, add_mcap=True)
 
         # Grouping by 'mcap category' and calculating the mean RMSE for each group
         grouped_df = df.groupby("mcap category").mean()
 
+        # Collect all RMSE values
+        all_values.extend(grouped_df.values.flatten())
+
+    for i, time_frame in enumerate(config.timeframes):
+        df = read_rmse_csv(model, time_frame=time_frame, avg=True, add_mcap=True)
+
+        # Grouping by 'mcap category' and calculating the mean RMSE for each group
+        grouped_df = df.groupby("mcap category").mean()
+
+        # Calculate the maximum value for the color bar
+        vmax = [item for sublist in grouped_df.values for item in sublist]
+        vmax = np.percentile(vmax, 75)
+
         sns.heatmap(
             grouped_df,
             annot=True,
             cmap="YlGnBu",
             ax=axes[i],  # Specify which subplot to use
+            # vmin=vmin,  # Minimum value for color bar
+            vmax=vmax,
         )
         axes[i].grid(False)
 
@@ -493,10 +551,17 @@ def mcap_rmse_heatmap(model: str = config.log_returns_model, ignore_model=[]):
     plt.show()
 
 
-def mcap_volatility_boxplot():
+def mcap_volatility_heatmap():
     fig, axes = plt.subplots(2, len(config.timeframes), figsize=(20, 10))
 
+    # Create an axes object for the colorbar
+    cbar_ax = fig.add_axes([0.92, 0.1, 0.02, 0.8])
+
+    max_value = 0
     for i, time_frame in enumerate(config.timeframes):
+        train_cbar = False
+        test_cbar = False
+
         df = read_volatility_csv(time_frame=time_frame, add_mcap=True)
 
         # Initialize empty lists to hold the flattened records
@@ -539,25 +604,56 @@ def mcap_volatility_boxplot():
             df_flattened[df_flattened["set_type"] == "Test"]["volatility_class"],
         ).reindex(columns=["low", "normal", "high"])
 
+        train_max = train_crosstab.max().max()
+        test_max = test_crosstab.max().max()
+
+        if train_max > max_value:
+            max_value = train_max
+            train_cbar = True
+        if test_max > max_value:
+            max_value = test_max
+            test_cbar = True
+
         # Calculate subplot row and column indices
         row_idx = i // 2
-        col_idx = (i % 2) * 2  # Adjusted to fit within the 2x4 grid
+        col_idx = i % 2  # Adjusted to fit within the 2x4 grid
 
         # Plotting heatmaps for Train set
-        ax1 = axes[row_idx, col_idx]
-        sns.heatmap(train_crosstab, annot=True, cmap="coolwarm", fmt=".0f", ax=ax1).grid(False)
-        ax1.set_title(f"Train Set ({time_frame}): Market Cap vs Volatility Class")
+        ax1 = axes[row_idx, col_idx * 2]
+        sns.heatmap(
+            train_crosstab,
+            annot=True,
+            cmap="coolwarm",
+            fmt=".0f",
+            ax=ax1,
+            cbar=train_cbar,
+            cbar_ax=cbar_ax,
+        ).grid(False)
+        ax1.set_title(f"{time_frame} - Train")
         ax1.set_xlabel("Volatility Class")
         ax1.set_ylabel("Market Cap Category")
 
         # Plotting heatmaps for Test set
-        ax2 = axes[row_idx, col_idx + 1]
-        sns.heatmap(test_crosstab, annot=True, cmap="coolwarm", fmt=".0f", ax=ax2).grid(False)
-        ax2.set_title(f"Test Set ({time_frame}): Market Cap vs Volatility Class")
+        ax2 = axes[row_idx, col_idx * 2 + 1]
+        sns.heatmap(
+            test_crosstab,
+            annot=True,
+            cmap="coolwarm",
+            fmt=".0f",
+            ax=ax2,
+            cbar=test_cbar,
+            cbar_ax=cbar_ax,
+        ).grid(False)
+        ax2.set_title(f"{time_frame} - Test")
         ax2.set_xlabel("Volatility Class")
         ax2.set_ylabel("Market Cap Category")
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 0.9, 1])  # Make room for the colorbar
+
+    # Add title
+    fig.subplots_adjust(top=0.9)
+    fig.suptitle(f"Heatmap of Market Cap vs Volatility Class for Train and Test Sets")
+
     plt.show()
 
 

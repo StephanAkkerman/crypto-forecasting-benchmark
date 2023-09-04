@@ -119,7 +119,9 @@ def baseline_comparison_heatmap(model: str = config.log_returns_model, ignore_mo
     )
 
 
-def bar_plot(model: str = config.log_returns_model, ignore_model=[]):
+def bar_plot(
+    model: str = config.log_returns_model, ignore_model=[], ignore_outliers: bool = True
+):
     """
     Plots the mean of the RMSE for each model in a grouped bar plot.
 
@@ -143,13 +145,27 @@ def bar_plot(model: str = config.log_returns_model, ignore_model=[]):
         ax.set_ylabel("Model")
         ax.set_title(f"Time Frame {config.timeframes[i]}")
 
+        # Apply logarithmic scale if log_scale is True
+        if ignore_outliers:
+            # Calculate the 5th and 95th percentiles for the x-axis limits
+            all_values = rmse_df.values.flatten()
+            if i == 0 or i == 1:
+                xmin = np.percentile(all_values, 25)
+            else:
+                xmin = np.percentile(all_values, 15)
+
+            # Set the x-axis limits
+            ax.set_xlim(xmin, all_values.max())
+
     plt.tight_layout()
     fig.subplots_adjust(top=0.925)
     fig.suptitle("Comparison of RMSE between ARIMA and other models")
     plt.show()
 
 
-def box_plot(model: str = config.log_returns_model, ignore_model=[]):
+def box_plot(
+    model: str = config.log_returns_model, ignore_model=[], ignore_outliers: bool = True
+):
     """
     Plots the mean of the RMSE for each model in a boxplot.
 
@@ -171,6 +187,18 @@ def box_plot(model: str = config.log_returns_model, ignore_model=[]):
         ax.set_xlabel("RMSE")
         ax.set_ylabel("Model")
         ax.set_title(f"Time Frame {config.timeframes[i]}")
+
+        # Apply logarithmic scale if log_scale is True
+        if ignore_outliers:
+            # Calculate the 5th and 95th percentiles for the x-axis limits
+            all_values = rmse_df.values.flatten()
+            if i == 0 or i == 1:
+                xmin = np.percentile(all_values, 25)
+            else:
+                xmin = np.percentile(all_values, 15)
+
+            # Set the x-axis limits
+            ax.set_xlim(xmin, all_values.max())
 
     plt.tight_layout()
     fig.subplots_adjust(top=0.925)

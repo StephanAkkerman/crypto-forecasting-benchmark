@@ -52,23 +52,21 @@ def methods():
     stochasticity.calc_hurst()
 
 
-def baseline_plots():
-    baseline.baseline_comparison_heatmap()
-    baseline.bar_plot()
-    baseline.box_plot()
+def baseline_plots(model: str = config.log_returns_model):
+    baseline.baseline_comparison_heatmap(model)
+    baseline.bar_plot(model)
+    baseline.box_plot(model)
 
 
-def volatility_plots():
-    volatility.boxplot()
+def volatility_plots(model: str = config.log_returns_model):
+    volatility.boxplot(model)
     volatility.model_boxplot()
     volatility.coin_boxplot()
     volatility.volatility_rmse_heatmap()
-    volatility.mcap_rmse_boxplot(ignore_model=["TBATS"])
+    volatility.mcap_rmse_boxplot()
     volatility.mcap_rmse_heatmap()
+    volatility.mcap_volatility_heatmap()
 
 
 if __name__ == "__main__":
-    # baseline_plots()
-    # volatility_plots()
-    # volatility.mcap_rmse_heatmap()
-    volatility.mcap_volatility_boxplot()
+    pass

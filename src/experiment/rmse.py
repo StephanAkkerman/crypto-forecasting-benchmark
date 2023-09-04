@@ -35,7 +35,6 @@ def read_rmse_csv(
     add_mcap: bool = False,
     ignore_model=[],
 ) -> pd.DataFrame:
-    
     df = pd.read_csv(
         f"{config.rmse_dir}/{model}/rmse_{time_frame}.csv", index_col=0
     ).drop(columns=ignore_model)
@@ -59,11 +58,11 @@ def read_rmse_csv(
 # Function to assign market capitalization category based on index
 def assign_mcap_category(crypto_index):
     if crypto_index in config.large_cap:
-        return "large"
+        return "Large"
     elif crypto_index in config.mid_cap:
-        return "mid"
+        return "Mid"
     elif crypto_index in config.small_cap:
-        return "small"
+        return "Small"
 
     raise ValueError(f"Invalid crypto index: {crypto_index}")
 
