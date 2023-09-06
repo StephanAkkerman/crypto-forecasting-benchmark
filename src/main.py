@@ -8,6 +8,7 @@ from data_analysis import (
     stochasticity,
     trend,
 )
+from hyperopt.analysis import best_hyperparameters
 from experiment import (
     forecast,
     train_test,
@@ -52,13 +53,27 @@ def methods():
     stochasticity.calc_hurst()
 
 
-def baseline_plots(model: str = config.log_returns_model):
+def model_performance(model: str, time_frame: str):
+    boxplots.plotly_model_boxplot()
+    boxplots.plotly_coin_boxplot()
+    ts_analysis.compare_predictions()
+    # ts_analysis.compare_two_predictions()
+    rmse.all_models_heatmap()
+    rmse.forecasting_models_stacked()
+    rmse.stacked_bar_plot()
+    rmse.stacked_bar_plot_all_tf()
+    # rmse.rmse_comparison()
+
+
+def time_frame_analysis(model: str = config.log_returns_model):
+    # Use baseline comparison code
+    # Also compare between time frames and RMSE
     baseline.baseline_comparison_heatmap(model)
     baseline.bar_plot(model)
     baseline.box_plot(model)
 
 
-def volatility_plots(model: str = config.log_returns_model):
+def volatility_analysis(model: str = config.log_returns_model):
     volatility.boxplot(model)
     volatility.model_boxplot()
     volatility.coin_boxplot()
@@ -69,4 +84,4 @@ def volatility_plots(model: str = config.log_returns_model):
 
 
 if __name__ == "__main__":
-    pass
+    boxplots.complete_models_boxplot()

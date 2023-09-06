@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -268,6 +269,7 @@ def plt_boxplot(
     if df_subset != "all models":
         df = df[df_subset]
     else:
+        # Take the mean of the RMSEs for each model
         df = df.applymap(lambda x: np.mean(x))
 
     # Create a figure and axis
@@ -287,7 +289,82 @@ def plt_boxplot(
     # Set the labels
     ax.set_title(title)
     ax.set_ylabel("RMSE")
+    ax.set_xlabel("Forecasting Model")
 
+    plt.show()
+
+
+def plt_boxplots(
+    dfs: list, models: list, time_frame: str, ignore_outliers: bool = True
+):
+    """
+    Plot a boxplot of the RMSEs for each DataFrame in dfs on the same plot.
+
+    Parameters
+    ----------
+    dfs: list of DataFrames
+    models: list of model names
+    time_frame: str
+    ignore_outliers: bool
+    """
+
+    # Create a figure and axis
+    fig, ax = plt.subplots(figsize=(15, 6))
+
+    hatches = ["", "\\\\\\", "///"]
+    legend_handles = []
+
+    # Assuming all DataFrames have the same columns
+    labels = dfs[0].columns.tolist()
+    n_dfs = len(dfs)
+
+    # Flatten all the data to calculate percentiles
+    if ignore_outliers:
+        all_data = np.concatenate([df.values.flatten() for df in dfs])
+        # Remove nan values in ndarray
+        all_data = all_data[~np.isnan(all_data)]
+        # Set the y-axis limits
+        ax.set_ylim(np.min(all_data), np.percentile(all_data, 97))
+
+    # Width of each boxplot group
+    x_positions = np.arange(len(labels))
+
+    for i, (hatch, df) in enumerate(zip(hatches, dfs)):
+        box_data = [df[col] for col in labels]
+
+        # Offsetting positions for each DataFrame's boxplots
+        positions = x_positions + (i - n_dfs / 2) * 0.2 + 0.1
+
+        # Create the boxplot with custom hatches
+        bp = ax.boxplot(box_data, positions=positions, patch_artist=True, widths=0.1)
+
+        for patch in bp["boxes"]:
+            patch.set(facecolor="white", hatch=hatch)
+
+        # Create a custom legend handle
+        legend_handles.append(
+            Rectangle((0, 0), 1, 1, facecolor="white", edgecolor="black", hatch=hatch)
+        )
+
+    # Calculate the average position for each group of boxplots
+    average_positions = [
+        np.mean([pos + (i - n_dfs / 2) * 0.2 + 0.2 for i in range(n_dfs)])
+        for pos in x_positions
+    ]
+
+    # Set the x-ticks to the average positions
+    ax.set_xticks(average_positions)
+
+    # Set the x-tick labels
+    ax.set_xticklabels(labels, rotation=45, ha="right")
+    ax.legend(
+        legend_handles, [config.model_names[m] for m in models], loc="upper right"
+    )
+    ax.set_title(f"The boxplots of RMSEs for each model on the {time_frame} time frame")
+    ax.set_ylabel("RMSE")
+    ax.set_xlabel("Forecasting Model")
+
+    plt.tight_layout()
     plt.show()
 
 
@@ -295,12 +372,41 @@ def plt_model_boxplot(model_dir: str, model: str, time_frame: str):
     plt_boxplot(model=model_dir, df_subset=model, time_frame=time_frame)
 
 
-def plt_coin_boxplot(model_dir, coin, time_frame):
+def plt_coin_boxplot(
+    model_dir: str = config.log_returns_model,
+    coin: str = config.all_coins[0],
+    time_frame: str = config.timeframes[-1],
+):
     plt_boxplot(model=model_dir, df_subset=coin, time_frame=time_frame)
 
 
-def all_models_boxplot(model_dir, time_frame):
-    plt_boxplot(model=model_dir, df_subset="all models", time_frame=time_frame)
+def all_models_boxplot(
+    model: str = config.log_returns_model, time_frame: str = config.timeframes[-1]
+):
+    plt_boxplot(model=model, df_subset="all models", time_frame=time_frame)
+
+
+def complete_models_boxplot(
+    log_data: bool = True, time_frame: str = config.timeframes[-1]
+):
+    # Read the data
+    if log_data:
+        models = [
+            config.log_returns_model,
+            config.raw_to_log_model,
+            config.scaled_to_log_model,
+            # config.extended_model,
+        ]
+    else:
+        models = [config.log_to_raw_model, config.raw_model, config.scaled_to_raw_model]
+
+    # Read the RMSE data
+    dfs = []
+    for model in models:
+        rmse_df = read_rmse_csv(model, time_frame, avg=True, fill_NaN=True)
+        dfs.append(rmse_df)
+
+    plt_boxplots(dfs=dfs, models=models, time_frame=time_frame)
 
 
 def plotly_extended_model_rmse(time_frame):

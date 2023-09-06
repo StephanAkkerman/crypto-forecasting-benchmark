@@ -1,14 +1,18 @@
 import numpy as np
 import plotly.graph_objects as go
 
-from config import raw_model, extended_model, log_to_raw_model
+import config
 from experiment.utils import (
     all_model_predictions,
 )
 from experiment.rmse import read_rmse_csv
 
 
-def compare_predictions(model: str, coin: str, time_frame: str):
+def compare_predictions(
+    model: str = config.log_returns_model,
+    coin: str = config.all_coins[0],
+    time_frame: str = config.timeframes[-1],
+):
     """
     Compare the predictions of all models for a given coin and time frame to their test data
 
@@ -42,7 +46,7 @@ def compare_predictions(model: str, coin: str, time_frame: str):
     # Plot each model's predictions
     for model_name, (pred, _, _) in model_predictions.items():
         # If the model is extended models, plot each prediction separately
-        if model == extended_model:
+        if model == config.extended_model:
             for i, p in enumerate(pred):
                 fig.add_trace(
                     go.Scatter(
@@ -166,8 +170,8 @@ def all_models_outliers(model: str, time_frame: str):
 
 
 def compare_two_predictions(
-    model_1: str = raw_model,
-    model_2: str = log_to_raw_model,
+    model_1: str = config.raw_model,
+    model_2: str = config.log_to_raw_model,
     coin: str = "BTC",
     time_frame: str = "1d",
 ):

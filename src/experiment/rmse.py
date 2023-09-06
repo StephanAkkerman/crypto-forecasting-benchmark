@@ -34,6 +34,7 @@ def read_rmse_csv(
     avg: bool = False,
     add_mcap: bool = False,
     ignore_model=[],
+    fill_NaN:bool=True,
 ) -> pd.DataFrame:
     df = pd.read_csv(
         f"{config.rmse_dir}/{model}/rmse_{time_frame}.csv", index_col=0
@@ -44,6 +45,15 @@ def read_rmse_csv(
 
     # Convert list of strings to list of floats
     df = df.applymap(lambda x: [float(i) for i in x])
+    
+    if fill_NaN:
+        # Function to fill NaN values in a list with the non-NaN value in the list
+        def fill_list_nan(lst):
+            fill_value = next((x for x in lst if not np.isnan(x)), np.nan)
+            return [fill_value if np.isnan(x) else x for x in lst]
+        
+        # Apply the fill_list_nan function to each cell in the DataFrame
+        df = df.applymap(fill_list_nan)
 
     # Round the values in the list
     if avg:
@@ -236,6 +246,17 @@ def plot_rmse_heatmaps(
 
 
 def all_models_heatmap(time_frame: str = "1d", log_data: bool = True):
+    """
+    Plots a heatmap of the RMSE values for all models.
+
+    Parameters
+    ----------
+    time_frame : str, optional
+        The time frame to use for the data, by default "1d"
+    log_data : bool, optional
+        Use the logarithmic returns based models, by default True
+    """
+
     # Read the data
     if log_data:
         models = [
@@ -271,6 +292,18 @@ def all_models_heatmap(time_frame: str = "1d", log_data: bool = True):
 def forecasting_models_stacked(
     time_frame: str = "1d", log_data: bool = True, coin_on_x: bool = True
 ):
+    """
+    Plots a stacked bar plot of the RMSE values for all models.
+
+    Parameters
+    ----------
+    time_frame : str, optional
+        The time frame to use for the data, by default "1d"
+    log_data : bool, optional
+        If the logarithmic return based models should be used, by default True
+    coin_on_x : bool, optional
+        If the cryptocurrency coin should be displayed on the x-axis, by default True
+    """
     # Read the data
     if log_data:
         models = [
@@ -316,7 +349,25 @@ def forecasting_models_stacked(
 
 def get_summed_RMSE(
     time_frame: str = "1d", log_data: bool = True, ignore_models: list = []
-):
+) -> pd.DataFrame:
+    """
+    Helper function for stacked_bar_plot().
+    Generates a DataFrame with the summed RMSE values for each model.
+
+    Parameters
+    ----------
+    time_frame : str, optional
+        The time frame to use for this data, by default "1d"
+    log_data : bool, optional
+        If the logarithmic return based models should be used, by default True
+    ignore_models : list, optional
+        The models that can be excluded, by default []
+
+    Returns
+    -------
+    pd.DataFrame
+        The summed RMSE values for each model
+    """
     # Read the data
     if log_data:
         models = [
@@ -350,6 +401,18 @@ def get_summed_RMSE(
 def stacked_bar_plot(
     time_frame: str = "1d", log_data: bool = True, ignore_models: list = []
 ):
+    """
+    Plots a stacked bar plot of the RMSE values for all models.
+
+    Parameters
+    ----------
+    time_frame : str, optional
+        The time frame to use for this data, by default "1d"
+    log_data : bool, optional
+        If the logarithmic return based models should be used, by default True
+    ignore_models : list, optional
+        The models that can be excluded, by default []
+    """
     # Plot the Data
     get_summed_RMSE(
         time_frame=time_frame, log_data=log_data, ignore_models=ignore_models
@@ -364,6 +427,16 @@ def stacked_bar_plot(
 
 
 def stacked_bar_plot_all_tf(log_data=True, ignore_models=[]):
+    """
+    Plots a stacked bar plot of the RMSE values for all models for all time frames.
+
+    Parameters
+    ----------
+    log_data : bool, optional
+        If the logarithmic return based models should be used, by default True
+    ignore_models : list, optional
+        The models that can be excluded, by default []
+    """
     fig, axes = plt.subplots(2, 2, figsize=(15, 8))
     axes = axes.flatten()
 
@@ -407,6 +480,18 @@ def stacked_bar_plot_all_tf(log_data=True, ignore_models=[]):
 def rmse_comparison(
     time_frame: str = "1d", model_1=config.log_to_raw_model, model_2=config.raw_model
 ):
+    """
+    Plots a comparison of the RMSE values for two models using a heatmap.
+
+    Parameters
+    ----------
+    time_frame : str, optional
+        The time frame to use for the data, by default "1d"
+    model_1 : _type_, optional
+        The first model to use for the comparison, by default config.log_to_raw_model
+    model_2 : _type_, optional
+        The model to compare model_1 to, by default config.raw_model
+    """
     # Load the data
     rmse_1 = read_rmse_csv(model_1, time_frame, avg=True)
     rmse_2 = read_rmse_csv(model_2, time_frame, avg=True)
@@ -428,6 +513,3 @@ def rmse_comparison(
         title=f"RMSE percentual comparison between {model_1} model and {model_2} model for {time_frame} time frame",
         flip_colors=True,
     )
-
-    # To save to a new CSV
-    # percentual_difference.to_csv('percentual_difference.csv', index=False)

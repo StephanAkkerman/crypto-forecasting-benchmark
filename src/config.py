@@ -65,3 +65,16 @@ extended_to_raw_model = "extended_to_raw"
 
 # Stress test output
 stress_test_dir = "output/stress_test"
+
+# Fancy model names dict
+model_names = {
+    log_returns_model: "Log Returns",
+    raw_model: "Raw",
+    extended_model: "Extended",
+    scaled_model: "Scaled",
+    log_to_raw_model: "Log to Raw",
+    raw_to_log_model: "Raw to Log",
+    scaled_to_log_model: "Scaled to Log",
+    scaled_to_raw_model: "Scaled to Raw",
+    extended_to_raw_model: "Extended to Raw",
+}
