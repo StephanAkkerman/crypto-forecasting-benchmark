@@ -34,7 +34,7 @@ def read_rmse_csv(
     avg: bool = False,
     add_mcap: bool = False,
     ignore_model=[],
-    fill_NaN:bool=True,
+    fill_NaN: bool = True,
 ) -> pd.DataFrame:
     df = pd.read_csv(
         f"{config.rmse_dir}/{model}/rmse_{time_frame}.csv", index_col=0
@@ -45,13 +45,13 @@ def read_rmse_csv(
 
     # Convert list of strings to list of floats
     df = df.applymap(lambda x: [float(i) for i in x])
-    
+
     if fill_NaN:
         # Function to fill NaN values in a list with the non-NaN value in the list
         def fill_list_nan(lst):
             fill_value = next((x for x in lst if not np.isnan(x)), np.nan)
             return [fill_value if np.isnan(x) else x for x in lst]
-        
+
         # Apply the fill_list_nan function to each cell in the DataFrame
         df = df.applymap(fill_list_nan)
 
@@ -513,3 +513,24 @@ def rmse_comparison(
         title=f"RMSE percentual comparison between {model_1} model and {model_2} model for {time_frame} time frame",
         flip_colors=True,
     )
+
+
+def rmse_means(models: list, time_frame: str = "1d"):
+    # Initialize a dictionary to hold the means
+    means = {}
+
+    # Read the RMSE data
+    dfs = []
+    for model in models:
+        rmse_df = read_rmse_csv(model, time_frame, avg=True, fill_NaN=True)
+        dfs.append(rmse_df)
+
+    for i, df in enumerate(dfs):
+        model = models[i]  # Assuming the models list and dfs list are aligned
+        means[
+            model
+        ] = (
+            df.mean().sort_values()
+        )  # Calculate the mean for each column and store it in the dictionary
+
+    print(means)

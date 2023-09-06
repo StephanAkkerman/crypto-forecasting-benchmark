@@ -69,12 +69,20 @@ stress_test_dir = "output/stress_test"
 # Fancy model names dict
 model_names = {
     log_returns_model: "Log Returns",
-    raw_model: "Raw",
+    log_to_raw_model: "Log Returns",
+    raw_model: "Raw Price",
+    raw_to_log_model: "Raw Price",
     extended_model: "Extended",
+    extended_to_raw_model: "Extended",
     scaled_model: "Scaled",
-    log_to_raw_model: "Log to Raw",
-    raw_to_log_model: "Raw to Log",
-    scaled_to_log_model: "Scaled to Log",
-    scaled_to_raw_model: "Scaled to Raw",
-    extended_to_raw_model: "Extended to Raw",
+    scaled_to_log_model: "Scaled",
+    scaled_to_raw_model: "Scaled",
 }
+
+log_models = [
+    log_returns_model,
+    raw_to_log_model,
+    scaled_to_log_model,
+]
+
+raw_models = [log_to_raw_model, raw_model, scaled_to_raw_model]

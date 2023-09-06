@@ -137,7 +137,7 @@ def get_predictions(
         and concatenated
     ):
         preds = concatenate(preds, axis=0)
-        #trains = concatenate(trains, axis=0)
+        # trains = concatenate(trains, axis=0)
         tests = concatenate(tests, axis=0)
 
     return preds, trains, tests, rmses
@@ -210,6 +210,20 @@ def raw_model_to_log():
 
 
 def raw_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
+    """
+    Converts the raw price data predictions to logarithmic returns
+
+    Parameters
+    ----------
+    model : str
+        The model output that should be used, for instance "config.raw_model"
+    forecasting_model : str
+        The forecasting model to get the predictions from, for instance "ARIMA"
+    coin : str
+        The coin to get the predictions for, for instance "BTC"
+    time_frame : str
+        The time frame to get the predictions for, for instance "1m"
+    """
     preds, _, tests, _ = get_predictions(
         model=model,
         forecasting_model=forecasting_model,
@@ -248,13 +262,9 @@ def raw_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
         pred["log returns"] = np.log(pred["close"]).diff()
         test["log returns"] = np.log(test["close"]).diff()
 
-        # Drop the first row -> NaN
-        pred = pred.iloc[1:]
-        test = test.iloc[1:]
-
-        # Drop close column
-        pred = pred.drop(columns=["close"])
-        test = test.drop(columns=["close"])
+        # Drop the first row -> NaN and the close column
+        pred = pred.iloc[1:].drop(columns=["close"])
+        test = test.iloc[1:].drop(columns=["close"])
 
         # Save it as a .csv
         pred.to_csv(f"{save_loc}/pred_{i}.csv")
@@ -288,7 +298,11 @@ def log_model_to_price(model: str = log_returns_model):
 
 
 def log_returns_to_price(
-    model: str, forecasting_model: str, coin: str, time_frame: str
+    model: str,
+    forecasting_model: str,
+    coin: str,
+    time_frame: str,
+    skip_existing: bool = False,
 ):
     """
     Convert a series of logarithmic returns to price series.
@@ -336,8 +350,9 @@ def log_returns_to_price(
 
     for i, (train, prediction) in enumerate(zip(trains, preds)):
         # Check if the prediction is empty
-        # if f"{save_loc}/pred_{i}.csv" in os.listdir(save_loc):
-        #    continue
+        if skip_existing:
+            if f"{save_loc}/pred_{i}.csv" in os.listdir(save_loc):
+                continue
 
         # Start with 1 before the prediction
         start_pos = price_df.index.get_loc(prediction.start_time()) - 1
@@ -371,6 +386,3 @@ def log_returns_to_price(
         close.to_csv(f"{save_loc}/pred_{i}.csv")
         train.to_csv(f"{save_loc}/train_{i}.csv")
         test.to_csv(f"{save_loc}/test_{i}.csv")
-
-        # Reset close list
-        close = []

@@ -84,4 +84,8 @@ def volatility_analysis(model: str = config.log_returns_model):
 
 
 if __name__ == "__main__":
-    boxplots.complete_models_boxplot()
+    # boxplots.complete_models_boxplot(log_data=False)
+    # rmse.rmse_means(models=config.log_models)
+    # utils.log_returns_to_price(config.log_returns_model, "ARIMA", "BTC", "1d")
+    ts_analysis.compare_multiple_predictions()
+    # ts_analysis.compare_two_predictions()

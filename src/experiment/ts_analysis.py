@@ -169,71 +169,56 @@ def all_models_outliers(model: str, time_frame: str):
     print(high_outliers)
 
 
-def compare_two_predictions(
-    model_1: str = config.raw_model,
-    model_2: str = config.log_to_raw_model,
+def compare_multiple_predictions(
+    models: list = config.log_models,
     coin: str = "BTC",
     time_frame: str = "1d",
 ):
     """
-    Compares the prediction of the original price models to the logarithmic return models.
+    Compares the predictions of various models.
 
     Parameters
     ----------
-    model_1 : str
-        The model to compare, e.g. "raw_model", "transformed_model"
-    model_2 : str
-        The model to compare to, e.g. "raw_model", "transformed_model"
+    models : list
+        List of models to compare, e.g. ["raw_model", "log_to_raw_model"]
     coin : str
         The coin to compare, e.g. "BTC", "ETH", "LTC"
     time_frame : str
         The time frame to compare, e.g. "1d", "4h", "15m"
     """
 
-    # Get the predictions
-    model_1_pred, _ = all_model_predictions(model_1, coin, time_frame)
-
-    # The test results are the same for both models
-    test = model_1_pred[list(model_1_pred.keys())[0]][1]
-
-    model_2_pred, _ = all_model_predictions(model_2, coin, time_frame)
-
     # Create a new figure
     fig = go.Figure()
 
-    # Add test data line
-    fig.add_trace(
-        go.Scatter(
-            y=test.univariate_values(),
-            mode="lines",
-            name="Test Set",
-            line=dict(color="black", width=2),
-        )
-    )
+    for model in models:
+        # Get the predictions
+        model_pred, _ = all_model_predictions(model, coin, time_frame)
 
-    # Plot each model's predictions
-    for model_name, (pred, _, _) in model_1_pred.items():
-        fig.add_trace(
-            go.Scatter(
-                y=pred.univariate_values(),
-                mode="lines",
-                name=model_name,
-                visible="legendonly",  # This line is hidden initially
-                legendgroup=model_name,
+        # If this is the first model, add the test data line to the plot
+        if model == models[0]:
+            test = model_pred[list(model_pred.keys())[0]][1]
+            fig.add_trace(
+                go.Scatter(
+                    y=test.univariate_values(),
+                    mode="lines",
+                    name="Test Set",
+                    line=dict(color="black", width=2),
+                )
             )
-        )
 
-    for model_name, (pred, _, _) in model_2_pred.items():
-        fig.add_trace(
-            go.Scatter(
-                y=pred.univariate_values(),
-                mode="lines",
-                name=f"Transformed {model_name}",
-                visible="legendonly",  # This line is hidden initially
-                legendgroup=model_name,
-                showlegend=False,  # This will ensure only one legend item for the group
+        # Plot each model's predictions
+        for model_name, (pred, _, _) in model_pred.items():
+            fig.add_trace(
+                go.Scatter(
+                    y=pred.univariate_values(),
+                    mode="lines",
+                    name=f"({config.model_names[model]}) {model_name}",
+                    visible="legendonly",  # This line is hidden initially
+                    legendgroup=model_name,
+                    showlegend=True if model == models[0] else False,
+                    opacity=0.75,  # Setting opacity to 0.75
+                )
             )
-        )
 
     # Compute the length of each period
     period_length = len(test) // 5

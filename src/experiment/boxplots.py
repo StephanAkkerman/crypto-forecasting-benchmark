@@ -294,9 +294,7 @@ def plt_boxplot(
     plt.show()
 
 
-def plt_boxplots(
-    dfs: list, models: list, time_frame: str, ignore_outliers: bool = True
-):
+def plt_boxplots(dfs: list, models: list, outliers_percentile: int):
     """
     Plot a boxplot of the RMSEs for each DataFrame in dfs on the same plot.
 
@@ -304,7 +302,6 @@ def plt_boxplots(
     ----------
     dfs: list of DataFrames
     models: list of model names
-    time_frame: str
     ignore_outliers: bool
     """
 
@@ -319,12 +316,12 @@ def plt_boxplots(
     n_dfs = len(dfs)
 
     # Flatten all the data to calculate percentiles
-    if ignore_outliers:
+    if type(outliers_percentile) == int:
         all_data = np.concatenate([df.values.flatten() for df in dfs])
         # Remove nan values in ndarray
         all_data = all_data[~np.isnan(all_data)]
         # Set the y-axis limits
-        ax.set_ylim(np.min(all_data), np.percentile(all_data, 97))
+        ax.set_ylim(np.min(all_data), np.percentile(all_data, outliers_percentile))
 
     # Width of each boxplot group
     x_positions = np.arange(len(labels))
@@ -360,7 +357,7 @@ def plt_boxplots(
     ax.legend(
         legend_handles, [config.model_names[m] for m in models], loc="upper right"
     )
-    ax.set_title(f"The boxplots of RMSEs for each model on the {time_frame} time frame")
+    # ax.set_title(f"The boxplots of RMSEs for each model on the {time_frame} time frame")
     ax.set_ylabel("RMSE")
     ax.set_xlabel("Forecasting Model")
 
@@ -391,14 +388,12 @@ def complete_models_boxplot(
 ):
     # Read the data
     if log_data:
-        models = [
-            config.log_returns_model,
-            config.raw_to_log_model,
-            config.scaled_to_log_model,
-            # config.extended_model,
-        ]
+        models = config.log_models
+        # Maybe change this depending on time frame
+        outliers_percentile = 97
     else:
-        models = [config.log_to_raw_model, config.raw_model, config.scaled_to_raw_model]
+        models = config.raw_models
+        outliers_percentile = 85
 
     # Read the RMSE data
     dfs = []
@@ -406,7 +401,11 @@ def complete_models_boxplot(
         rmse_df = read_rmse_csv(model, time_frame, avg=True, fill_NaN=True)
         dfs.append(rmse_df)
 
-    plt_boxplots(dfs=dfs, models=models, time_frame=time_frame)
+    plt_boxplots(
+        dfs=dfs,
+        models=models,
+        outliers_percentile=outliers_percentile,
+    )
 
 
 def plotly_extended_model_rmse(time_frame):
