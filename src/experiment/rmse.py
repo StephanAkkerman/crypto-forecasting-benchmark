@@ -382,9 +382,16 @@ def stacked_bar_plot(
         The models that can be excluded, by default []
     """
     # Plot the Data
-    get_summed_RMSE(
+    summed_rmse = get_summed_RMSE(
         time_frame=time_frame, preds=preds, ignore_models=ignore_models
-    ).plot(kind="bar", stacked=True, figsize=(15, 8), color=plt.cm.Paired.colors)
+    )
+
+    # Adjust column names
+    summed_rmse.rename(columns=config.pred_names, inplace=True)
+
+    summed_rmse.plot(
+        kind="bar", stacked=True, figsize=(15, 8), color=plt.cm.Paired.colors
+    )
 
     plt.xlabel("Dataset")
     plt.ylabel("Aggregated RMSE")

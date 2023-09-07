@@ -194,7 +194,7 @@ def plotly_boxplot_comparison(
     fig.show()
 
 
-def plotly_model_boxplot(model: str = config.log_to_raw_pred, time_frame: str = "1d"):
+def plotly_model_boxplot(model: str = config.log_returns_pred, time_frame: str = "1d"):
     """
     Plots a boxplot of the RMSEs for each coin for the given model.
 
@@ -216,7 +216,7 @@ def plotly_model_boxplot(model: str = config.log_to_raw_pred, time_frame: str = 
     )
 
 
-def plotly_coin_boxplot(model: str = config.log_to_raw_pred, time_frame: str = "1d"):
+def plotly_coin_boxplot(model: str = config.log_returns_pred, time_frame: str = "1d"):
     """
     Plots a boxplot of the RMSEs for each model for the given coin.
 
@@ -305,7 +305,7 @@ def plt_boxplots(dfs: list, models: list, outliers_percentile: int):
     """
 
     # Create a figure and axis
-    fig, ax = plt.subplots(figsize=(15, 6))
+    _, ax = plt.subplots(figsize=(15, 6))
 
     hatches = ["", "\\\\\\", "///"]
     legend_handles = []
@@ -353,13 +353,91 @@ def plt_boxplots(dfs: list, models: list, outliers_percentile: int):
 
     # Set the x-tick labels
     ax.set_xticklabels(labels, rotation=45, ha="right")
-    ax.legend(legend_handles, [config.pred_names[m] for m in models], loc="upper right")
+    ax.legend(legend_handles, [config.pred_names[m] for m in models], loc="best")
     # ax.set_title(f"The boxplots of RMSEs for each model on the {time_frame} time frame")
     ax.set_ylabel("RMSE")
     ax.set_xlabel("Forecasting Model")
 
     plt.tight_layout()
     plt.show()
+
+
+def plt_single_df_boxplots(df):
+    """
+    Plot a boxplot of the RMSEs for each item in a single DataFrame.
+
+    Parameters
+    ----------
+    df: DataFrame
+    outliers_percentile: int
+    """
+
+    # Create a figure and axis
+    fig, ax = plt.subplots(figsize=(15, 6))
+
+    hatches = ["", "\\\\\\", "///", "---"]  # Custom hatches
+    legend_handles = []
+
+    # Assuming all DataFrames have the same columns
+    labels = df.index.tolist()
+    n_cols = len(df.columns)
+
+    # Width of each boxplot group
+    x_positions = np.arange(len(labels))
+
+    for i, column in enumerate(df.columns):
+        box_data = [df.loc[row, column] for row in df.index]
+
+        # Remove nan values in each sublist
+        box_data = [[x for x in sublist if str(x) != "nan"] for sublist in box_data]
+
+        # Offsetting positions for each DataFrame's boxplots
+        positions = x_positions + (i - n_cols / 2) * 0.2 + 0.1
+
+        # Create the boxplot with custom hatches
+        bp = ax.boxplot(box_data, positions=positions, patch_artist=True, widths=0.1)
+
+        for patch in bp["boxes"]:
+            patch.set(facecolor="white", hatch=hatches[i])
+
+        # Create a custom legend handle
+        legend_handles.append(
+            Rectangle(
+                (0, 0), 1, 1, facecolor="white", edgecolor="black", hatch=hatches[i]
+            )
+        )
+
+    # Calculate the average position for each group of boxplots
+    average_positions = [
+        np.mean([pos + (i - n_cols / 2) * 0.2 + 0.1 for i in range(n_cols)])
+        for pos in x_positions
+    ]
+
+    # Set the x-ticks to the average positions
+    ax.set_xticks(average_positions)
+    ax.set_xticklabels(labels, rotation=45, ha="right")
+
+    # Add legend
+    ax.legend(legend_handles, list(df.columns), loc="best")
+
+    # Add title and labels
+    # ax.set_title("Boxplots of RMSEs for Various Forecasting Models")
+    ax.set_ylabel("RMSE")
+    ax.set_xlabel("Cryptocurrency")
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plt_forecasting_models_comparison(
+    pred: str = config.log_returns_pred,
+    forecasting_models: list = ["ARIMA", "TBATS", "LSTM"],
+    time_frame: list = "1d",
+):
+    # Read the RMSE data
+    rmse_df = read_rmse_csv(pred, time_frame, avg=False, fill_NaN=True)
+    rmse_df = rmse_df[forecasting_models]
+    plt_single_df_boxplots(rmse_df)
 
 
 def plt_model_boxplot(model_dir: str, model: str, time_frame: str):
@@ -381,26 +459,30 @@ def all_models_boxplot(
 
 
 def complete_models_boxplot(
-    log_data: bool = True, time_frame: str = config.timeframes[-1]
+    preds: list = config.log_preds, time_frame: str = config.timeframes[-1]
 ):
     # Read the data
-    if log_data:
-        models = config.log_preds
+    if preds == config.log_preds:
         # Maybe change this depending on time frame
         outliers_percentile = 97
+        if time_frame == "4h":
+            outliers_percentile = 95
+        if time_frame == "15m":
+            outliers_percentile = 91
+        if time_frame == "1m":
+            outliers_percentile = 85
     else:
-        models = config.raw_preds
         outliers_percentile = 85
 
     # Read the RMSE data
     dfs = []
-    for model in models:
-        rmse_df = read_rmse_csv(model, time_frame, avg=True, fill_NaN=True)
+    for pred in preds:
+        rmse_df = read_rmse_csv(pred, time_frame, avg=True, fill_NaN=True)
         dfs.append(rmse_df)
 
     plt_boxplots(
         dfs=dfs,
-        models=models,
+        models=preds,
         outliers_percentile=outliers_percentile,
     )
 

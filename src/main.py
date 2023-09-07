@@ -83,10 +83,18 @@ def volatility_analysis(pred: str = config.log_returns_pred):
     volatility.mcap_volatility_heatmap()
 
 
+def section_4_1(time_frame):
+    boxplots.complete_models_boxplot(time_frame=time_frame)
+    # rmse.rmse_means(preds=config.log_preds, time_frame=time_frame)
+    # boxplots.plt_forecasting_models_comparison(time_frame=time_frame)
+
+
 if __name__ == "__main__":
     # boxplots.complete_models_boxplot(log_data=False)
     # rmse.rmse_means(models=config.log_models)
     # utils.log_returns_to_price(config.log_returns_model, "ARIMA", "BTC", "1d")
     # ts_analysis.compare_multiple_predictions()
     # ts_analysis.compare_two_predictions()
-    print(best_hyperparameters("TCN", "ADA", "1m"))
+    # print(best_hyperparameters("TCN", "ADA", "1m"))
+    # rmse.stacked_bar_plot()
+    section_4_1("1m")
