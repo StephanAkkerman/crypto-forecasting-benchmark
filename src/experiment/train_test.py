@@ -3,8 +3,8 @@ from sklearn.preprocessing import MinMaxScaler
 from darts.dataprocessing.transformers import Scaler
 
 # Local imports
+import config
 from data.csv_data import read_csv
-from config import test_percentage, n_periods
 
 
 def get_train_test(
@@ -21,15 +21,17 @@ def get_train_test(
     time_series = TimeSeries.from_dataframe(data, "date", col)
 
     # Set parameters for sliding window and periods
-    test_size = int(len(time_series) / (1 / test_percentage - 1 + n_periods))
-    train_size = int(test_size * (1 / test_percentage - 1))
+    test_size = int(
+        len(time_series) / (1 / config.test_percentage - 1 + config.n_periods)
+    )
+    train_size = int(test_size * (1 / config.test_percentage - 1))
 
     # Save the training and test sets as lists of TimeSeries
     train_set = []
     test_set = []
     full_set = []
 
-    for i in range(n_periods):
+    for i in range(config.n_periods):
         # The train start shifts by the test size each period
         train_start = i * test_size
         train_end = train_start + train_size

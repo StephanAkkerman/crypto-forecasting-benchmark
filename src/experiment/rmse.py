@@ -13,31 +13,32 @@ from experiment.utils import all_model_predictions
 def build_comlete_rmse_database(skip_existing: bool = True):
     """Build the RMSE database for all models and time frames."""
     models = [
-        config.log_returns_model,
-        config.log_to_raw_model,
-        config.raw_model,
-        config.raw_to_log_model,
-        config.scaled_model,
-        config.scaled_to_log_model,
-        config.scaled_to_raw_model,
-        config.extended_model,
-        config.extended_to_raw_model,
+        config.log_returns_pred,
+        config.log_to_raw_pred,
+        config.raw_pred,
+        config.raw_to_log_pred,
+        config.scaled_pred,
+        config.scaled_to_log_pred,
+        config.scaled_to_raw_pred,
+        config.extended_pred,
+        config.extended_to_raw_pred,
     ]
 
     for model in models:
-        build_rmse_database(model=model, skip_existing=skip_existing)
+        build_rmse_database(pred=model, skip_existing=skip_existing)
 
 
 def read_rmse_csv(
-    model: str,
+    pred: str,
     time_frame: str,
     avg: bool = False,
     add_mcap: bool = False,
     ignore_model=[],
     fill_NaN: bool = True,
 ) -> pd.DataFrame:
+    # Read the data from the .csv
     df = pd.read_csv(
-        f"{config.rmse_dir}/{model}/rmse_{time_frame}.csv", index_col=0
+        f"{config.rmse_dir}/{pred}/rmse_{time_frame}.csv", index_col=0
     ).drop(columns=ignore_model)
 
     # Convert string to list of floats
@@ -78,20 +79,20 @@ def assign_mcap_category(crypto_index):
 
 
 def build_rmse_database(
-    model: str = config.log_returns_model, skip_existing: bool = True
+    pred: str = config.log_returns_pred, skip_existing: bool = True
 ):
-    os.makedirs(f"{config.rmse_dir}/{model}", exist_ok=True)
+    os.makedirs(f"{config.rmse_dir}/{pred}", exist_ok=True)
 
     for tf in config.timeframes:
         # Skip if the file already exists
         if skip_existing:
-            if os.path.exists(f"{config.rmse_dir}/{model}/rmse_{tf}.csv"):
+            if os.path.exists(f"{config.rmse_dir}/{pred}/rmse_{tf}.csv"):
                 print(
-                    f"{config.rmse_dir}/{model}/rmse_{tf}.csv already exists, skipping..."
+                    f"{config.rmse_dir}/{pred}/rmse_{tf}.csv already exists, skipping..."
                 )
                 continue
 
-        print(f"Building {config.rmse_dir}/{model}/rmse_{tf}.csv...")
+        print(f"Building {config.rmse_dir}/{pred}/rmse_{tf}.csv...")
 
         # Data will be added to this DataFrame
         rmse_df = pd.DataFrame()
@@ -99,7 +100,7 @@ def build_rmse_database(
         for coin in config.all_coins:
             # Get the predictions
             _, rmse_df_coin = all_model_predictions(
-                model=model, coin=coin, time_frame=tf
+                model=pred, coin=coin, time_frame=tf
             )
             # Convert the dataframe to a list of lists
             rmse_df_list = pd.DataFrame(
@@ -111,17 +112,17 @@ def build_rmse_database(
             rmse_df = pd.concat([rmse_df, rmse_df_list])
 
         # Save the dataframe to a csv
-        rmse_df.to_csv(f"{config.rmse_dir}/{model}/rmse_{tf}.csv", index=True)
+        rmse_df.to_csv(f"{config.rmse_dir}/{pred}/rmse_{tf}.csv", index=True)
 
         # Print number on Nan values
         nan_values = rmse_df.isna().sum().sum()
         if nan_values > 0:
-            print(f"Number of NaN values in {tf} for {model}: {nan_values}")
+            print(f"Number of NaN values in {tf} for {pred}: {nan_values}")
 
 
 def extended_rmse_df(time_frame: str, avg: bool = False) -> pd.DataFrame:
     # Get RMSE data
-    rmse_df = read_rmse_csv(model=config.extended_model, time_frame=time_frame, avg=avg)
+    rmse_df = read_rmse_csv(pred=config.extended_pred, time_frame=time_frame, avg=avg)
 
     # Get the first value of each list in the dataframe -> period 0
     # Change the format that the first column is the period and forget about coin names
@@ -133,17 +134,17 @@ def extended_rmse_df(time_frame: str, avg: bool = False) -> pd.DataFrame:
     return pd.DataFrame(data, index=range(config.n_periods))
 
 
-def rmse_heatmap(time_frame: str, model=config.log_returns_model):
-    if model == config.extended_model:
+def rmse_heatmap(time_frame: str, pred=config.log_returns_pred):
+    if pred == config.extended_pred:
         rmse = extended_rmse_df(time_frame, avg=True)
         decimals = 4
     else:
-        rmse = read_rmse_csv(model, time_frame, avg=True)
+        rmse = read_rmse_csv(pred, time_frame, avg=True)
         decimals = 2
 
     plot_rmse_heatmap(
         rmse,
-        title=f"RMSE heatmap for {model} model for {time_frame} time frame",
+        title=f"RMSE heatmap for {pred} model for {time_frame} time frame",
         round_decimals=decimals,
     )
 
@@ -245,7 +246,7 @@ def plot_rmse_heatmaps(
     plt.show()
 
 
-def all_models_heatmap(time_frame: str = "1d", log_data: bool = True):
+def all_models_heatmap(time_frame: str = "1d", preds: list = config.log_preds):
     """
     Plots a heatmap of the RMSE values for all models.
 
@@ -253,33 +254,22 @@ def all_models_heatmap(time_frame: str = "1d", log_data: bool = True):
     ----------
     time_frame : str, optional
         The time frame to use for the data, by default "1d"
-    log_data : bool, optional
-        Use the logarithmic returns based models, by default True
+    log_data : list
+        Can be config.log_preds or config.raw_preds
     """
-
-    # Read the data
-    if log_data:
-        models = [
-            config.log_returns_model,
-            config.raw_to_log_model,
-            config.scaled_to_log_model,
-            config.extended_model,
-        ]
-    else:
-        models = [config.log_to_raw_model, config.raw_model, config.scaled_to_raw_model]
 
     # Read the RMSE data
     dfs = []
-    for model in models:
-        rmse_df = read_rmse_csv(model, time_frame, avg=True)
-        dfs.append((model, rmse_df))
+    for pred in preds:
+        rmse_df = read_rmse_csv(pred, time_frame, avg=True)
+        dfs.append((pred, rmse_df))
 
     # Plot
-    fig, axes = plt.subplots(nrows=1, ncols=len(models), figsize=(20, 10))
+    fig, axes = plt.subplots(nrows=1, ncols=len(preds), figsize=(20, 10))
 
-    for i, (model, df) in enumerate(dfs):
+    for i, (pred, df) in enumerate(dfs):
         sns.heatmap(df, cmap="coolwarm", ax=axes[i], cbar=False)
-        axes[i].set_title(model)
+        axes[i].set_title(pred)
 
     # Display a colorbar on the right
     cbar_ax = fig.add_axes([0.92, 0.15, 0.02, 0.7])
@@ -290,7 +280,7 @@ def all_models_heatmap(time_frame: str = "1d", log_data: bool = True):
 
 
 def forecasting_models_stacked(
-    time_frame: str = "1d", log_data: bool = True, coin_on_x: bool = True
+    time_frame: str = "1d", preds: list = config.log_preds, coin_on_x: bool = True
 ):
     """
     Plots a stacked bar plot of the RMSE values for all models.
@@ -304,21 +294,10 @@ def forecasting_models_stacked(
     coin_on_x : bool, optional
         If the cryptocurrency coin should be displayed on the x-axis, by default True
     """
-    # Read the data
-    if log_data:
-        models = [
-            config.log_returns_model,
-            config.raw_to_log_model,
-            config.scaled_to_log_model,
-            config.extended_model,
-        ]
-    else:
-        models = [config.log_to_raw_model, config.raw_model, config.scaled_to_raw_model]
-
     # Read the RMSE data
     dfs = []
-    for model in models:
-        rmse_df = read_rmse_csv(model, time_frame, avg=True)
+    for pred in preds:
+        rmse_df = read_rmse_csv(pred, time_frame, avg=True)
 
         if not coin_on_x:
             rmse_df = rmse_df.T
@@ -326,7 +305,7 @@ def forecasting_models_stacked(
         dfs.append(rmse_df.T)
 
     # Aggregate the RMSE values for each cryptocurrency across the models
-    df_dict = {x: y.sum(axis=1) for x, y in zip(models, dfs)}
+    df_dict = {x: y.sum(axis=1) for x, y in zip(preds, dfs)}
 
     # Create a new DataFrame for plotting
     plot_df = pd.DataFrame(df_dict)
@@ -348,7 +327,7 @@ def forecasting_models_stacked(
 
 
 def get_summed_RMSE(
-    time_frame: str = "1d", log_data: bool = True, ignore_models: list = []
+    time_frame: str = "1d", preds: list = config.log_preds, ignore_models: list = []
 ) -> pd.DataFrame:
     """
     Helper function for stacked_bar_plot().
@@ -368,38 +347,27 @@ def get_summed_RMSE(
     pd.DataFrame
         The summed RMSE values for each model
     """
-    # Read the data
-    if log_data:
-        models = [
-            config.log_returns_model,
-            config.raw_to_log_model,
-            config.scaled_to_log_model,
-            # config.extended_model,
-        ]
-    else:
-        models = [config.log_to_raw_model, config.raw_model, config.scaled_to_raw_model]
-
     # Read the RMSE data
     dfs = []
-    for model in models:
-        rmse_df = read_rmse_csv(model, time_frame, avg=True)
+    for pred in preds:
+        rmse_df = read_rmse_csv(pred, time_frame, avg=True)
         rmse_df = rmse_df.sum(axis=0)
 
         dfs.append(rmse_df)
 
     # Create dict key = coin, value = list of RMSE values for each model
     df_dict = {}
-    for model in dfs[0].index:
-        if model in ignore_models:
+    for pred in dfs[0].index:
+        if pred in ignore_models:
             continue
-        df_dict[model] = [df[model] for df in dfs]
+        df_dict[pred] = [df[pred] for df in dfs]
 
     # Create a new DataFrame for plotting
-    return pd.DataFrame(df_dict, index=models)
+    return pd.DataFrame(df_dict, index=preds)
 
 
 def stacked_bar_plot(
-    time_frame: str = "1d", log_data: bool = True, ignore_models: list = []
+    time_frame: str = "1d", preds: list = config.log_preds, ignore_models: list = []
 ):
     """
     Plots a stacked bar plot of the RMSE values for all models.
@@ -415,7 +383,7 @@ def stacked_bar_plot(
     """
     # Plot the Data
     get_summed_RMSE(
-        time_frame=time_frame, log_data=log_data, ignore_models=ignore_models
+        time_frame=time_frame, preds=preds, ignore_models=ignore_models
     ).plot(kind="bar", stacked=True, figsize=(15, 8), color=plt.cm.Paired.colors)
 
     plt.xlabel("Dataset")
@@ -426,7 +394,7 @@ def stacked_bar_plot(
     plt.show()
 
 
-def stacked_bar_plot_all_tf(log_data=True, ignore_models=[]):
+def stacked_bar_plot_all_tf(preds: list = config.log_preds, ignore_models=[]):
     """
     Plots a stacked bar plot of the RMSE values for all models for all time frames.
 
@@ -444,7 +412,7 @@ def stacked_bar_plot_all_tf(log_data=True, ignore_models=[]):
         ax = axes[i]
 
         plot_df = get_summed_RMSE(
-            time_frame=time_frame, log_data=log_data, ignore_models=ignore_models
+            time_frame=time_frame, preds=preds, ignore_models=ignore_models
         )
 
         plot_df.plot(kind="bar", stacked=True, ax=ax, color=plt.cm.Paired.colors)
@@ -478,7 +446,7 @@ def stacked_bar_plot_all_tf(log_data=True, ignore_models=[]):
 
 
 def rmse_comparison(
-    time_frame: str = "1d", model_1=config.log_to_raw_model, model_2=config.raw_model
+    time_frame: str = "1d", model_1=config.log_to_raw_pred, model_2=config.raw_pred
 ):
     """
     Plots a comparison of the RMSE values for two models using a heatmap.
@@ -488,9 +456,9 @@ def rmse_comparison(
     time_frame : str, optional
         The time frame to use for the data, by default "1d"
     model_1 : _type_, optional
-        The first model to use for the comparison, by default config.log_to_raw_model
+        The first model to use for the comparison, by default config.log_to_raw_pred
     model_2 : _type_, optional
-        The model to compare model_1 to, by default config.raw_model
+        The model to compare model_1 to, by default config.raw_pred
     """
     # Load the data
     rmse_1 = read_rmse_csv(model_1, time_frame, avg=True)
@@ -515,20 +483,20 @@ def rmse_comparison(
     )
 
 
-def rmse_means(models: list, time_frame: str = "1d"):
+def rmse_means(preds: list, time_frame: str = "1d"):
     # Initialize a dictionary to hold the means
     means = {}
 
     # Read the RMSE data
     dfs = []
-    for model in models:
-        rmse_df = read_rmse_csv(model, time_frame, avg=True, fill_NaN=True)
+    for pred in preds:
+        rmse_df = read_rmse_csv(pred, time_frame, avg=True, fill_NaN=True)
         dfs.append(rmse_df)
 
     for i, df in enumerate(dfs):
-        model = models[i]  # Assuming the models list and dfs list are aligned
+        pred = preds[i]  # Assuming the models list and dfs list are aligned
         means[
-            model
+            pred
         ] = (
             df.mean().sort_values()
         )  # Calculate the mean for each column and store it in the dictionary

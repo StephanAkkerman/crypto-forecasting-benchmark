@@ -53,7 +53,7 @@ def methods():
     stochasticity.calc_hurst()
 
 
-def model_performance(model: str, time_frame: str):
+def model_performance(pred: str, time_frame: str):
     boxplots.plotly_model_boxplot()
     boxplots.plotly_coin_boxplot()
     ts_analysis.compare_predictions()
@@ -65,16 +65,16 @@ def model_performance(model: str, time_frame: str):
     # rmse.rmse_comparison()
 
 
-def time_frame_analysis(model: str = config.log_returns_model):
+def time_frame_analysis(pred: str = config.log_returns_pred):
     # Use baseline comparison code
     # Also compare between time frames and RMSE
-    baseline.baseline_comparison_heatmap(model)
-    baseline.bar_plot(model)
-    baseline.box_plot(model)
+    baseline.baseline_comparison_heatmap(pred)
+    baseline.bar_plot(pred)
+    baseline.box_plot(pred)
 
 
-def volatility_analysis(model: str = config.log_returns_model):
-    volatility.boxplot(model)
+def volatility_analysis(pred: str = config.log_returns_pred):
+    volatility.boxplot(pred)
     volatility.model_boxplot()
     volatility.coin_boxplot()
     volatility.volatility_rmse_heatmap()
@@ -87,5 +87,6 @@ if __name__ == "__main__":
     # boxplots.complete_models_boxplot(log_data=False)
     # rmse.rmse_means(models=config.log_models)
     # utils.log_returns_to_price(config.log_returns_model, "ARIMA", "BTC", "1d")
-    ts_analysis.compare_multiple_predictions()
+    # ts_analysis.compare_multiple_predictions()
     # ts_analysis.compare_two_predictions()
+    print(best_hyperparameters("TCN", "ADA", "1m"))

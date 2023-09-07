@@ -50,39 +50,41 @@ comparison_dir = "output/comparison"
 # Model directories
 model_output_dir = "output/model_output"
 
-# Model names
-log_returns_model = "log_returns"
-raw_model = "raw"
-extended_model = "extended"
-scaled_model = "scaled"
+# Prediction output names
+log_returns_pred = "log_returns"
+raw_pred = "raw"
+extended_pred = "extended"
+scaled_pred = "scaled"
 
-# Transformed models
-log_to_raw_model = "log_to_raw"
-raw_to_log_model = "raw_to_log"
-scaled_to_log_model = "scaled_to_log"
-scaled_to_raw_model = "scaled_to_raw"
-extended_to_raw_model = "extended_to_raw"
+# Transformed predictions
+log_to_raw_pred = "log_to_raw"
+raw_to_log_pred = "raw_to_log"
+scaled_to_log_pred = "scaled_to_log"
+scaled_to_raw_pred = "scaled_to_raw"
+extended_to_raw_pred = "extended_to_raw"
 
 # Stress test output
 stress_test_dir = "output/stress_test"
 
 # Fancy model names dict
-model_names = {
-    log_returns_model: "Log Returns",
-    log_to_raw_model: "Log Returns",
-    raw_model: "Raw Price",
-    raw_to_log_model: "Raw Price",
-    extended_model: "Extended",
-    extended_to_raw_model: "Extended",
-    scaled_model: "Scaled",
-    scaled_to_log_model: "Scaled",
-    scaled_to_raw_model: "Scaled",
+pred_names = {
+    log_returns_pred: "Log Returns",
+    log_to_raw_pred: "Log Returns",
+    raw_pred: "Raw Price",
+    raw_to_log_pred: "Raw Price",
+    extended_pred: "Extended",
+    extended_to_raw_pred: "Extended",
+    scaled_pred: "Scaled",
+    scaled_to_log_pred: "Scaled",
+    scaled_to_raw_pred: "Scaled",
 }
 
-log_models = [
-    log_returns_model,
-    raw_to_log_model,
-    scaled_to_log_model,
+log_preds = [
+    log_returns_pred,
+    raw_to_log_pred,
+    scaled_to_log_pred,
 ]
 
-raw_models = [log_to_raw_model, raw_model, scaled_to_raw_model]
+raw_preds = [log_to_raw_pred, raw_pred, scaled_to_raw_pred]
+
+all_preds = pred_names.keys()

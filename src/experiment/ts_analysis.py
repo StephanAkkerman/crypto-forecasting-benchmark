@@ -9,7 +9,7 @@ from experiment.rmse import read_rmse_csv
 
 
 def compare_predictions(
-    model: str = config.log_returns_model,
+    pred: str = config.log_returns_pred,
     coin: str = config.all_coins[0],
     time_frame: str = config.timeframes[-1],
 ):
@@ -27,7 +27,7 @@ def compare_predictions(
     """
 
     # Get the predictions
-    model_predictions, _ = all_model_predictions(model, coin, time_frame)
+    model_predictions, _ = all_model_predictions(pred, coin, time_frame)
     test = model_predictions[list(model_predictions.keys())[0]][1]
 
     # Create a new figure
@@ -44,10 +44,10 @@ def compare_predictions(
     )
 
     # Plot each model's predictions
-    for model_name, (pred, _, _) in model_predictions.items():
+    for model_name, (model_pred, _, _) in model_predictions.items():
         # If the model is extended models, plot each prediction separately
-        if model == config.extended_model:
-            for i, p in enumerate(pred):
+        if pred == config.extended_model:
+            for i, p in enumerate(model_pred):
                 fig.add_trace(
                     go.Scatter(
                         y=p.univariate_values(),
@@ -61,7 +61,7 @@ def compare_predictions(
         else:
             fig.add_trace(
                 go.Scatter(
-                    y=pred.univariate_values(),
+                    y=model_pred.univariate_values(),
                     mode="lines",
                     name=model_name,
                     visible="legendonly",  # This line is hidden initially
@@ -94,27 +94,27 @@ def compare_predictions(
     fig.show()
 
 
-def rmse_outliers_coin(model: str, coin: str, time_frame: str):
+def rmse_outliers_coin(pred: str, coin: str, time_frame: str):
     """
     Print the outliers for each model for a given coin and time frame
 
     Parameters
     ----------
-    model : str
-        One of the models declared in the config
+    pred : str
+        One of the predictions directories declared in the config
     coin : str
         The coin to compare, e.g. "BTC", "ETH", "LTC"
     time_frame : str
         The time frame to compare, e.g. "1d", "4h", "15m"
     """
 
-    df = read_rmse_csv(model, time_frame)
+    df = read_rmse_csv(pred, time_frame)
 
     # Only get the coin
     df = df.loc[coin]
 
     # Compute and print outliers for each model
-    for model, rmses in df.items():
+    for pred, rmses in df.items():
         q1 = np.quantile(rmses, 0.25)
         q3 = np.quantile(rmses, 0.75)
         iqr = q3 - q1
@@ -130,24 +130,24 @@ def rmse_outliers_coin(model: str, coin: str, time_frame: str):
         ]
 
         if low_outliers:
-            print(f"Low outliers for {model}: {low_outliers}")
+            print(f"Low outliers for {pred}: {low_outliers}")
         if high_outliers:
-            print(f"High outliers for {model}: {high_outliers}")
+            print(f"High outliers for {pred}: {high_outliers}")
 
 
-def all_models_outliers(model: str, time_frame: str):
+def all_models_outliers(pred: str, time_frame: str):
     """
     Prints all model outliers for each available coin for a given time frame
 
     Parameters
     ----------
-    model_dir : str
-        One of the models declared in the config
+    pred : str
+        One of the preds declared in the config
     time_frame : str
         The time frame to compare, e.g. "1d", "4h", "15m"
     """
 
-    df = read_rmse_csv(model, time_frame)
+    df = read_rmse_csv(pred, time_frame)
 
     # Average the RMSEs
     df = df.applymap(lambda x: np.mean(x))
@@ -170,7 +170,7 @@ def all_models_outliers(model: str, time_frame: str):
 
 
 def compare_multiple_predictions(
-    models: list = config.log_models,
+    preds: list = config.log_preds,
     coin: str = "BTC",
     time_frame: str = "1d",
 ):
@@ -179,8 +179,8 @@ def compare_multiple_predictions(
 
     Parameters
     ----------
-    models : list
-        List of models to compare, e.g. ["raw_model", "log_to_raw_model"]
+    preds : list
+        List of preds to compare, e.g. config.log_preds or config.raw_preds
     coin : str
         The coin to compare, e.g. "BTC", "ETH", "LTC"
     time_frame : str
@@ -190,13 +190,13 @@ def compare_multiple_predictions(
     # Create a new figure
     fig = go.Figure()
 
-    for model in models:
+    for pred in preds:
         # Get the predictions
-        model_pred, _ = all_model_predictions(model, coin, time_frame)
+        model_predictions, _ = all_model_predictions(pred, coin, time_frame)
 
         # If this is the first model, add the test data line to the plot
-        if model == models[0]:
-            test = model_pred[list(model_pred.keys())[0]][1]
+        if pred == preds[0]:
+            test = model_predictions[list(model_predictions.keys())[0]][1]
             fig.add_trace(
                 go.Scatter(
                     y=test.univariate_values(),
@@ -207,15 +207,15 @@ def compare_multiple_predictions(
             )
 
         # Plot each model's predictions
-        for model_name, (pred, _, _) in model_pred.items():
+        for model_name, (model_pred, _, _) in model_predictions.items():
             fig.add_trace(
                 go.Scatter(
-                    y=pred.univariate_values(),
+                    y=model_pred.univariate_values(),
                     mode="lines",
-                    name=f"({config.model_names[model]}) {model_name}",
+                    name=f"({config.pred_names[pred]}) {model_name}",
                     visible="legendonly",  # This line is hidden initially
                     legendgroup=model_name,
-                    showlegend=True if model == models[0] else False,
+                    showlegend=True if pred == preds[0] else False,
                     opacity=0.75,  # Setting opacity to 0.75
                 )
             )

@@ -7,9 +7,8 @@ from matplotlib.patches import Rectangle
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from experiment.rmse import read_rmse_csv, extended_rmse_df
 import config
-from config import all_models, all_coins, raw_model, log_to_raw_model
+from experiment.rmse import read_rmse_csv, extended_rmse_df
 
 
 def plotly_boxplot(
@@ -113,20 +112,20 @@ def plotly_boxplot_comparison(
         Prefix for the plot title.
     """
 
-    model_1_rmse = read_rmse_csv(model=model_1, time_frame=time_frame)
-    model_2_rmse = read_rmse_csv(model=model_2, time_frame=time_frame)
+    model_1_rmse = read_rmse_csv(pred=model_1, time_frame=time_frame)
+    model_2_rmse = read_rmse_csv(pred=model_2, time_frame=time_frame)
 
     if coin_as_x_axis:
-        plot_items = all_models
+        plot_items = config.all_models
 
-        if model_1 in [config.extended_model, config.extended_to_raw_model]:
+        if model_1 in [config.extended_pred, config.extended_to_raw_pred]:
             plot_items = config.ml_models
 
         model_1_rmse = model_1_rmse.T
         model_2_rmse = model_2_rmse.T
 
     else:
-        plot_items = all_coins
+        plot_items = config.all_coins
 
     # Set the boxpoints
     boxpoints = "outliers"
@@ -195,7 +194,7 @@ def plotly_boxplot_comparison(
     fig.show()
 
 
-def plotly_model_boxplot(model: str = log_to_raw_model, time_frame: str = "1d"):
+def plotly_model_boxplot(model: str = config.log_to_raw_pred, time_frame: str = "1d"):
     """
     Plots a boxplot of the RMSEs for each coin for the given model.
 
@@ -208,34 +207,34 @@ def plotly_model_boxplot(model: str = log_to_raw_model, time_frame: str = "1d"):
     """
 
     # For model boxplot, call like this
-    df = read_rmse_csv(model=model, time_frame=time_frame)
+    df = read_rmse_csv(pred=model, time_frame=time_frame)
 
     plotly_boxplot(
         df=df.T,
-        plot_items=all_models,
-        labels=all_coins,
+        plot_items=config.all_models,
+        labels=config.all_coins,
     )
 
 
-def plotly_coin_boxplot(model: str = log_to_raw_model, time_frame: str = "1d"):
+def plotly_coin_boxplot(model: str = config.log_to_raw_pred, time_frame: str = "1d"):
     """
     Plots a boxplot of the RMSEs for each model for the given coin.
 
     Parameters
     ----------
     model : str
-        The model to plot, e.g. log_to_raw_model.
+        The model to plot, e.g. log_to_raw_pred.
     time_frame : str
         Time frame to plot, options are: "1m", "15m", "4h", "1d".
     """
 
     # For coin boxplot, call like this
-    df = read_rmse_csv(model=model, time_frame=time_frame)
+    df = read_rmse_csv(pred=model, time_frame=time_frame)
 
     plotly_boxplot(
         df=df,
-        plot_items=all_coins,
-        labels=all_models,
+        plot_items=config.all_coins,
+        labels=config.all_models,
     )
 
 
@@ -263,7 +262,7 @@ def plt_boxplot(
     """
 
     # Read in the dataframe
-    df = read_rmse_csv(model=model, time_frame=time_frame)
+    df = read_rmse_csv(pred=model, time_frame=time_frame)
 
     # Subset the dataframe
     if df_subset != "all models":
@@ -354,9 +353,7 @@ def plt_boxplots(dfs: list, models: list, outliers_percentile: int):
 
     # Set the x-tick labels
     ax.set_xticklabels(labels, rotation=45, ha="right")
-    ax.legend(
-        legend_handles, [config.model_names[m] for m in models], loc="upper right"
-    )
+    ax.legend(legend_handles, [config.pred_names[m] for m in models], loc="upper right")
     # ax.set_title(f"The boxplots of RMSEs for each model on the {time_frame} time frame")
     ax.set_ylabel("RMSE")
     ax.set_xlabel("Forecasting Model")
@@ -370,7 +367,7 @@ def plt_model_boxplot(model_dir: str, model: str, time_frame: str):
 
 
 def plt_coin_boxplot(
-    model_dir: str = config.log_returns_model,
+    model_dir: str = config.log_returns_pred,
     coin: str = config.all_coins[0],
     time_frame: str = config.timeframes[-1],
 ):
@@ -378,7 +375,7 @@ def plt_coin_boxplot(
 
 
 def all_models_boxplot(
-    model: str = config.log_returns_model, time_frame: str = config.timeframes[-1]
+    model: str = config.log_returns_pred, time_frame: str = config.timeframes[-1]
 ):
     plt_boxplot(model=model, df_subset="all models", time_frame=time_frame)
 
@@ -388,11 +385,11 @@ def complete_models_boxplot(
 ):
     # Read the data
     if log_data:
-        models = config.log_models
+        models = config.log_preds
         # Maybe change this depending on time frame
         outliers_percentile = 97
     else:
-        models = config.raw_models
+        models = config.raw_preds
         outliers_percentile = 85
 
     # Read the RMSE data
@@ -420,7 +417,7 @@ def plotly_extended_model_rmse(time_frame):
 
 def plt_extended_model_rmse(time_frame: str):
     # Get RMSE data
-    rmse_df = read_rmse_csv(model=config.extended_model, time_frame=time_frame)
+    rmse_df = read_rmse_csv(pred=config.extended_model, time_frame=time_frame)
 
     data = {}
     for model in rmse_df.columns:
@@ -433,7 +430,7 @@ def plt_extended_model_rmse(time_frame: str):
     # Generate a list of unique colors for each model
     colors = plt.cm.viridis(np.linspace(0, 1, n_models))
 
-    fig, ax = plt.subplots(figsize=(12, 8))
+    _, ax = plt.subplots(figsize=(12, 8))
 
     # For each period
     for period in range(n_periods):

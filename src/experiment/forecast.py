@@ -22,21 +22,9 @@ from darts.models import (
 )
 
 # Local imports
+import config
 from experiment.train_test import get_train_test
 from hyperopt.analysis import best_hyperparameters
-from config import (
-    all_coins,
-    timeframes,
-    n_periods,
-    all_models,
-    ml_models,
-    model_output_dir,
-    log_returns_model,
-    raw_model,
-    scaled_model,
-    extended_model,
-    stress_test_dir,
-)
 
 # Ignore fbprophet warnings
 logger = logging.getLogger("cmdstanpy")
@@ -109,14 +97,14 @@ def get_model(model_name: str, coin: str, time_frame: str):
 
 
 def generate_forecasts(
-    model: str,
+    pred: str,
     forecasting_model_name: str,
     coin: str,
     time_frame: str,
 ):
     # Create directories
     save_dir = (
-        f"{model_output_dir}/{model}/{forecasting_model_name}/{coin}/{time_frame}"
+        f"{config.model_output_dir}/{pred}/{forecasting_model_name}/{coin}/{time_frame}"
     )
     os.makedirs(save_dir, exist_ok=True)
 
@@ -124,10 +112,10 @@ def generate_forecasts(
     col = "log returns"
     scale = False
 
-    if model == raw_model:
+    if pred == config.raw_pred:
         col = "close"
 
-    elif model == scaled_model:
+    elif pred == config.scaled_pred:
         scale = True
 
     # Get the training and testing data for each period
@@ -143,7 +131,7 @@ def generate_forecasts(
         train_length = len(train_set[0])
 
     for period in tqdm(
-        range(n_periods),
+        range(config.n_periods),
         desc=f"Forecasting periods for {forecasting_model_name}/{coin}/{time_frame}",
         leave=False,
     ):
@@ -172,9 +160,7 @@ def generate_forecasts(
 
 def generate_extended_forecasts(forecasting_model: str, coin: str, time_frame: str):
     # Create dirs
-    save_dir = (
-        f"{model_output_dir}/{extended_model}/{forecasting_model}/{coin}/{time_frame}"
-    )
+    save_dir = f"{config.model_output_dir}/{config.extended_pred}/{forecasting_model}/{coin}/{time_frame}"
     os.makedirs(save_dir, exist_ok=True)
 
     # Get the training and testing data for each period
@@ -190,7 +176,7 @@ def generate_extended_forecasts(forecasting_model: str, coin: str, time_frame: s
     complete_ts = time_series[-1]
 
     # Start with the last period
-    reversed_periods = reversed(range(n_periods))
+    reversed_periods = reversed(range(config.n_periods))
 
     # Start from the final period and add training + test to it
     for period in tqdm(
@@ -233,18 +219,20 @@ def generate_extended_forecasts(forecasting_model: str, coin: str, time_frame: s
 
 
 def forecast_model(
-    model: str,
+    pred: str,
     forecasting_model: str,
-    start_from_coin: str = all_coins[0],
-    start_from_time_frame: str = timeframes[0],
+    start_from_coin: str = config.all_coins[0],
+    start_from_time_frame: str = config.timeframes[0],
 ):
-    for coin in all_coins[all_coins.index(start_from_coin) :]:
-        for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
-            if model == extended_model:
+    for coin in config.all_coins[config.all_coins.index(start_from_coin) :]:
+        for time_frame in config.timeframes[
+            config.timeframes.index(start_from_time_frame) :
+        ]:
+            if pred == config.extended_pred:
                 generate_extended_forecasts(forecasting_model, coin, time_frame)
             else:
                 generate_forecasts(
-                    model=model,
+                    pred=pred,
                     forecasting_model_name=forecasting_model,
                     coin=coin,
                     time_frame=time_frame,
@@ -252,16 +240,16 @@ def forecast_model(
 
 
 def forecast_all(
-    model: str == log_returns_model,
+    pred: str == config.log_returns_pred,
     start_from_model: str = None,
     start_from_coin: str = None,
     start_from_time_frame: str = None,
     ignore_model: list = [],
 ):
-    models = all_models
+    models = config.all_models
 
-    if model == extended_model:
-        models = ml_models
+    if pred == config.extended_pred:
+        models = config.ml_models
 
     if start_from_model:
         models = models[models.index(start_from_model) :]
@@ -274,8 +262,8 @@ def forecast_all(
             continue
 
         # Reset the coin and time frame
-        coin = all_coins[0]
-        time_frame = timeframes[0]
+        coin = config.all_coins[0]
+        time_frame = config.timeframes[0]
 
         # Start from coin can only be used if start from model is used
         if start_from_coin and start_from_model == forecasting_model:
@@ -285,27 +273,29 @@ def forecast_all(
             if start_from_time_frame:
                 time_frame = start_from_time_frame
 
-        forecast_model(model, forecasting_model, coin, time_frame)
+        forecast_model(pred, forecasting_model, coin, time_frame)
 
 
 def stress_test_forecast(
-    model: str,
+    pred: str,
     forecasting_model_name: str,
     coin: str,
     time_frame: str,
 ):
     # Make the directories
-    save_dir = f"{stress_test_dir}/{model}/{forecasting_model_name}/{coin}/{time_frame}"
+    save_dir = (
+        f"{config.stress_test_dir}/{pred}/{forecasting_model_name}/{coin}/{time_frame}"
+    )
     os.makedirs(save_dir, exist_ok=True)
 
     # Set default values
     col = "log returns"
     scale = False
 
-    if model == raw_model:
+    if pred == config.raw_pred:
         col = "close"
 
-    elif model == scaled_model:
+    elif pred == config.scaled_pred:
         scale = True
 
     # Get the training and testing data for each period
@@ -327,8 +317,8 @@ def stress_test_forecast(
     forecasting_model.fit(series=train_set[0])
 
     for period in tqdm(
-        range(n_periods),
-        desc=f"Forecasting periods for {model}/{forecasting_model_name}/{coin}/{time_frame}",
+        range(config.n_periods),
+        desc=f"Forecasting periods for {pred}/{forecasting_model_name}/{coin}/{time_frame}",
         leave=False,
     ):
         # Generate the historical forecast
@@ -349,17 +339,19 @@ def stress_test_forecast(
 
 
 def stress_test_model(
-    model: str,
+    pred: str,
     forecasting_model: str,
-    start_from_coin: str = all_coins[0],
-    start_from_time_frame: str = timeframes[0],
+    start_from_coin: str = config.all_coins[0],
+    start_from_time_frame: str = config.timeframes[0],
 ):
     # Loop over all coins
-    for coin in all_coins[all_coins.index(start_from_coin) :]:
+    for coin in config.all_coins[config.all_coins.index(start_from_coin) :]:
         # Loop over all time frames
-        for time_frame in timeframes[timeframes.index(start_from_time_frame) :]:
+        for time_frame in config.timeframes[
+            config.timeframes.index(start_from_time_frame) :
+        ]:
             stress_test_forecast(
-                model=model,
+                pred=pred,
                 forecasting_model_name=forecasting_model,
                 coin=coin,
                 time_frame=time_frame,
@@ -367,16 +359,16 @@ def stress_test_model(
 
 
 def stress_test_all(
-    model: str == log_returns_model,
+    pred: str == config.log_returns_pred,
     start_from_model: str = None,
     start_from_coin: str = None,
     start_from_time_frame: str = None,
     ignore_model: list = [],
 ):
-    models = all_models
+    models = config.all_models
 
-    if model == extended_model:
-        models = ml_models
+    if pred == config.extended_pred:
+        models = config.ml_models
 
     if start_from_model:
         models = models[models.index(start_from_model) :]
@@ -389,8 +381,8 @@ def stress_test_all(
             continue
 
         # Reset the coin and time frame
-        coin = all_coins[0]
-        time_frame = timeframes[0]
+        coin = config.all_coins[0]
+        time_frame = config.timeframes[0]
 
         # Start from coin can only be used if start from model is used
         if start_from_coin and start_from_model == forecasting_model:
@@ -400,7 +392,7 @@ def stress_test_all(
             if start_from_time_frame:
                 time_frame = start_from_time_frame
 
-        stress_test_model(model, forecasting_model, coin, time_frame)
+        stress_test_model(pred, forecasting_model, coin, time_frame)
 
 
 def test_models():
@@ -408,29 +400,29 @@ def test_models():
     Test if all models work with their optimized hyperparameters
     """
 
-    for model in all_models:
-        for coin in all_coins:
-            for time_frame in timeframes:
+    for model in config.all_models:
+        for coin in config.all_coins:
+            for time_frame in config.timeframes:
                 print(f"Testing {model} for {coin} {time_frame}")
                 get_model(model, coin, time_frame)
 
 
-def find_missing_forecasts(model: str, models=[]):
-    forecasting_models = all_models
+def find_missing_forecasts(pred: str, models=[]):
+    forecasting_models = config.all_models
 
     if models != []:
         forecasting_models = models
 
-    if model == extended_model:
-        forecasting_models = ml_models
+    if pred == config.extended_pred:
+        forecasting_models = config.ml_models
 
     missing = []
 
     for forecasting_model in forecasting_models:
-        for coin in all_coins:
-            for time_frame in timeframes:
+        for coin in config.all_coins:
+            for time_frame in config.timeframes:
                 for period in range(5):
-                    file_path = f"{model_output_dir}/{model}/{forecasting_model}/{coin}/{time_frame}/pred_{period}.csv"
+                    file_path = f"{config.model_output_dir}/{pred}/{forecasting_model}/{coin}/{time_frame}/pred_{period}.csv"
                     if not os.path.exists(file_path):
                         missing.append((forecasting_model, coin, time_frame))
                         print(f"Missing {file_path}")
@@ -444,22 +436,22 @@ def find_missing_forecasts(model: str, models=[]):
     return missing
 
 
-def create_missing_forecasts(model: str = log_returns_model, models: list = []):
-    if model in [log_returns_model, raw_model, scaled_model]:
+def create_missing_forecasts(pred: str = config.log_returns_pred, models: list = []):
+    if pred in [config.log_returns_pred, config.raw_pred, config.scaled_pred]:
         generate_func = generate_forecasts
-    elif model == extended_model:
+    elif pred == config.extended_pred:
         generate_func = generate_extended_forecasts
 
     # Create directory
-    for model_name, coin, time_frame in find_missing_forecasts(model, models):
+    for model_name, coin, time_frame in find_missing_forecasts(pred, models):
         os.makedirs(
-            f"{model_output_dir}/{model}/{model_name}/{coin}/{time_frame}/",
+            f"{config.model_output_dir}/{pred}/{model_name}/{coin}/{time_frame}/",
             exist_ok=True,
         )
 
-        if model == raw_model:
+        if pred == config.raw_pred:
             generate_func(model_name, coin, time_frame, raw=True)
-        elif model == scaled_model:
+        elif pred == config.scaled_pred:
             generate_func(model_name, coin, time_frame, scaled=True)
         else:
             generate_func(model_name, coin, time_frame)

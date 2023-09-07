@@ -10,22 +10,6 @@ from darts.dataprocessing.transformers import Scaler
 
 # Local imports
 import config
-from config import (
-    all_coins,
-    timeframes,
-    all_models,
-    ml_models,
-    model_output_dir,
-    log_returns_model,
-    raw_model,
-    extended_model,
-    scaled_model,
-    log_to_raw_model,
-    scaled_to_raw_model,
-    extended_to_raw_model,
-    scaled_to_log_model,
-    raw_to_log_model,
-)
 from experiment.train_test import get_train_test
 from data.csv_data import read_csv
 
@@ -36,10 +20,10 @@ def all_model_predictions(
     # Save the predictions and tests for each model
     model_predictions = {}
 
-    if model in [config.extended_model, config.extended_to_raw_model]:
-        models = ml_models
+    if model in [config.extended_pred, config.extended_to_raw_pred]:
+        models = config.ml_models
     else:
-        models = all_models
+        models = config.all_models
 
     for model_name in models:
         preds, _, tests, rmses = get_predictions(
@@ -94,14 +78,16 @@ def get_predictions(
 
     if model in [
         config.raw_model,
-        config.extended_to_raw_model,
-        config.log_to_raw_model,
-        config.scaled_to_raw_model,
+        config.extended_to_raw_pred,
+        config.log_to_raw_pred,
+        config.scaled_to_raw_pred,
     ]:
         value_cols = ["close"]
 
     for period in range(config.n_periods):
-        file_loc = f"{model_output_dir}/{model}/{forecasting_model}/{coin}/{time_frame}"
+        file_loc = (
+            f"{config.model_output_dir}/{model}/{forecasting_model}/{coin}/{time_frame}"
+        )
         pred_path = f"{file_loc}/pred_{period}.csv"
         train_path = f"{file_loc}/train_{period}.csv"
         test_path = f"{file_loc}/test_{period}.csv"
@@ -133,7 +119,7 @@ def get_predictions(
 
     # Make it one big TimeSeries
     if (
-        model not in [config.extended_to_raw_model, config.extended_model]
+        model not in [config.extended_to_raw_pred, config.extended_pred]
         and concatenated
     ):
         preds = concatenate(preds, axis=0)
@@ -145,12 +131,12 @@ def get_predictions(
 
 def unscale_model():
     # Create scaled_to_log model data
-    for forecasting_model in all_models:
-        for coin in all_coins:
+    for forecasting_model in config.all_models:
+        for coin in config.all_coins:
             print("Unscaling log returns for", forecasting_model, coin)
-            for time_frame in timeframes:
+            for time_frame in config.timeframes:
                 scaled_to_log(
-                    model=scaled_model,
+                    model=config.scaled_pred,
                     forecasting_model=forecasting_model,
                     coin=coin,
                     time_frame=time_frame,
@@ -170,7 +156,7 @@ def scaled_to_log(model: str, forecasting_model: str, coin: str, time_frame: str
     trains, tests, _ = get_train_test(coin=coin, time_frame=time_frame, scale=False)
 
     # Create a directory to save the predictions
-    save_loc = f"{model_output_dir}/{scaled_to_log_model}/{forecasting_model}/{coin}/{time_frame}"
+    save_loc = f"{config.model_output_dir}/{config.scaled_to_log_pred}/{forecasting_model}/{coin}/{time_frame}"
     os.makedirs(save_loc, exist_ok=True)
 
     # Loop over both lists
@@ -197,12 +183,12 @@ def scaled_to_log(model: str, forecasting_model: str, coin: str, time_frame: str
 
 def raw_model_to_log():
     # Create raw_to_log model data
-    for forecasting_model in all_models:
-        for coin in all_coins:
+    for forecasting_model in config.all_models:
+        for coin in config.all_coins:
             print("Converting price data to log returns for", forecasting_model, coin)
-            for time_frame in timeframes:
+            for time_frame in config.timeframes:
                 raw_to_log(
-                    model=raw_model,
+                    model=config.raw_pred,
                     forecasting_model=forecasting_model,
                     coin=coin,
                     time_frame=time_frame,
@@ -233,9 +219,7 @@ def raw_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
     )
 
     # Create a directory to save the predictions
-    save_loc = (
-        f"{model_output_dir}/{raw_to_log_model}/{forecasting_model}/{coin}/{time_frame}"
-    )
+    save_loc = f"{config.model_output_dir}/{config.raw_to_log_pred}/{forecasting_model}/{coin}/{time_frame}"
     os.makedirs(save_loc, exist_ok=True)
 
     # Get the train data
@@ -273,22 +257,26 @@ def raw_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
 
 
 def all_log_models_to_price():
-    for model in [log_returns_model, scaled_to_log_model, extended_model]:
+    for model in [
+        config.log_returns_pred,
+        config.scaled_to_log_pred,
+        config.extended_pred,
+    ]:
         log_model_to_price(model=model)
 
 
-def log_model_to_price(model: str = log_returns_model):
-    if model == extended_model:
-        models = ml_models
+def log_model_to_price(model: str = config.log_returns_pred):
+    if model == config.extended_pred:
+        models = config.ml_models
 
-    if model in [log_returns_model, scaled_to_log_model]:
+    if model in [config.log_returns_pred, config.scaled_to_log_pred]:
         # Scaled to log returns can be converted to raw
-        models = all_models
+        models = config.all_models
 
     for forecasting_model in models:
-        for coin in all_coins:
+        for coin in config.all_coins:
             print(f"Converting {model} data to price for", forecasting_model, coin)
-            for time_frame in timeframes:
+            for time_frame in config.timeframes:
                 log_returns_to_price(
                     model=model,
                     forecasting_model=forecasting_model,
@@ -326,12 +314,12 @@ def log_returns_to_price(
         concatenated=False,
     )
 
-    if model == log_returns_model:
-        transformed_model = log_to_raw_model
-    elif model == extended_model:
-        transformed_model = extended_to_raw_model
-    elif model == scaled_to_log_model:
-        transformed_model = scaled_to_raw_model
+    if model == config.log_returns_pred:
+        transformed_model = config.log_to_raw_pred
+    elif model == config.extended_pred:
+        transformed_model = config.extended_to_raw_pred
+    elif model == config.scaled_to_log_pred:
+        transformed_model = config.scaled_to_raw_pred
     else:
         print("This model cannot be converted to price.")
         return
@@ -345,7 +333,7 @@ def log_returns_to_price(
     )
 
     # Create a directory to save the predictions
-    save_loc = f"{model_output_dir}/{transformed_model}/{forecasting_model}/{coin}/{time_frame}"
+    save_loc = f"{config.model_output_dir}/{transformed_model}/{forecasting_model}/{coin}/{time_frame}"
     os.makedirs(save_loc, exist_ok=True)
 
     for i, (train, prediction) in enumerate(zip(trains, preds)):

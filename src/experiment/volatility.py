@@ -122,25 +122,8 @@ def create_volatility_data():
         volatility_df.to_csv(f"{config.volatility_dir}/vol_{time_frame}.csv")
 
 
-def create_all_volatility_data():
-    for model in [
-        config.log_returns_model,
-        config.log_to_raw_model,
-        config.extended_model,
-        config.extended_to_raw_model,
-        config.raw_model,
-        config.raw_to_log_model,
-        config.scaled_model,
-        config.scaled_to_log_model,
-        config.scaled_to_raw_model,
-        config.scaled_to_raw_model,
-    ]:
-        print(f"Creating volatility data for {model}")
-        create_volatility_data(model=model)
-
-
 def boxplot(
-    model: str = config.log_returns_model,
+    pred: str = config.log_returns_pred,
     time_frame: str = "1d",
     log_scale: bool = False,
     ignore_outliers: bool = True,
@@ -150,14 +133,14 @@ def boxplot(
 
     Parameters
     ----------
-    model : str, optional
-        The model output to use, by default config.log_returns_model
+    pred : str, optional
+        The prediction output to use, by default config.log_returns_pred
     time_frame : str, optional
         The time frame to use, by default "1d"
     """
 
     # Read the data
-    rmse_df = read_rmse_csv(model, time_frame=time_frame)
+    rmse_df = read_rmse_csv(pred, time_frame=time_frame)
     vol_df = read_volatility_csv(time_frame=time_frame)
 
     list_of_dfs = []
@@ -214,7 +197,7 @@ def boxplot(
     plt.show()
 
 
-def model_boxplot(model: str = config.log_returns_model, time_frame: str = "1d"):
+def model_boxplot(pred: str = config.log_returns_pred, time_frame: str = "1d"):
     """
     Shows the correlation between volatility and RMSE for each forecasting model.
 
@@ -227,21 +210,21 @@ def model_boxplot(model: str = config.log_returns_model, time_frame: str = "1d")
     """
 
     # Read the data
-    rmse_df = read_rmse_csv(model, time_frame=time_frame)
+    rmse_df = read_rmse_csv(pred, time_frame=time_frame)
     vol_df = read_volatility_csv(time_frame=time_frame)
 
     list_of_dfs = []
 
     # Loop through each model to populate all_flattened_df
-    for model_name in rmse_df.columns:  # Loop through all models
-        rmse = rmse_df[model_name]
+    for forecasting_model in rmse_df.columns:  # Loop through all models
+        rmse = rmse_df[forecasting_model]
 
         # Create a temporary DataFrame for this model
         temp_vol_df = vol_df.copy()
 
         temp_vol_df["rmse"] = rmse
         temp_vol_df["coin"] = temp_vol_df.index
-        temp_vol_df["model"] = model_name  # Add the model name
+        temp_vol_df["model"] = forecasting_model  # Add the model name
 
         # Reset index and flatten the DataFrame
         temp_vol_df.reset_index(inplace=True, drop=True)
@@ -296,12 +279,12 @@ def model_boxplot(model: str = config.log_returns_model, time_frame: str = "1d")
 
 
 def coin_boxplot(
-    model: str = config.log_returns_model,
+    pred: str = config.log_returns_pred,
     time_frame: str = "1d",
     forecasting_model="ARIMA",
 ):
     # Read the data
-    rmse_df = read_rmse_csv(model, time_frame=time_frame)
+    rmse_df = read_rmse_csv(pred, time_frame=time_frame)
     vol_df = read_volatility_csv(time_frame=time_frame)
 
     # Add rmse to vol_df
@@ -338,22 +321,22 @@ def coin_boxplot(
 
 
 def volatility_rmse_heatmap(
-    model: str = config.log_returns_model, time_frame: str = "1d"
+    pred: str = config.log_returns_pred, time_frame: str = "1d"
 ):
     """
     Plots the mean RMSE for each combination of train and test volatility class.
 
     Parameters
     ----------
-    model : str, optional
-        The name of the model output to use, by default config.log_returns_model
+    pred : str, optional
+        The prediction output to use, by default config.log_returns_pred
     time_frame : str, optional
         The time frame to use, by default "1d"
     """
 
     # Read the data
     rmse_df = read_rmse_csv(
-        model, time_frame=time_frame
+        pred, time_frame=time_frame
     )  # Assuming this reads RMSE for all models
     vol_df = read_volatility_csv(time_frame=time_frame)
 
@@ -448,7 +431,7 @@ def volatility_rmse_heatmap(
 
 
 def mcap_rmse_boxplot(
-    model: str = config.log_returns_model,
+    pred: str = config.log_returns_pred,
     ignore_model=[],
     log_scale: bool = False,
     remove_outliers: bool = True,
@@ -458,7 +441,7 @@ def mcap_rmse_boxplot(
 
     for i, time_frame in enumerate(config.timeframes):
         df = read_rmse_csv(
-            model,
+            pred,
             time_frame=time_frame,
             avg=True,
             add_mcap=True,
@@ -503,19 +486,19 @@ def mcap_rmse_boxplot(
     plt.tight_layout()
     # Add title
     fig.subplots_adjust(top=0.9)
-    fig.suptitle(f"Boxplot of RMSE values by Market Cap Category for {model}")
+    fig.suptitle(f"Boxplot of RMSE values by Market Cap Category for {pred}")
     plt.show()
 
 
-def mcap_rmse_heatmap(model: str = config.log_returns_model, ignore_model=[]):
-    fig, axes = plt.subplots(2, 2, figsize=(20, 10))  # Create a 2x2 grid of subplots
+def mcap_rmse_heatmap(pred: str = config.log_returns_pred, ignore_model=[]):
+    _, axes = plt.subplots(2, 2, figsize=(20, 10))  # Create a 2x2 grid of subplots
     axes = axes.flatten()  # Flatten the 2x2 grid to a 1D array
 
     all_values = (
         []
     )  # List to collect all RMSE values across timeframes and mcap categories
     for i, time_frame in enumerate(config.timeframes):
-        df = read_rmse_csv(model, time_frame=time_frame, avg=True, add_mcap=True)
+        df = read_rmse_csv(pred, time_frame=time_frame, avg=True, add_mcap=True)
 
         # Grouping by 'mcap category' and calculating the mean RMSE for each group
         grouped_df = df.groupby("mcap category").mean()
@@ -524,7 +507,7 @@ def mcap_rmse_heatmap(model: str = config.log_returns_model, ignore_model=[]):
         all_values.extend(grouped_df.values.flatten())
 
     for i, time_frame in enumerate(config.timeframes):
-        df = read_rmse_csv(model, time_frame=time_frame, avg=True, add_mcap=True)
+        df = read_rmse_csv(pred, time_frame=time_frame, avg=True, add_mcap=True)
 
         # Grouping by 'mcap category' and calculating the mean RMSE for each group
         grouped_df = df.groupby("mcap category").mean()
@@ -543,7 +526,7 @@ def mcap_rmse_heatmap(model: str = config.log_returns_model, ignore_model=[]):
         )
         axes[i].grid(False)
 
-        axes[i].set_title(f"RMSE Heatmap for {model} - {time_frame}")
+        axes[i].set_title(f"RMSE Heatmap for {pred} - {time_frame}")
         axes[i].set_xlabel("Forecasting Model")
         axes[i].set_ylabel("Market Cap Category")
 
