@@ -10,7 +10,7 @@ import config
 from experiment.utils import all_model_predictions
 
 
-def build_comlete_rmse_database(skip_existing: bool = True):
+def build_complete_rmse_database(skip_existing: bool = True):
     """Build the RMSE database for all models and time frames."""
     models = [
         config.log_returns_pred,
@@ -505,7 +505,61 @@ def rmse_means(preds: list, time_frame: str = "1d"):
         means[
             pred
         ] = (
-            df.mean().sort_values()
+            df.mean()
         )  # Calculate the mean for each column and store it in the dictionary
 
-    print(means)
+    # Convert to dataframe
+    means_df = pd.DataFrame(means)
+
+    # Sort by log_returns
+    means_df = means_df.sort_values(by=config.log_returns_pred, ascending=True)
+
+    print(means_df)
+
+
+def rmse_table(
+    pred: list = config.log_returns_pred,
+    time_frame: str = config.timeframes[-1],
+    coin: str = config.all_coins[0],
+    models: list = ["ARIMA", "TCN", "LightGBM"],
+):
+    """
+    Creates a table with rows being the RMSE per period and column the results per forecasting model.
+
+    Parameters
+    ----------
+    pred : list, optional
+        _description_, by default config.log_returns_pred
+    time_frame : str, optional
+        _description_, by default config.timeframes[-1]
+    coin : str, optional
+        _description_, by default config.all_coins[0]
+    models : list, optional
+        _description_, by default ["ARIMA", "TCN", "LightGBM"]
+    """
+
+    rmse_df = read_rmse_csv(pred, time_frame, fill_NaN=True)
+
+    # Filter on models
+    rmse_df = rmse_df[models]
+
+    # Get the coin that we need the data for
+    rmse_df = rmse_df.loc[coin]
+
+    # Restructure dataframe, with period as index and models as columns
+    rmse_df = rmse_df.to_frame().T
+
+    def expand_list_in_row(row):
+        return pd.DataFrame({col: row[col] for col in rmse_df.columns})
+
+    new_rows = [expand_list_in_row(rmse_df.loc[row]) for row in rmse_df.index]
+    new_df = pd.concat(new_rows, keys=rmse_df.index)
+
+    # Reset the index if necessary
+    new_df.reset_index(drop=True, inplace=True)
+
+    # Add average row at the end
+    new_df.loc["Mean"] = new_df.mean()
+
+    print(f"RMSE results for {coin} on {time_frame} using predictions from: {pred}")
+    print(new_df)

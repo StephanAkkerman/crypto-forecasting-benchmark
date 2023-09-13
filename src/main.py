@@ -83,10 +83,16 @@ def volatility_analysis(pred: str = config.log_returns_pred):
     volatility.mcap_volatility_heatmap()
 
 
-def section_4_1(time_frame):
-    boxplots.complete_models_boxplot(time_frame=time_frame)
+def section_4_1(time_frame, coin="ETH"):
+    # boxplots.complete_models_boxplot(preds=config.raw_preds, time_frame=time_frame)
+    # boxplots.complete_models_boxplot(time_frame=time_frame)
     # rmse.rmse_means(preds=config.log_preds, time_frame=time_frame)
-    # boxplots.plt_forecasting_models_comparison(time_frame=time_frame)
+    boxplots.plt_forecasting_models_comparison(
+        time_frame=time_frame,
+        forecasting_models=["ARIMA", "XGB", "TCN", "TBATS", "GRU"],
+    )
+    # ts_analysis.compare_predictions(coin=coin, time_frame=time_frame)
+    # ts_analysis.plot_predictions(coin=coin, time_frame=time_frame)
 
 
 if __name__ == "__main__":
@@ -97,4 +103,5 @@ if __name__ == "__main__":
     # ts_analysis.compare_two_predictions()
     # print(best_hyperparameters("TCN", "ADA", "1m"))
     # rmse.stacked_bar_plot()
-    section_4_1("1m")
+    section_4_1("15m")
+    # rmse.rmse_table(coin="ETH")

@@ -77,7 +77,7 @@ def get_predictions(
     value_cols = ["log returns"]
 
     if model in [
-        config.raw_model,
+        config.raw_pred,
         config.extended_to_raw_pred,
         config.log_to_raw_pred,
         config.scaled_to_raw_pred,

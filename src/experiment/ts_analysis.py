@@ -1,10 +1,9 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
 import config
-from experiment.utils import (
-    all_model_predictions,
-)
+from experiment.utils import all_model_predictions, get_predictions
 from experiment.rmse import read_rmse_csv
 
 
@@ -46,7 +45,7 @@ def compare_predictions(
     # Plot each model's predictions
     for model_name, (model_pred, _, _) in model_predictions.items():
         # If the model is extended models, plot each prediction separately
-        if pred == config.extended_model:
+        if pred == config.extended_pred:
             for i, p in enumerate(model_pred):
                 fig.add_trace(
                     go.Scatter(
@@ -244,3 +243,58 @@ def compare_multiple_predictions(
 
     # Show the plot
     fig.show()
+
+
+def plot_predictions(
+    pred: str = config.log_returns_pred,
+    coin: str = config.all_coins[0],
+    time_frame: str = config.timeframes[-1],
+    models: list = ["LightGBM", "TCN", "ARIMA"],
+):
+    # Initialize Matplotlib figure and axis
+    fig, ax = plt.subplots(figsize=(14, 7))
+    # https://matplotlib.org/stable/tutorials/colors/colormaps.html
+    colors = plt.cm.Set1.colors
+
+    # Loop through each model to get predictions and plot them
+    for i, model_name in enumerate(models):
+        predictions, _, tests, _ = get_predictions(
+            model=pred,
+            forecasting_model=model_name,
+            coin=coin,
+            time_frame=time_frame,
+        )
+
+        if i == 0:
+            # Plot test data for the first iteration
+            ax.plot(
+                tests.pd_dataframe(), label="Test Data", color="black", linewidth=1.5
+            )
+
+        # Plot predictions
+        ax.plot(
+            predictions.pd_dataframe(),
+            label=model_name,
+            color=colors[i],
+            linewidth=1.5
+            # alpha=0.8,
+        )
+
+    # Add vertical lines for each period
+    steps = len(tests) // 5
+    for i in range(1, 5):
+        line_loc = tests.pd_dataframe().index[steps * i]
+        ax.axvline(line_loc, color="gray", linewidth=1.5)
+
+    # Add title and labels
+    ax.set_title(f"{coin} Predictions Comparison for {time_frame}")
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Value")
+
+    # Add legend
+    ax.legend()
+
+    plt.tight_layout()
+
+    # Show plot
+    plt.show()

@@ -293,7 +293,7 @@ def plt_boxplot(
     plt.show()
 
 
-def plt_boxplots(dfs: list, models: list, outliers_percentile: int):
+def plt_boxplots(dfs: list, models: list, outliers_percentile: int, y_min: int):
     """
     Plot a boxplot of the RMSEs for each DataFrame in dfs on the same plot.
 
@@ -320,7 +320,10 @@ def plt_boxplots(dfs: list, models: list, outliers_percentile: int):
         # Remove nan values in ndarray
         all_data = all_data[~np.isnan(all_data)]
         # Set the y-axis limits
-        ax.set_ylim(np.min(all_data), np.percentile(all_data, outliers_percentile))
+        if y_min:
+            ax.set_ylim(y_min, np.percentile(all_data, outliers_percentile))
+        else:
+            ax.set_ylim(np.min(all_data), np.percentile(all_data, outliers_percentile))
 
     # Width of each boxplot group
     x_positions = np.arange(len(labels))
@@ -362,20 +365,25 @@ def plt_boxplots(dfs: list, models: list, outliers_percentile: int):
     plt.show()
 
 
-def plt_single_df_boxplots(df):
+def plt_single_df_boxplots(
+    df, use_hatches: bool = False, outliers_percentile: int = 99, y_min: int = 0
+):
     """
     Plot a boxplot of the RMSEs for each item in a single DataFrame.
 
     Parameters
     ----------
     df: DataFrame
-    outliers_percentile: int
+    use_hatches: bool, optional
+        Whether to use hatches or distinct colors
     """
 
     # Create a figure and axis
     fig, ax = plt.subplots(figsize=(15, 6))
 
-    hatches = ["", "\\\\\\", "///", "---"]  # Custom hatches
+    hatches = ["", "\\\\\\", "///", "---", "|||"]  # Custom hatches
+    colors = plt.cm.Accent.colors
+    # plt.cm.Paired.colors#plt.cm.viridis(np.linspace(0, 1, len(df.columns)))
     legend_handles = []
 
     # Assuming all DataFrames have the same columns
@@ -384,6 +392,17 @@ def plt_single_df_boxplots(df):
 
     # Width of each boxplot group
     x_positions = np.arange(len(labels))
+
+    # Flatten all the data to calculate percentiles
+    if type(outliers_percentile) == int:
+        all_data = np.concatenate(df.values.flatten())
+        # Remove nan values in ndarray
+        all_data = all_data[~np.isnan(all_data)]
+        # Set the y-axis limits
+        if y_min:
+            ax.set_ylim(y_min, np.percentile(all_data, outliers_percentile))
+        else:
+            ax.set_ylim(np.min(all_data), np.percentile(all_data, outliers_percentile))
 
     for i, column in enumerate(df.columns):
         box_data = [df.loc[row, column] for row in df.index]
@@ -394,16 +413,24 @@ def plt_single_df_boxplots(df):
         # Offsetting positions for each DataFrame's boxplots
         positions = x_positions + (i - n_cols / 2) * 0.2 + 0.1
 
-        # Create the boxplot with custom hatches
+        # Create the boxplot
         bp = ax.boxplot(box_data, positions=positions, patch_artist=True, widths=0.1)
 
         for patch in bp["boxes"]:
-            patch.set(facecolor="white", hatch=hatches[i])
+            if use_hatches:
+                patch.set(facecolor="white", hatch=hatches[i])
+            else:
+                patch.set(facecolor=colors[i])
 
         # Create a custom legend handle
         legend_handles.append(
             Rectangle(
-                (0, 0), 1, 1, facecolor="white", edgecolor="black", hatch=hatches[i]
+                (0, 0),
+                1,
+                1,
+                facecolor=colors[i] if not use_hatches else "white",
+                edgecolor="black",
+                hatch=hatches[i] if use_hatches else None,
             )
         )
 
@@ -421,7 +448,6 @@ def plt_single_df_boxplots(df):
     ax.legend(legend_handles, list(df.columns), loc="best")
 
     # Add title and labels
-    # ax.set_title("Boxplots of RMSEs for Various Forecasting Models")
     ax.set_ylabel("RMSE")
     ax.set_xlabel("Cryptocurrency")
 
@@ -437,7 +463,30 @@ def plt_forecasting_models_comparison(
     # Read the RMSE data
     rmse_df = read_rmse_csv(pred, time_frame, avg=False, fill_NaN=True)
     rmse_df = rmse_df[forecasting_models]
-    plt_single_df_boxplots(rmse_df)
+
+    # Add scaled_to_log TCN
+    if time_frame in ["15m", "1m"]:
+        rmse_df2 = read_rmse_csv(
+            config.scaled_to_log_pred, time_frame, avg=False, fill_NaN=True
+        )
+        
+        if "RNN" in forecasting_models:
+            rmse_df.drop(columns=["RNN"], inplace=True)
+            rmse_df["RNN"] = rmse_df2["RNN"]
+        if "TCN" in forecasting_models:
+            rmse_df.drop(columns=["TCN"], inplace=True)
+            rmse_df["TCN"] = rmse_df2["TCN"]
+
+    if time_frame == "1d":
+        outliers_percentile = 100
+    if time_frame == "4h":
+        outliers_percentile = 99
+    elif time_frame == "15m":
+        outliers_percentile = 97
+    elif time_frame == "1m":
+        outliers_percentile = 97
+
+    plt_single_df_boxplots(rmse_df, outliers_percentile=outliers_percentile)
 
 
 def plt_model_boxplot(model_dir: str, model: str, time_frame: str):
@@ -472,7 +521,7 @@ def complete_models_boxplot(
         if time_frame == "1m":
             outliers_percentile = 85
     else:
-        outliers_percentile = 85
+        outliers_percentile = 75
 
     # Read the RMSE data
     dfs = []
@@ -481,9 +530,7 @@ def complete_models_boxplot(
         dfs.append(rmse_df)
 
     plt_boxplots(
-        dfs=dfs,
-        models=preds,
-        outliers_percentile=outliers_percentile,
+        dfs=dfs, models=preds, outliers_percentile=outliers_percentile, y_min=0
     )
 
 
