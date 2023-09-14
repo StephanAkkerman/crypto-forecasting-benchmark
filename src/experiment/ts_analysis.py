@@ -258,8 +258,13 @@ def plot_predictions(
 
     # Loop through each model to get predictions and plot them
     for i, model_name in enumerate(models):
+        use_pred = None
+        if time_frame in ["15m", "1m"]:
+            if model_name in ["GRU", "TBATS"]:
+                use_pred = config.scaled_to_log_pred
+
         predictions, _, tests, _ = get_predictions(
-            model=pred,
+            model=pred if use_pred is None else use_pred,
             forecasting_model=model_name,
             coin=coin,
             time_frame=time_frame,
@@ -267,9 +272,7 @@ def plot_predictions(
 
         if i == 0:
             # Plot test data for the first iteration
-            ax.plot(
-                tests.pd_dataframe(), label="Test Data", color="black", linewidth=1.5
-            )
+            ax.plot(tests.pd_dataframe(), label="Test Data", color="black", linewidth=1)
 
         # Plot predictions
         ax.plot(

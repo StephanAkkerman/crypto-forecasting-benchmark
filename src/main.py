@@ -7,6 +7,7 @@ from data_analysis import (
     stationarity,
     stochasticity,
     trend,
+    volatility_analysis,
 )
 from hyperopt.analysis import best_hyperparameters
 from experiment import (
@@ -73,7 +74,7 @@ def time_frame_analysis(pred: str = config.log_returns_pred):
     baseline.box_plot(pred)
 
 
-def volatility_analysis(pred: str = config.log_returns_pred):
+def volatilities(pred: str = config.log_returns_pred):
     volatility.boxplot(pred)
     volatility.model_boxplot()
     volatility.coin_boxplot()
@@ -83,16 +84,18 @@ def volatility_analysis(pred: str = config.log_returns_pred):
     volatility.mcap_volatility_heatmap()
 
 
-def section_4_1(time_frame, coin="ETH"):
+def section_4_1(time_frame, coin, models=["ARIMA", "TCN", "GRU"]):
     # boxplots.complete_models_boxplot(preds=config.raw_preds, time_frame=time_frame)
     # boxplots.complete_models_boxplot(time_frame=time_frame)
     # rmse.rmse_means(preds=config.log_preds, time_frame=time_frame)
-    boxplots.plt_forecasting_models_comparison(
-        time_frame=time_frame,
-        forecasting_models=["ARIMA", "XGB", "TCN", "TBATS", "GRU"],
-    )
+    # boxplots.plt_forecasting_models_comparison(
+    #    time_frame=time_frame,
+    #    forecasting_models=models,
+    # )
     # ts_analysis.compare_predictions(coin=coin, time_frame=time_frame)
-    # ts_analysis.plot_predictions(coin=coin, time_frame=time_frame)
+    # ts_analysis.plot_predictions(coin=coin, time_frame=time_frame, models=models)
+    rmse.rmse_table(coin=coin, time_frame=time_frame, models=models)
+    volatility_analysis.plot_periods(timeframe=time_frame, coin=coin)
 
 
 if __name__ == "__main__":
@@ -103,5 +106,4 @@ if __name__ == "__main__":
     # ts_analysis.compare_two_predictions()
     # print(best_hyperparameters("TCN", "ADA", "1m"))
     # rmse.stacked_bar_plot()
-    section_4_1("15m")
-    # rmse.rmse_table(coin="ETH")
+    section_4_1("15m", coin="IOTA")

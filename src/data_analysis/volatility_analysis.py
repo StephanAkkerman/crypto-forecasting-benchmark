@@ -541,7 +541,7 @@ def plot_train_test_periods(volatility_df: pd.DataFrame, ax: plt.Axes):
     return training_lines, validation_lines, testing_lines
 
 
-def plot_periods(timeframe="1d"):
+def plot_periods(timeframe="1d", coin: str = None):
     """
     Plots the number of periods and the training, validation, and testing periods.
 
@@ -552,10 +552,15 @@ def plot_periods(timeframe="1d"):
     """
 
     # Get the volatility data
-    volatility_df = get_all_volatility_data(timeframe)
+    if coin is None:
+        volatility_df = get_all_volatility_data(timeframe)
+        alpha = 0.2
+    else:
+        volatility_df = get_volatility(coin, timeframe)
+        alpha = 1
 
     # Plot the volatility data
-    ax = volatility_df.plot(figsize=(12, 6), alpha=0.2, color="grey", legend=False)
+    ax = volatility_df.plot(figsize=(12, 6), alpha=alpha, color="grey", legend=False)
 
     # Get the lines for the average volatility, median volatility, and 0.75 and 0.25 percentiles
     avg_line, overall_median_line, overall_q3_line, overall_q1_line = plot_lines(

@@ -6,7 +6,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 import config
-from data_analysis.volatility import (
+from data_analysis.volatility_analysis import (
     get_tf_percentile,
     get_volatility,
 )
