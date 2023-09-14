@@ -1,9 +1,11 @@
 import os
+from itertools import combinations
 
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from scipy.stats.stats import pearsonr
 
 import config
 from experiment.rmse import read_rmse_csv, plot_rmse_heatmaps
@@ -204,3 +206,39 @@ def box_plot(
     fig.subplots_adjust(top=0.925)
     fig.suptitle("Comparison of RMSE between ARIMA and other models")
     plt.show()
+
+
+def tf_correlation(pred: str = config.log_returns_pred, ignore_model=[]):
+    df_1m, df_15m, df_4h, df_1d = get_all_baseline_comparison(
+        pred=pred, ignore_model=ignore_model
+    )
+    # Set time frame as a column
+    df_1d["Time Frame"] = "1d"
+    df_4h["Time Frame"] = "4h"
+    df_15m["Time Frame"] = "15m"
+    df_1m["Time Frame"] = "1m"
+
+    # Concatenate the dataframes
+    df_all = pd.concat([df_1d, df_4h, df_15m, df_1m])
+
+    # Pivot the table so each row is a model and each column is a time frame
+    df_pivot = df_all.set_index("Time Frame").T
+
+    # Get all unique combinations of time frames
+    time_frame_combinations = list(combinations(config.timeframes[::-1], 2))
+
+    # Initialize an empty DataFrame to store correlations
+    column_names = [f"{tf1}_{tf2}_correlation" for tf1, tf2 in time_frame_combinations]
+    correlations = pd.DataFrame(index=df_pivot.index, columns=column_names)
+
+    # Calculate correlation for each model between different time frames
+    for model in df_pivot.index:
+        for tf1, tf2 in time_frame_combinations:
+            col_name = f"{tf1}_{tf2}_correlation"
+            correlations.loc[model, col_name] = pearsonr(
+                df_pivot.loc[model, tf1].values, df_pivot.loc[model, tf2].values
+            )[
+                0
+            ]  # [0] is to get only the correlation coefficient, without p-value
+
+    print(correlations)

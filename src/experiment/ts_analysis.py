@@ -260,7 +260,7 @@ def plot_predictions(
     for i, model_name in enumerate(models):
         use_pred = None
         if time_frame in ["15m", "1m"]:
-            if model_name in ["GRU", "TBATS"]:
+            if model_name in ["GRU", "TCN", "LSTM"]:
                 use_pred = config.scaled_to_log_pred
 
         predictions, _, tests, _ = get_predictions(

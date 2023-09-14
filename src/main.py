@@ -84,7 +84,11 @@ def volatilities(pred: str = config.log_returns_pred):
     volatility.mcap_volatility_heatmap()
 
 
-def section_4_1(time_frame, coin, models=["ARIMA", "TCN", "GRU"]):
+def section_4():
+    section_4_1("1m", coin="LTC", models=["ARIMA", "TCN", "LSTM"])
+
+
+def section_4_1(time_frame, coin, models):
     # boxplots.complete_models_boxplot(preds=config.raw_preds, time_frame=time_frame)
     # boxplots.complete_models_boxplot(time_frame=time_frame)
     # rmse.rmse_means(preds=config.log_preds, time_frame=time_frame)
@@ -92,18 +96,15 @@ def section_4_1(time_frame, coin, models=["ARIMA", "TCN", "GRU"]):
     #    time_frame=time_frame,
     #    forecasting_models=models,
     # )
-    # ts_analysis.compare_predictions(coin=coin, time_frame=time_frame)
-    # ts_analysis.plot_predictions(coin=coin, time_frame=time_frame, models=models)
     rmse.rmse_table(coin=coin, time_frame=time_frame, models=models)
+    # ts_analysis.compare_predictions(coin=coin, time_frame=time_frame)
+    ts_analysis.plot_predictions(coin=coin, time_frame=time_frame, models=models)
     volatility_analysis.plot_periods(timeframe=time_frame, coin=coin)
 
 
+def section_4_2():
+    pass
+
+
 if __name__ == "__main__":
-    # boxplots.complete_models_boxplot(log_data=False)
-    # rmse.rmse_means(models=config.log_models)
-    # utils.log_returns_to_price(config.log_returns_model, "ARIMA", "BTC", "1d")
-    # ts_analysis.compare_multiple_predictions()
-    # ts_analysis.compare_two_predictions()
-    # print(best_hyperparameters("TCN", "ADA", "1m"))
-    # rmse.stacked_bar_plot()
-    section_4_1("15m", coin="IOTA")
+    baseline.tf_correlation()
