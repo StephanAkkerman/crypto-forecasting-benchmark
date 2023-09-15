@@ -9,6 +9,7 @@ from plotly.subplots import make_subplots
 
 import config
 from experiment.rmse import read_rmse_csv, extended_rmse_df
+from experiment.utils import get_predictions
 
 
 def plotly_boxplot(
@@ -469,7 +470,7 @@ def plt_forecasting_models_comparison(
         rmse_df2 = read_rmse_csv(
             config.scaled_to_log_pred, time_frame, avg=False, fill_NaN=True
         )
-        
+
         if "RNN" in forecasting_models:
             rmse_df.drop(columns=["RNN"], inplace=True)
             rmse_df["RNN"] = rmse_df2["RNN"]
@@ -595,4 +596,69 @@ def plt_extended_model_rmse(time_frame: str):
     ax.legend(handles=legend_elements)
 
     plt.tight_layout()
+    plt.show()
+
+
+def prediction_boxplots(
+    pred: str = config.log_returns_pred,
+    time_frame: str = config.timeframes[-1],
+    coin: str = config.all_coins[0],
+    models: list = config.all_models,
+):
+    # Loop through each model to get predictions and plot them
+    for i, model_name in enumerate(models):
+        use_pred = None
+        if time_frame in ["15m", "1m"]:
+            if model_name in ["GRU", "TCN", "LSTM"]:
+                use_pred = config.scaled_to_log_pred
+
+        predictions, _, tests, _ = get_predictions(
+            model=pred if use_pred is None else use_pred,
+            forecasting_model=model_name,
+            coin=coin,
+            time_frame=time_frame,
+        )
+
+        actual_values = tests.pd_dataframe()
+        forecast_values = predictions.pd_dataframe()
+
+        period_size = len(actual_values) // config.n_periods
+
+        actual_splits = [
+            actual_values[i : i + period_size]
+            for i in range(0, len(actual_values), period_size)
+        ]
+        forecast_splits = [
+            forecast_values[i : i + period_size]
+            for i in range(0, len(forecast_values), period_size)
+        ]
+
+        # Initialize an empty DataFrame to hold the combined data
+        df_combined = pd.DataFrame()
+
+        # Loop over each split, adding it as a new column in the combined DataFrame
+        for i, (actual_split, forecast_split) in enumerate(
+            zip(actual_splits, forecast_splits)
+        ):
+            df_combined[f"{model_name}_Period_{i+1}"] = actual_split[
+                "log returns"
+            ].reset_index(drop=True)
+            df_combined[f"Test_Period_{i+1}"] = forecast_split[
+                "log returns"
+            ].reset_index(drop=True)
+
+    # Reorder columns based on your desired order
+    reordered_columns = []
+    for i in range(1, config.n_periods + 1):
+        reordered_columns.append(f"{model_name}_Period_{i}")
+        reordered_columns.append(f"Test_Period_{i}")
+
+    df_combined = df_combined[reordered_columns]
+
+    # Create boxplots
+    plt.figure(figsize=(15, 7))
+    df_combined.boxplot()
+    plt.title(f"Boxplots of Actual and {model_name} Forecast Values for Each Period")
+    plt.ylabel("Value")
+    plt.xticks(rotation=45)
     plt.show()

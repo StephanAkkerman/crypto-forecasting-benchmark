@@ -1,9 +1,12 @@
 import os
+from itertools import combinations
+from collections import Counter
 
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from scipy.stats import ttest_rel
 
 import config
 from data_analysis.volatility_analysis import (
@@ -640,6 +643,68 @@ def mcap_volatility_heatmap():
     plt.show()
 
 
-# Other options:
-# 3d scatter plot
-# facet grid scatter plot
+def get_mean_vol(coin, time_frame, percentile25, percentile75) -> float:
+    volatility = get_volatility(coin=coin, time_frame=time_frame)
+
+    vol_classes = []
+
+    for vol in volatility.values:
+        vol_class = get_volatility_class(
+            volatility=vol,
+            percentile25=percentile25,
+            percentile75=percentile75,
+        )
+        vol_classes.append(vol_class)
+
+    return vol_classes
+
+
+def tf_mean_vol(time_frame: str) -> pd.DataFrame:
+    volatilities = {}
+    percentile25, percentile75 = get_tf_percentile(time_frame=time_frame)
+
+    for coin in config.all_coins:
+        volatilities[coin] = get_mean_vol(coin, time_frame, percentile25, percentile75)
+
+    return pd.DataFrame([volatilities])
+
+
+def tf_significance():
+    dfs = []
+    for tf in config.timeframes:
+        df = tf_mean_vol(tf)
+        # Add timeframe column
+        df["Time Frame"] = tf
+        dfs.append(df)
+
+    df = pd.concat(dfs)
+
+    # Calculate the frequency of each category for each time frame
+    results = {}
+
+    # Iterate over each cryptocurrency
+    for coin in config.all_coins:
+        results[coin] = {}
+
+        # Calculate the frequency of each category for each time frame
+        for index, row in df.iterrows():
+            time_frame = row["Time Frame"]
+            categories = row[coin]
+            counts = Counter(categories)
+            total_counts = sum(counts.values())
+
+            # Calculate percentage for each category
+            percentages = {k: (v / total_counts) * 100 for k, v in counts.items()}
+
+            results[coin][time_frame] = percentages
+
+    # Convert the results to a DataFrame for better display
+    result_df = pd.DataFrame.from_dict(
+        {
+            (coin, tf): values
+            for coin, time_frames in results.items()
+            for tf, values in time_frames.items()
+        },
+        orient="index",
+    ).fillna(0)
+    print(result_df)

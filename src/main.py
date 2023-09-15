@@ -103,8 +103,16 @@ def section_4_1(time_frame, coin, models):
 
 
 def section_4_2():
-    pass
+    # baseline.tf_significance()
+    baseline.baseline_comparison_heatmap(pred=config.scaled_to_log_pred)
+    baseline.scaled_heatmap()
+    # baseline.tf_correlation()
+    # volatility.tf_significance()
 
 
 if __name__ == "__main__":
-    baseline.tf_correlation()
+    # section_4_2()
+    # baseline.scaled_heatmap()
+    # baseline.tf_significance()
+    # baseline.box_plot(config.log_returns_pred)
+    boxplots.prediction_boxplots(models=["ARIMA"])

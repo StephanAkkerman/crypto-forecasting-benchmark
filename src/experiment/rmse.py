@@ -240,6 +240,10 @@ def plot_rmse_heatmaps(
         ax.grid(False)
         ax.set_title(titles[i])
 
+        # Add x and y labels
+        # ax.set_xlabel("Cryptocurrency")
+        # ax.set_ylabel("Forecasting Model")
+
     plt.tight_layout()
     fig.subplots_adjust(top=0.925)
     fig.suptitle(title)

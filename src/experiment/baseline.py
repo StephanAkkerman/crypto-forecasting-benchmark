@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr
+from scipy.stats import ttest_rel
 
 import config
 from experiment.rmse import read_rmse_csv, plot_rmse_heatmaps
@@ -99,25 +100,38 @@ def create_all_baseline_comparison():
             create_baseline_comparison(pred=model, time_frame=time_frame)
 
 
-def get_all_baseline_comparison(pred: str = config.log_returns_pred, ignore_model=[]):
+def get_all_baseline_comparison(
+    pred: str = config.log_returns_pred, ignore_model=[], trans: bool = False
+):
     dfs = []
     for time_frame in config.timeframes:
         comparison_df = read_comparison_csv(pred, time_frame=time_frame).drop(
             columns=ignore_model
         )
+        if trans:
+            comparison_df = comparison_df.T
+
         dfs.append(comparison_df)
     return dfs
 
 
 def baseline_comparison_heatmap(pred: str = config.log_returns_pred, ignore_model=[]):
+    titles = [
+        "One-Minute Time Frame",
+        "Fifteen-Minute Time Frame",
+        "Four-Hour Time Frame",
+        "One-Day Time Frame",
+    ]
+
     # visualize
     plot_rmse_heatmaps(
-        get_all_baseline_comparison(pred, ignore_model=ignore_model),
+        get_all_baseline_comparison(pred, ignore_model=ignore_model, trans=False),
         title=f"RMSE percentual comparison between forecasting models and baseline (ARIMA) model for {pred}",
-        titles=[f"Time Frame: {tf}" for tf in config.timeframes],
+        titles=titles,
         flip_colors=True,
         vmin=-3,
         vmax=3,
+        avg_y=False,
     )
 
 
@@ -208,10 +222,8 @@ def box_plot(
     plt.show()
 
 
-def tf_correlation(pred: str = config.log_returns_pred, ignore_model=[]):
-    df_1m, df_15m, df_4h, df_1d = get_all_baseline_comparison(
-        pred=pred, ignore_model=ignore_model
-    )
+def tf_correlation(pred: str = config.log_returns_pred):
+    df_1m, df_15m, df_4h, df_1d = get_all_baseline_comparison(pred=pred)
     # Set time frame as a column
     df_1d["Time Frame"] = "1d"
     df_4h["Time Frame"] = "4h"
@@ -242,3 +254,98 @@ def tf_correlation(pred: str = config.log_returns_pred, ignore_model=[]):
             ]  # [0] is to get only the correlation coefficient, without p-value
 
     print(correlations)
+
+
+def tf_significance(pred: str = config.log_returns_pred):
+    df_1m, df_15m, df_4h, df_1d = get_all_baseline_comparison(pred=pred)
+    # Set time frame as a column
+    df_1d["Time Frame"] = "1d"
+    df_4h["Time Frame"] = "4h"
+    df_15m["Time Frame"] = "15m"
+    df_1m["Time Frame"] = "1m"
+
+    # Concatenate the dataframes
+    df_all = pd.concat([df_1d, df_4h, df_15m, df_1m])
+
+    # Pivot the table so each row is a model and each column is a time frame
+    df_pivot = df_all.set_index("Time Frame").T
+
+    # Get all unique combinations of time frames
+    time_frame_combinations = list(combinations(config.timeframes[::-1], 2))
+
+    # Initialize an empty DataFrame to store correlations
+    column_names = [f"{tf1}_{tf2}_significance" for tf1, tf2 in time_frame_combinations]
+    correlations = pd.DataFrame(index=df_pivot.index, columns=column_names)
+
+    # Calculate correlation for each model between different time frames
+    for model in df_pivot.index:
+        for tf1, tf2 in time_frame_combinations:
+            col_name = f"{tf1}_{tf2}_significance"
+            t_statistic, p_value = ttest_rel(
+                df_pivot.loc[model, tf1].values, df_pivot.loc[model, tf2].values
+            )
+            # Significance level
+            if p_value < 0.05:
+                # First time frame > second time frame
+                if np.mean(df_pivot.loc[model, tf1].values) > np.mean(
+                    df_pivot.loc[model, tf2].values
+                ):
+                    result = f"{tf1}"
+                else:
+                    result = f"{tf2}"
+            else:
+                result = "None"
+
+            correlations.loc[model, col_name] = result
+    print(correlations)
+
+
+def scaled_heatmap():
+    dfs = []
+
+    for time_frame in config.timeframes:
+        # Compare log returns ARIMA to scaled forecasting models
+        forecasting_df = read_rmse_csv(config.scaled_to_log_pred, time_frame=time_frame)
+        baseline_df = read_rmse_csv(config.log_returns_pred, time_frame=time_frame)
+
+        # Initialize an empty dictionary to hold percentual differences
+        percentual_difference_dict = {}
+
+        for column in forecasting_df.columns:
+            if column != "ARIMA":
+                percentual_difference_dict[column] = []
+
+                for i, row in forecasting_df.iterrows():
+                    baseline = np.array(baseline_df.loc[i]["ARIMA"])
+
+                    model_values = np.array(row[column])
+
+                    percentual_difference = ((baseline - model_values) / baseline) * 100
+
+                    percentual_difference_dict[column].append(
+                        round(np.mean(list(percentual_difference)))
+                    )
+
+        percentual_difference_df = pd.DataFrame(
+            percentual_difference_dict, index=forecasting_df.index
+        )
+        dfs.append(percentual_difference_df)
+
+    # Use values of scaled_to_log_pred for 1m and 15m time frame
+    titles = [
+        "One-Minute Time Frame",
+        "Fifteen-Minute Time Frame",
+        "Four-Hour Time Frame",
+        "One-Day Time Frame",
+    ]
+
+    # visualize
+    plot_rmse_heatmaps(
+        dfs,
+        title=f"RMSE percentual comparison between forecasting models and baseline (ARIMA) model for",
+        titles=titles,
+        flip_colors=True,
+        vmin=-3,
+        vmax=3,
+        avg_y=False,
+    )
