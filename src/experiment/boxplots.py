@@ -367,7 +367,13 @@ def plt_boxplots(dfs: list, models: list, outliers_percentile: int, y_min: int):
 
 
 def plt_single_df_boxplots(
-    df, use_hatches: bool = False, outliers_percentile: int = 99, y_min: int = 0
+    df,
+    use_hatches: bool = False,
+    outliers_percentile: int = 99,
+    y_min: int = 0,
+    x_label: str = "Cryptocurrency",
+    y_label: str = "RMSE",
+    rotate_xlabels: bool = True,
 ):
     """
     Plot a boxplot of the RMSEs for each item in a single DataFrame.
@@ -443,14 +449,17 @@ def plt_single_df_boxplots(
 
     # Set the x-ticks to the average positions
     ax.set_xticks(average_positions)
-    ax.set_xticklabels(labels, rotation=45, ha="right")
+    if rotate_xlabels:
+        ax.set_xticklabels(labels, rotation=45, ha="right")
+    else:
+        ax.set_xticklabels(labels, ha="right")
 
     # Add legend
     ax.legend(legend_handles, list(df.columns), loc="best")
 
     # Add title and labels
-    ax.set_ylabel("RMSE")
-    ax.set_xlabel("Cryptocurrency")
+    ax.set_ylabel(y_label)
+    ax.set_xlabel(x_label)
 
     plt.tight_layout()
     plt.show()
@@ -605,8 +614,11 @@ def prediction_boxplots(
     coin: str = config.all_coins[0],
     models: list = config.all_models,
 ):
+    # Initialize a dictionary to hold the combined data
+    data_dict = {f"Period {i+1}": {} for i in range(config.n_periods)}
+
     # Loop through each model to get predictions and plot them
-    for i, model_name in enumerate(models):
+    for model_name in models:
         use_pred = None
         if time_frame in ["15m", "1m"]:
             if model_name in ["GRU", "TCN", "LSTM"]:
@@ -623,42 +635,31 @@ def prediction_boxplots(
         forecast_values = predictions.pd_dataframe()
 
         period_size = len(actual_values) // config.n_periods
-
-        actual_splits = [
-            actual_values[i : i + period_size]
-            for i in range(0, len(actual_values), period_size)
-        ]
         forecast_splits = [
-            forecast_values[i : i + period_size]
+            forecast_values[i : i + period_size]["log returns"].tolist()
             for i in range(0, len(forecast_values), period_size)
         ]
 
-        # Initialize an empty DataFrame to hold the combined data
-        df_combined = pd.DataFrame()
+        # Only do this once
+        if model_name == models[0]:
+            actual_splits = [
+                actual_values[i : i + period_size]["log returns"].tolist()
+                for i in range(0, len(actual_values), period_size)
+            ]
 
-        # Loop over each split, adding it as a new column in the combined DataFrame
-        for i, (actual_split, forecast_split) in enumerate(
-            zip(actual_splits, forecast_splits)
-        ):
-            df_combined[f"{model_name}_Period_{i+1}"] = actual_split[
-                "log returns"
-            ].reset_index(drop=True)
-            df_combined[f"Test_Period_{i+1}"] = forecast_split[
-                "log returns"
-            ].reset_index(drop=True)
+            # Loop over each split, adding it to the data_dict
+            for i, (actual_split) in enumerate(actual_splits):
+                data_dict[f"Period {i+1}"][
+                    "Test"
+                ] = actual_split  # Replace actual_split with forecast_split if needed
 
-    # Reorder columns based on your desired order
-    reordered_columns = []
-    for i in range(1, config.n_periods + 1):
-        reordered_columns.append(f"{model_name}_Period_{i}")
-        reordered_columns.append(f"Test_Period_{i}")
+        # Loop over each split, adding it to the data_dict
+        for i, (forecast_split) in enumerate(forecast_splits):
+            data_dict[f"Period {i+1}"][
+                model_name
+            ] = forecast_split  # Replace actual_split with forecast_split if needed
 
-    df_combined = df_combined[reordered_columns]
+    # Convert the dictionary to a DataFrame
+    df_combined = pd.DataFrame.from_dict(data_dict, orient="index")
 
-    # Create boxplots
-    plt.figure(figsize=(15, 7))
-    df_combined.boxplot()
-    plt.title(f"Boxplots of Actual and {model_name} Forecast Values for Each Period")
-    plt.ylabel("Value")
-    plt.xticks(rotation=45)
-    plt.show()
+    plt_single_df_boxplots(df_combined, outliers_percentile=100, x_label="Period", y_label="Log Returns", rotate_xlabels=False)

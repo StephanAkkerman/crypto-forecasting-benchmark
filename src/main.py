@@ -98,7 +98,7 @@ def section_4_1(time_frame, coin, models):
     # )
     rmse.rmse_table(coin=coin, time_frame=time_frame, models=models)
     # ts_analysis.compare_predictions(coin=coin, time_frame=time_frame)
-    ts_analysis.plot_predictions(coin=coin, time_frame=time_frame, models=models)
+    # ts_analysis.plot_predictions(coin=coin, time_frame=time_frame, models=models)
     volatility_analysis.plot_periods(timeframe=time_frame, coin=coin)
 
 
@@ -115,4 +115,7 @@ if __name__ == "__main__":
     # baseline.scaled_heatmap()
     # baseline.tf_significance()
     # baseline.box_plot(config.log_returns_pred)
-    boxplots.prediction_boxplots(models=["ARIMA"])
+
+    # Fix xlabels position
+    boxplots.prediction_boxplots(models=["ARIMA", "LightGBM", "TCN"])
+    # boxplots.plt_forecasting_models_comparison()
