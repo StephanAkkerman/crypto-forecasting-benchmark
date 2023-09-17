@@ -1,15 +1,4 @@
 # Local imports
-from data_analysis import (
-    auto_correlation,
-    correlation,
-    heteroskedasticity,
-    seasonality,
-    stationarity,
-    stochasticity,
-    trend,
-    volatility_analysis,
-)
-from hyperopt.analysis import best_hyperparameters
 from experiment import (
     forecast,
     train_test,
@@ -19,39 +8,9 @@ from experiment import (
     rmse,
     volatility,
     baseline,
+    data_properties,
 )
 import config
-
-
-def methods():
-    """
-    Generates all analysis data and plots.
-    """
-
-    # Stationarity
-    stationarity.stationarity_tests()
-
-    # Autocorrelation
-    auto_correlation.auto_cor_tests()
-
-    # Trend
-    trend.trend_tests()
-
-    # Seasonality
-    seasonality.seasonal_strength_test()
-
-    # Heteroskedasticity
-    heteroskedasticity.uncon_het_tests()
-    heteroskedasticity.con_het_test()
-
-    # Correlation
-    correlation.correlation_tests()
-
-    # Volatility
-    # volatility.volatility_tests()
-
-    # Stochasticity
-    stochasticity.calc_hurst()
 
 
 def model_performance(pred: str, time_frame: str):
@@ -88,18 +47,37 @@ def section_4():
     section_4_1("1m", coin="LTC", models=["ARIMA", "TCN", "LSTM"])
 
 
-def section_4_1(time_frame, coin, models):
+def section_4_1(time_frame):
+    if time_frame == "1d":
+        models = ["ARIMA", "LightGBM", "TCN", "TBATS", "LSTM"]
+        coin = "ETH"
+    elif time_frame == "4h":
+        models = ["ARIMA", "LightGBM", "TCN", "TBATS", "RNN"]
+        coin = "TRX"
+    elif time_frame == "15m":
+        models = ["ARIMA", "XGB", "TCN", "TBATS", "GRU"]
+        coin = "IOTA"
+    elif time_frame == "1m":
+        models = ["ARIMA", "LightGBM", "TCN", "TBATS", "LSTM"]
+        coin = "LTC"
+    # Only use this when time_frame is 1d
     # boxplots.complete_models_boxplot(preds=config.raw_preds, time_frame=time_frame)
+
+    # Black and white boxplots of all models and all datasets
     # boxplots.complete_models_boxplot(time_frame=time_frame)
+
     # rmse.rmse_means(preds=config.log_preds, time_frame=time_frame)
-    # boxplots.plt_forecasting_models_comparison(
-    #    time_frame=time_frame,
-    #    forecasting_models=models,
-    # )
-    rmse.rmse_table(coin=coin, time_frame=time_frame, models=models)
+    boxplots.plt_forecasting_models_comparison(
+        time_frame=time_frame,
+        forecasting_models=models,
+    )
+    # rmse.rmse_table(coin=coin, time_frame=time_frame, models=models)
     # ts_analysis.compare_predictions(coin=coin, time_frame=time_frame)
     # ts_analysis.plot_predictions(coin=coin, time_frame=time_frame, models=models)
-    volatility_analysis.plot_periods(timeframe=time_frame, coin=coin)
+    # volatility_analysis.plot_periods(timeframe=time_frame, coin=coin)
+
+    # Boxplots of predictions
+    boxplots.prediction_boxplots(time_frame=time_frame, models=models, coin=coin)
 
 
 def section_4_2():
@@ -116,6 +94,5 @@ if __name__ == "__main__":
     # baseline.tf_significance()
     # baseline.box_plot(config.log_returns_pred)
 
-    # Fix xlabels position
-    boxplots.prediction_boxplots(models=["ARIMA", "LightGBM", "TCN"])
-    # boxplots.plt_forecasting_models_comparison()
+    # section_4_1("1m")
+    data_properties.trend()

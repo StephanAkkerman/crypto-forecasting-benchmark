@@ -1,0 +1,85 @@
+Coin,Time Frame,Hamed Rao,Yue Wang,Pre-whitening,Trend-free pre-whitening
+BTC,1m,no trend,no trend,no trend,no trend
+BTC,15m,no trend,no trend,no trend,no trend
+BTC,4h,increasing,increasing,increasing,increasing
+BTC,1d,decreasing,decreasing,no trend,no trend
+ETH,1m,no trend,no trend,no trend,no trend
+ETH,15m,no trend,no trend,no trend,no trend
+ETH,4h,increasing,increasing,no trend,no trend
+ETH,1d,decreasing,decreasing,decreasing,decreasing
+BNB,1m,no trend,no trend,no trend,no trend
+BNB,15m,no trend,no trend,no trend,no trend
+BNB,4h,increasing,increasing,no trend,no trend
+BNB,1d,decreasing,decreasing,decreasing,decreasing
+XRP,1m,no trend,no trend,no trend,no trend
+XRP,15m,no trend,increasing,no trend,no trend
+XRP,4h,no trend,increasing,no trend,no trend
+XRP,1d,decreasing,decreasing,no trend,no trend
+ADA,1m,no trend,no trend,no trend,no trend
+ADA,15m,no trend,increasing,no trend,no trend
+ADA,4h,no trend,increasing,no trend,no trend
+ADA,1d,no trend,no trend,no trend,no trend
+DOGE,1m,no trend,no trend,no trend,no trend
+DOGE,15m,no trend,no trend,no trend,no trend
+DOGE,4h,increasing,increasing,no trend,no trend
+DOGE,1d,no trend,no trend,no trend,no trend
+MATIC,1m,no trend,no trend,no trend,no trend
+MATIC,15m,no trend,increasing,no trend,no trend
+MATIC,4h,no trend,increasing,no trend,no trend
+MATIC,1d,no trend,no trend,no trend,no trend
+LINK,1m,no trend,decreasing,no trend,no trend
+LINK,15m,no trend,increasing,no trend,no trend
+LINK,4h,no trend,increasing,no trend,no trend
+LINK,1d,no trend,decreasing,no trend,no trend
+ETC,1m,no trend,no trend,no trend,no trend
+ETC,15m,no trend,no trend,no trend,no trend
+ETC,4h,increasing,increasing,no trend,no trend
+ETC,1d,no trend,decreasing,no trend,no trend
+XLM,1m,no trend,no trend,no trend,no trend
+XLM,15m,no trend,no trend,no trend,no trend
+XLM,4h,increasing,increasing,no trend,no trend
+XLM,1d,no trend,no trend,no trend,no trend
+LTC,1m,no trend,no trend,no trend,no trend
+LTC,15m,no trend,no trend,no trend,no trend
+LTC,4h,no trend,no trend,no trend,no trend
+LTC,1d,no trend,decreasing,no trend,no trend
+TRX,1m,no trend,no trend,no trend,no trend
+TRX,15m,no trend,no trend,no trend,no trend
+TRX,4h,no trend,increasing,no trend,no trend
+TRX,1d,no trend,decreasing,no trend,no trend
+ATOM,1m,no trend,decreasing,no trend,no trend
+ATOM,15m,increasing,increasing,no trend,no trend
+ATOM,4h,no trend,no trend,no trend,no trend
+ATOM,1d,no trend,decreasing,no trend,no trend
+XMR,1m,no trend,no trend,no trend,no trend
+XMR,15m,no trend,no trend,no trend,no trend
+XMR,4h,no trend,no trend,no trend,no trend
+XMR,1d,no trend,decreasing,no trend,no trend
+VET,1m,no trend,no trend,no trend,no trend
+VET,15m,no trend,no trend,no trend,no trend
+VET,4h,no trend,no trend,no trend,no trend
+VET,1d,no trend,no trend,no trend,no trend
+ALGO,1m,no trend,no trend,no trend,no trend
+ALGO,15m,no trend,no trend,no trend,no trend
+ALGO,4h,no trend,no trend,no trend,no trend
+ALGO,1d,no trend,no trend,no trend,no trend
+EOS,1m,no trend,no trend,no trend,no trend
+EOS,15m,no trend,no trend,no trend,no trend
+EOS,4h,no trend,increasing,no trend,no trend
+EOS,1d,no trend,no trend,no trend,no trend
+CHZ,1m,no trend,no trend,no trend,no trend
+CHZ,15m,no trend,no trend,no trend,no trend
+CHZ,4h,no trend,increasing,no trend,no trend
+CHZ,1d,no trend,no trend,no trend,no trend
+IOTA,1m,no trend,decreasing,no trend,no trend
+IOTA,15m,no trend,decreasing,no trend,no trend
+IOTA,4h,no trend,increasing,no trend,no trend
+IOTA,1d,decreasing,decreasing,no trend,no trend
+NEO,1m,no trend,no trend,no trend,no trend
+NEO,15m,no trend,no trend,no trend,no trend
+NEO,4h,no trend,no trend,no trend,no trend
+NEO,1d,no trend,decreasing,no trend,no trend
+XTZ,1m,no trend,no trend,no trend,no trend
+XTZ,15m,no trend,no trend,no trend,no trend
+XTZ,4h,no trend,increasing,no trend,no trend
+XTZ,1d,no trend,no trend,no trend,no trend

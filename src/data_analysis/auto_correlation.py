@@ -1,3 +1,4 @@
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -7,19 +8,6 @@ from statsmodels.graphics.tsaplots import plot_acf
 # Local imports
 from config import all_coins, timeframes, plots_dir, statistics_dir
 from data.csv_data import read_csv
-
-
-def auto_cor_tests():
-    """
-    Main function to perform all autocorrelation tests
-    """
-    plot_acf()
-    plot_log_returns()
-
-    for diff, log in [(False, False), (True, False), (True, True)]:
-        print("Durbin-Watson: ", durbin_watson(diff, log))
-        breusch_godfrey(diff, log)
-        ljung_box(diff, log)
 
 
 def durbin_watson(diff: bool = True, log: bool = True) -> int:
@@ -75,41 +63,62 @@ def durbin_watson(diff: bool = True, log: bool = True) -> int:
     )
 
 
-def ljung_box(diff: bool = True, log: bool = True) -> None:
+def autocorrelation_test(
+    test_type: str = "Ljung-Box",
+    diff: bool = False,
+    log_returns: bool = True,
+    to_csv: bool = True,
+    to_excel: bool = False,
+) -> None:
     """
-    Performs the Ljung-Box test for autocorrelation on all datasets and saves it as an excel file
+    Performs either the Ljung-Box or Breusch-Godfrey test for autocorrelation on all datasets and saves it as an excel file
 
     Parameters
     ----------
+    test_type : str
+        The type of test to perform ('Ljung-Box' or 'Breusch-Godfrey')
     diff : bool, optional
         Use the returns of the data, by default True
-    log : bool, optional
+    log_returns : bool, optional
         Use the logarithmic (returns) of the data, by default True
+    to_csv : bool, optional
+        Save the results to a CSV file, by default True
+    to_excel : bool, optional
+        Save the results to an Excel file, by default False
     """
     results = pd.DataFrame()
-    file_name = "Ljung-Box"
+    file_name = test_type
 
-    for lag in range(1, 101):
+    if log_returns:
+        file_name = f"{file_name}_log_returns"
+    elif diff:
+        file_name = f"{file_name}_diff"
+
+    for lag in tqdm(range(1, 101)):
         for coin in all_coins:
             for time in timeframes:
-                df = read_csv(coin, time)
+                if log_returns:
+                    df = read_csv(coin, time, ["log returns"])
+                    df = df.dropna()
+                else:
+                    df = read_csv(coin, time, ["close"])
+                    if diff:
+                        df = df.diff().dropna()
 
-                if log:
-                    df = np.log(df)
-                    file_name = f"{file_name}_log"
+                if test_type == "Ljung-Box":
+                    res = sm.stats.acorr_ljungbox(df.values.squeeze(), lags=lag)
+                    p_val = res["lb_pvalue"].tolist()[-1]
 
-                if diff:
-                    df = df.diff().dropna()
-                    file_name = f"{file_name}_diff"
-
-                # Perform the Ljung-Box test with a lag of 20
-                res = sm.stats.acorr_ljungbox(df.values.squeeze(), lags=lag)
-                p_val = res["lb_pvalue"].tolist()[-1]
+                elif test_type == "Breusch-Godfrey":
+                    X = sm.add_constant(df.iloc[:, :-1])
+                    y = df.iloc[:, -1]
+                    model = sm.OLS(y, X).fit()
+                    res = sm.stats.diagnostic.acorr_breusch_godfrey(model, nlags=lag)
+                    p_val = res[1]
 
                 info = {
                     "Coin": coin,
-                    "Time": time,
-                    # P-value > 0.05 indicates no autocorrelation
+                    "Time Frame": time,
                     "Result": "Autocorrelated"
                     if p_val < 0.05
                     else "Not Autocorrelated",
@@ -120,60 +129,13 @@ def ljung_box(diff: bool = True, log: bool = True) -> None:
                     [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
                 )
 
-    # Save as excel
-    results.to_excel(f"{statistics_dir}/{file_name}.xlsx", index=False)
+    if to_excel:
+        results.to_excel(f"{statistics_dir}/{file_name}.xlsx", index=False)
 
+    if to_csv:
+        results.to_csv(f"{statistics_dir}/{file_name}.csv", index=False)
 
-def breusch_godfrey(diff: bool = True, log: bool = True):
-    """
-    Performs the Breusch-Godfrey test for autocorrelation on all datasets and saves it as an excel file
-
-    Parameters
-    ----------
-    diff : bool, optional
-        Use the returns of the data, by default True
-    log : bool, optional
-        Use the logarithmic (returns) of the data, by default True
-    """
-    results = pd.DataFrame()
-    file_name = "Breusch-Godfrey"
-
-    for lag in range(1, 101):
-        for coin in all_coins:
-            for time in timeframes:
-                df = read_csv(coin, time)
-
-                if log:
-                    df = np.log(df)
-                    file_name = f"{file_name}_log"
-
-                if diff:
-                    df = df.diff().dropna()
-                    file_name = f"{file_name}_diff"
-
-                # Fit a regression model to the data
-                X = sm.add_constant(df.iloc[:, :-1])
-                y = df.iloc[:, -1]
-                model = sm.OLS(y, X).fit()
-
-                # Perform the Breusch-Godfrey test with 2 lags
-                bg = sm.stats.diagnostic.acorr_breusch_godfrey(model, nlags=lag)
-
-                info = {
-                    "Coin": coin,
-                    "Time": time,
-                    "Result": "Autocorrelated"
-                    if bg[1] < 0.05
-                    else "Not Autocorrelated",
-                    "Lag": lag,
-                }
-
-                results = pd.concat(
-                    [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
-                )
-
-    # Save it as excel
-    results.to_excel(f"{statistics_dir}/{file_name}.xlsx", index=False)
+    print(results)
 
 
 def plot_acf(crypto="BTC", timeframe="1d"):

@@ -373,7 +373,7 @@ def plt_single_df_boxplots(
     y_min: int = 0,
     x_label: str = "Cryptocurrency",
     y_label: str = "RMSE",
-    rotate_xlabels: bool = True,
+    rotate_xlabels: bool = False,
 ):
     """
     Plot a boxplot of the RMSEs for each item in a single DataFrame.
@@ -390,15 +390,12 @@ def plt_single_df_boxplots(
 
     hatches = ["", "\\\\\\", "///", "---", "|||"]  # Custom hatches
     colors = plt.cm.Accent.colors
+    if x_label == "Period":
+        # Add white in front
+        colors = ((1.0, 1.0, 1.0),) + colors
+
     # plt.cm.Paired.colors#plt.cm.viridis(np.linspace(0, 1, len(df.columns)))
     legend_handles = []
-
-    # Assuming all DataFrames have the same columns
-    labels = df.index.tolist()
-    n_cols = len(df.columns)
-
-    # Width of each boxplot group
-    x_positions = np.arange(len(labels))
 
     # Flatten all the data to calculate percentiles
     if type(outliers_percentile) == int:
@@ -411,6 +408,22 @@ def plt_single_df_boxplots(
         else:
             ax.set_ylim(np.min(all_data), np.percentile(all_data, outliers_percentile))
 
+    # Assuming all DataFrames have the same columns
+    labels = df.index.tolist()
+
+    # Width of each boxplot group
+    group_width = 0.8
+    n_cols = len(df.columns)
+
+    # Calculate the width of each individual boxplot within a group
+    box_width = group_width / n_cols
+
+    # Width of each boxplot group
+    x_positions = np.arange(len(labels))
+
+    # Initialize list to store the middle positions of each group of boxplots
+    average_positions = []
+
     for i, column in enumerate(df.columns):
         box_data = [df.loc[row, column] for row in df.index]
 
@@ -418,10 +431,19 @@ def plt_single_df_boxplots(
         box_data = [[x for x in sublist if str(x) != "nan"] for sublist in box_data]
 
         # Offsetting positions for each DataFrame's boxplots
-        positions = x_positions + (i - n_cols / 2) * 0.2 + 0.1
+        offset = (i - n_cols / 2) * box_width + box_width / 2
+        positions = x_positions + offset
+
+        # Update average_positions
+        if i == 0:
+            average_positions = positions
+        else:
+            average_positions = [a + b for a, b in zip(average_positions, positions)]
 
         # Create the boxplot
-        bp = ax.boxplot(box_data, positions=positions, patch_artist=True, widths=0.1)
+        bp = ax.boxplot(
+            box_data, positions=positions, patch_artist=True, widths=box_width
+        )
 
         for patch in bp["boxes"]:
             if use_hatches:
@@ -442,17 +464,14 @@ def plt_single_df_boxplots(
         )
 
     # Calculate the average position for each group of boxplots
-    average_positions = [
-        np.mean([pos + (i - n_cols / 2) * 0.2 + 0.1 for i in range(n_cols)])
-        for pos in x_positions
-    ]
+    average_positions = [pos / n_cols for pos in average_positions]
 
     # Set the x-ticks to the average positions
     ax.set_xticks(average_positions)
     if rotate_xlabels:
-        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.set_xticklabels(labels, rotation=45, ha="center")
     else:
-        ax.set_xticklabels(labels, ha="right")
+        ax.set_xticklabels(labels, ha="center")
 
     # Add legend
     ax.legend(legend_handles, list(df.columns), loc="best")
@@ -662,4 +681,10 @@ def prediction_boxplots(
     # Convert the dictionary to a DataFrame
     df_combined = pd.DataFrame.from_dict(data_dict, orient="index")
 
-    plt_single_df_boxplots(df_combined, outliers_percentile=100, x_label="Period", y_label="Log Returns", rotate_xlabels=False)
+    plt_single_df_boxplots(
+        df_combined,
+        outliers_percentile=100,
+        x_label="Period",
+        y_label="Logarithmic Returns",
+        rotate_xlabels=False,
+    )
