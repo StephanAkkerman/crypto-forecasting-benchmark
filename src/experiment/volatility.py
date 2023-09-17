@@ -442,6 +442,14 @@ def mcap_rmse_boxplot(
     fig, axes = plt.subplots(2, 2, figsize=(20, 10))  # Create a 2x2 grid of subplots
     axes = axes.flatten()  # Flatten the 2x2 grid to a 1D array
 
+    titles = [
+        "Daily Timeframe",
+        "Four-Hour Timeframe",
+        "Fifteen-Minute Timeframe",
+        "One-Minute Timeframe",
+    ]
+    titles.reverse()
+
     for i, time_frame in enumerate(config.timeframes):
         df = read_rmse_csv(
             pred,
@@ -463,7 +471,7 @@ def mcap_rmse_boxplot(
             order=["Small", "Mid", "Large"],
         )
 
-        axes[i].set_title(f"Time Frame: {time_frame}")
+        axes[i].set_title(titles[i])
         axes[i].set_xlabel("Market Cap Category")
         axes[i].set_ylabel("RMSE")
         axes[i].legend(

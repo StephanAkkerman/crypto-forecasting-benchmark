@@ -1,4 +1,5 @@
 import pandas as pd
+from tqdm import tqdm
 from scipy.stats import jarque_bera
 from hurst import compute_Hc
 
@@ -37,17 +38,28 @@ def jarque_bera_test():
     print(results[results["P-value"] < alpha][["Coin", "Time", "P-value"]])
 
 
-def calc_hurst():
+def calc_hurst(log_returns: bool = True, to_excel: bool = False, to_csv: bool = True):
     """
     Calculates the Hurst exponent for the data and saves it to an Excel file.
     """
 
+    file_name = f"{statistics_dir}/hurst"
+    if log_returns:
+        file_name = f"{file_name}_log_returns"
+
     results = pd.DataFrame()
-    for coin in all_coins:
+
+    for coin in tqdm(all_coins):
         for time in timeframes:
-            df = read_csv(coin, time)
-            prices = df["close"].values.tolist()
-            H, _, _ = compute_Hc(prices, kind="price", simplified=False)
+            if log_returns:
+                df = read_csv(coin, time, ["log returns"]).dropna()
+                prices = df["log returns"].values.tolist()
+                H, _, _ = compute_Hc(prices, kind="change", simplified=False)
+            else:
+                df = read_csv(coin, time)
+                prices = df["close"].values.tolist()
+
+                H, _, _ = compute_Hc(prices, kind="price", simplified=False)
 
             if 0.45 < H < 0.55:
                 hurst_result = "Brownian motion"
@@ -58,13 +70,17 @@ def calc_hurst():
 
             info = {
                 "Coin": coin,
-                "Time": time,
+                "Time Frame": time,
                 "Hurst exponent": H,
-                "Hurst result": hurst_result,
+                "Result": hurst_result,
             }
 
             results = pd.concat(
                 [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
             )
 
-    results.to_excel(f"{statistics_dir}/hurst.xlsx", index=False)
+    if to_excel:
+        results.to_excel(f"{file_name}.xlsx", index=False)
+
+    if to_csv:
+        results.to_csv(f"{file_name}.csv", index=False)

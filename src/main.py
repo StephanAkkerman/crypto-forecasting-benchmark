@@ -95,4 +95,7 @@ if __name__ == "__main__":
     # baseline.box_plot(config.log_returns_pred)
 
     # section_4_1("1m")
-    data_properties.trend()
+    # data_properties.stochasticity()
+
+    # Improve function to show all timeframes at once
+    volatility.mcap_rmse_boxplot()

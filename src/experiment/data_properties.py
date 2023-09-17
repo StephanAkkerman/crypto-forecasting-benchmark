@@ -4,12 +4,11 @@ import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
-from scipy.stats import kruskal
+from scipy.stats import kruskal, mannwhitneyu
 
 import config
 from experiment.rmse import read_rmse_csv
-from data_analysis.auto_correlation import autocorrelation_test
-from data_analysis.trend import trend_tests
+from data_analysis.stochasticity import calc_hurst
 
 
 def high_auto_cor(test_type: str):
@@ -119,38 +118,105 @@ def trend():
     df = df[["Coin", "Time Frame", "Result"]]
 
     # Change Results to trend if its increasing or decreasing
-    #df["Result"] = np.where(df["Result"] == "decreasing", "decreasing", "trend")
-    #df["Result"] = np.where(df["Result"] == "increasing", "increasing", "trend")
+    df["Result"] = df["Result"].str.replace("increasing", "trend")
+    df["Result"] = df["Result"].str.replace("decreasing", "trend")
 
     # Add RMSE data to the DataFrame
     df = merge_rmse(df)
 
-    # Kruskal-Wallis test for each forecasting model
-    kruskal_results = {}
+    # Save test results
+    results = {}
 
-    for model in [
-        "RandomForest",
-        "XGB",
-        "LightGBM",
-        "GRU",
-        "TCN",
-        "TFT",
-        "NHiTS",
-        "ARIMA",
-        "TBATS",
-    ]:
+    for model in config.all_models:
         groups = [df[df["Result"] == result][model] for result in df["Result"].unique()]
-        kruskal_results[model] = kruskal(*groups)
+        results[model] = mannwhitneyu(*groups)
 
-    print(kruskal_results)
+    print(results)
 
 
 def seasonality():
-    pass
+    # Get seasonality data
+    # seasonal_strength_test(log_returns=True)
+
+    # Read seasonality data
+    df = pd.read_csv(f"{config.statistics_dir}/stl_seasonality_log_returns.csv")
+
+    # Add RMSE data to the DataFrame
+    df = merge_rmse(df)
+
+    results = {}
+
+    for forecasting_model in config.all_models:
+        # Prepare the independent variable 'Seasonal Strength' and add a constant term for the intercept
+        X = sm.add_constant(df["Seasonal Strength"])
+
+        # Prepare the dependent variable. This is for RandomForest. Repeat for other models.
+        y = df[forecasting_model]
+
+        # Perform linear regression
+        model = sm.OLS(y, X).fit()
+
+        # Convert the summary results to a DataFrame
+        results_df = pd.DataFrame(model.summary2().tables[1])
+
+        # Access the p-value for "Seasonal Strength"
+        p_value_seasonal_strength = results_df.loc["Seasonal Strength", "P>|t|"]
+
+        results[forecasting_model] = p_value_seasonal_strength
+
+    print(results)
 
 
 def heteroskedasticity():
-    pass
+    # cond_het()
+
+    uncon_het()
+
+
+def uncon_het():
+    df = pd.read_csv(
+        f"{config.statistics_dir}/unconditional_heteroskedasticity_log_returns.csv"
+    )
+    # Find rows where 'Breusch-Pagan' and 'Goldfeld-Quandt' have the same result
+    # same_result_df = df[df['Breusch-Pagan'] == df['Goldfeld-Quandt']]
+
+    # First test using breusch-pagan
+    df = merge_rmse(df)
+
+    breusch_results = {}
+    for model in config.all_models:
+        groups = [
+            df[df["Breusch-Pagan"] == result][model]
+            for result in df["Breusch-Pagan"].unique()
+        ]
+        breusch_results[model] = mannwhitneyu(*groups)
+
+    goldfeld_results = {}
+    for model in config.all_models:
+        groups = [
+            df[df["Goldfeld-Quandt"] == result][model]
+            for result in df["Goldfeld-Quandt"].unique()
+        ]
+        goldfeld_results[model] = mannwhitneyu(*groups)
+
+    print(breusch_results)
+    print(goldfeld_results)
+
+
+def cond_het():
+    df = pd.read_csv(f"{config.statistics_dir}/cond_heteroskedasticity_log_returns.csv")
+
+    # Add RMSE data to the DataFrame
+    df = merge_rmse(df)
+
+    # Save test results
+    results = {}
+
+    for model in config.all_models:
+        groups = [df[df["result"] == result][model] for result in df["result"].unique()]
+        results[model] = mannwhitneyu(*groups)
+
+    print(results)
 
 
 def correlation():
@@ -158,4 +224,20 @@ def correlation():
 
 
 def stochasticity():
-    pass
+    # calc_hurst()
+
+    df = pd.read_csv(f"{config.statistics_dir}/hurst_log_returns.csv")
+
+    print(df["Result"].value_counts())
+
+    # Add RMSE data to the DataFrame
+    df = merge_rmse(df)
+
+    # Save test results
+    results = {}
+
+    for model in config.all_models:
+        groups = [df[df["Result"] == result][model] for result in df["Result"].unique()]
+        results[model] = mannwhitneyu(*groups)
+
+    print(results)
