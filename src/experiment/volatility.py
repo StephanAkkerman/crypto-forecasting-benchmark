@@ -1,12 +1,10 @@
 import os
-from itertools import combinations
 from collections import Counter
 
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from scipy.stats import ttest_rel
 
 import config
 from data_analysis.volatility_analysis import (
@@ -28,13 +26,13 @@ def read_volatility_csv(time_frame: str, add_mcap: bool = False):
     df = df.applymap(lambda x: x.strip("[]").split(", "))
 
     # Remove ' from string for class columns
-    df[["train_volatility_class", "test_volatility_class"]] = df[
-        ["train_volatility_class", "test_volatility_class"]
+    df[["train_volatility_class", "test_volatility_class", "period_volatility_class"]] = df[
+        ["train_volatility_class", "test_volatility_class", "period_volatility_class"]
     ].applymap(lambda x: [i.strip("'") for i in x])
 
     # Convert list of strings to list of floats
-    df[["train_volatility", "test_volatility"]] = df[
-        ["train_volatility", "test_volatility"]
+    df[["train_volatility", "test_volatility", "period_volatility"]] = df[
+        ["train_volatility", "test_volatility", "period_volatility"]
     ].applymap(lambda x: [float(i) for i in x])
 
     if add_mcap:
@@ -71,39 +69,38 @@ def create_volatility_data():
             # Save the data here
             train_volatilty_class = []
             test_volatilty_class = []
+            period_volatility_class = []
+            
             train_volatilty = []
             test_volatilty = []
+            period_volatility = []
 
             # Loop over each period
             for train, test in zip(trains, tests):
                 # Determine the train and test volatility
                 vol_train = volatility.loc[train.start_time() : train.end_time()]
                 vol_test = volatility.loc[test.start_time() : test.end_time()]
+                vol_period = volatility.loc[train.start_time() : test.end_time()]
 
                 # Calculate the mean volatility for train and test
                 mean_vol_train = vol_train.mean().values[0]
                 mean_vol_test = vol_test.mean().values[0]
+                mean_vol_period = vol_period.mean().values[0]
 
-                # Calculate the volatility class for train and test
-                train_volatilty_class.append(
-                    get_volatility_class(
-                        volatility=mean_vol_train,
-                        percentile25=percentile25,
-                        percentile75=percentile75,
-                    )
-                )
-
-                test_volatilty_class.append(
-                    get_volatility_class(
-                        volatility=mean_vol_test,
-                        percentile25=percentile25,
-                        percentile75=percentile75,
-                    )
-                )
+                # Calculate the volatility class for train, test, and period
+                for vol_list, vol in [(train_volatilty_class, mean_vol_train), (test_volatilty_class, mean_vol_test), (period_volatility_class, mean_vol_period)]:
+                    vol_list.append(
+                        get_volatility_class(
+                            volatility=vol,
+                            percentile25=percentile25,
+                            percentile75=percentile75,
+                        )
+                    )               
 
                 # Also add 2 columns without classification and just the mean number
                 train_volatilty.append(mean_vol_train)
                 test_volatilty.append(mean_vol_test)
+                period_volatility.append(mean_vol_period)
 
             # Create a dataframe for the coin
             coin_df = pd.DataFrame(
@@ -111,8 +108,10 @@ def create_volatility_data():
                     {
                         "train_volatility_class": train_volatilty_class,
                         "test_volatility_class": test_volatilty_class,
+                        "period_volatility_class": period_volatility_class,
                         "train_volatility": train_volatilty,
                         "test_volatility": test_volatilty,
+                        "period_volatility": period_volatility,
                     }
                 ],
                 index=[coin],
@@ -324,7 +323,7 @@ def coin_boxplot(
 
 
 def volatility_rmse_heatmap(
-    pred: str = config.log_returns_pred, time_frame: str = "1d"
+    pred: str = config.log_returns_pred, exclude_model=["TFT", "NBEATS", "NHiTS"]
 ):
     """
     Plots the mean RMSE for each combination of train and test volatility class.
@@ -337,99 +336,125 @@ def volatility_rmse_heatmap(
         The time frame to use, by default "1d"
     """
 
-    # Read the data
-    rmse_df = read_rmse_csv(
-        pred, time_frame=time_frame
-    )  # Assuming this reads RMSE for all models
-    vol_df = read_volatility_csv(time_frame=time_frame)
+    fig, axes = plt.subplots(2, 2, figsize=(20, 16))
+    axes = axes.flatten()  # Flatten the 2D array to 1D for easy iteration
 
-    # Initialize an empty DataFrame to store flattened data
-    all_flattened_df = pd.DataFrame()
+    # Adjust cbar percentile per time frame
+    cbar_max = {
+        "1d": 0.11,
+        "4h": 0.035,
+        "15m": 0.004,
+        "1m": 0.002,
+    }
 
-    # Loop through each model to populate all_flattened_df
-    for model_name in rmse_df.columns:  # Loop through all models
-        rmse = rmse_df[model_name]
+    for idx, time_frame in enumerate(config.timeframes):
+        # Read the data
+        rmse_df = read_rmse_csv(
+            pred, time_frame=time_frame
+        )  # Assuming this reads RMSE for all models
+        vol_df = read_volatility_csv(time_frame=time_frame)
 
-        # Create a temporary DataFrame for this model
-        temp_vol_df = vol_df.copy()
+        # Initialize an empty DataFrame to store flattened data
+        all_flattened_df = pd.DataFrame()
 
-        temp_vol_df["rmse"] = rmse
-        temp_vol_df["coin"] = temp_vol_df.index
-        temp_vol_df["model"] = model_name  # Add the model name
+        # Loop through each model to populate all_flattened_df
+        for model_name in rmse_df.columns:  # Loop through all models
+            if model_name in exclude_model:
+                continue
 
-        # Reset index and flatten the DataFrame
-        temp_vol_df.reset_index(inplace=True, drop=True)
-        flattened_df = temp_vol_df.apply(lambda x: x.explode())
+            rmse = rmse_df[model_name]
 
-        # Append to all_flattened_df
-        all_flattened_df = pd.concat([all_flattened_df, flattened_df])
+            # Create a temporary DataFrame for this model
+            temp_vol_df = vol_df.copy()
 
-    # You can aggregate by mean, or other functions like 'median', 'sum', etc.
-    pivot_table = pd.pivot_table(
-        all_flattened_df,
-        values="rmse",
-        index=["train_volatility_class", "model"],  # Include model in index
-        columns=["test_volatility_class"],
-        aggfunc="mean",
-    )
+            temp_vol_df["rmse"] = rmse
+            temp_vol_df["coin"] = temp_vol_df.index
+            temp_vol_df["model"] = model_name  # Add the model name
 
-    # Reordering index and columns
-    pivot_table = pivot_table.reorder_levels(
-        ["train_volatility_class", "model"]
-    ).sort_index()
+            # Reset index and flatten the DataFrame
+            temp_vol_df.reset_index(inplace=True, drop=True)
+            flattened_df = temp_vol_df.apply(lambda x: x.explode())
 
-    # Specifying the desired order for columns and index
-    desired_order = ["low", "normal", "high"]
+            # Append to all_flattened_df
+            all_flattened_df = pd.concat([all_flattened_df, flattened_df])
 
-    # Reordering columns
-    pivot_table = pivot_table[desired_order]
+        # You can aggregate by mean, or other functions like 'median', 'sum', etc.
+        pivot_table = pd.pivot_table(
+            all_flattened_df,
+            values="rmse",
+            index=["train_volatility_class", "model"],  # Include model in index
+            columns=["test_volatility_class"],
+            aggfunc="mean",
+        )
 
-    # Reordering the index level 'train_volatility_class'
-    pivot_table = pivot_table.reorder_levels(["train_volatility_class", "model"]).loc[
-        desired_order
-    ]
+        # Reordering index and columns
+        pivot_table = pivot_table.reorder_levels(
+            ["train_volatility_class", "model"]
+        ).sort_index()
 
-    # Create the heatmap
-    _, ax1 = plt.subplots(figsize=(16, 10))
-    ax1.grid(False)
-    sns.heatmap(pivot_table, annot=True, cmap="YlGnBu", ax=ax1, cbar_kws={"pad": 0.1})
-    plt.rcParams["axes.grid"] = False
-    plt.title(
-        f"Impact of Train and Test Volatility on RMSE Across Models, Time Frame: {time_frame}"
-    )
-    ax1.set_xlabel("Test Volatility Class")
+        # Specifying the desired order for columns and index
+        desired_order = ["low", "normal", "high"]
 
-    # Invert the y-axis
-    ax1.invert_yaxis()
+        # Reordering columns
+        pivot_table = pivot_table[desired_order]
 
-    # Create a twin y-axis
-    ax2 = ax1.twinx()
-    ax2.set_ylabel("Train Volatility Class")
+        # Reordering the index level 'train_volatility_class'
+        pivot_table = pivot_table.reorder_levels(
+            ["train_volatility_class", "model"]
+        ).loc[desired_order]
 
-    # Get the current y-tick labels from the first axis
-    current_labels = [item.get_text() for item in ax1.get_yticklabels()]
+        # Create the heatmap
+        ax1 = axes[idx]
+        ax1.set_title(config.tf_names[idx])
+        ax1.grid(False)
 
-    # Create new labels for the second axis that contain only the model names
-    ax1_labels = [label.split("-")[1] for label in current_labels]
-    ax2_labels = [label.split("-")[0].capitalize() for label in current_labels]
+        sns.heatmap(
+            pivot_table,
+            annot=True,
+            cmap="YlGnBu",
+            ax=ax1,
+            cbar_kws={"pad": 0.1},
+            vmax=0.0018 if time_frame == "1m" else None,
+        )
+        plt.rcParams["axes.grid"] = False
 
-    ax1.set_yticklabels(ax1_labels)
+        ax1.set_xlabel("Test Volatility Class")
 
-    ax1_ylim = ax1.get_ylim()
-    ax2.set_ylim(ax1_ylim)
+        # Invert the y-axis
+        ax1.invert_yaxis()
 
-    # Now set the ticks
-    ax2.set_yticks(ax1.get_yticks())
-    ax2.set_yticklabels(ax2_labels)
+        # Create a twin y-axis
+        ax2 = ax1.twinx()
+        ax2.set_ylabel("Train Volatility Class")
 
-    # Capitalize x-axis labels
-    ax1.set_xticklabels(
-        [label.get_text().capitalize() for label in ax1.get_xticklabels()]
-    )
+        # Get the current y-tick labels from the first axis
+        current_labels = [item.get_text() for item in ax1.get_yticklabels()]
 
-    # Set y-axis labels
-    ax1.set_ylabel("Forecasting Model")
+        # Create new labels for the second axis that contain only the model names
+        ax1_labels = [label.split("-")[1] for label in current_labels]
+        ax2_labels = [label.split("-")[0].capitalize() for label in current_labels]
 
+        ax1.set_yticklabels(ax1_labels)
+
+        ax1_ylim = ax1.get_ylim()
+        ax2.set_ylim(ax1_ylim)
+
+        # Now set the ticks
+        ax2.set_yticks(ax1.get_yticks())
+        ax2.set_yticklabels(ax2_labels)
+
+        # Capitalize x-axis labels
+        ax1.set_xticklabels(
+            [label.get_text().capitalize() for label in ax1.get_xticklabels()]
+        )
+
+        # Set y-axis labels
+        ax1.set_ylabel("Forecasting Model")
+
+    # plt.title(
+    #    "Impact of Train and Test Volatility on RMSE Across Models"
+    # )
+    plt.tight_layout()
     plt.show()
 
 
@@ -439,16 +464,8 @@ def mcap_rmse_boxplot(
     log_scale: bool = False,
     remove_outliers: bool = True,
 ):
-    fig, axes = plt.subplots(2, 2, figsize=(20, 10))  # Create a 2x2 grid of subplots
-    axes = axes.flatten()  # Flatten the 2x2 grid to a 1D array
-
-    titles = [
-        "Daily Timeframe",
-        "Four-Hour Timeframe",
-        "Fifteen-Minute Timeframe",
-        "One-Minute Timeframe",
-    ]
-    titles.reverse()
+    fig, axes = plt.subplots(2, 2, figsize=(20, 12))
+    axes = axes.flatten()
 
     for i, time_frame in enumerate(config.timeframes):
         df = read_rmse_csv(
@@ -467,23 +484,20 @@ def mcap_rmse_boxplot(
             hue="variable",
             data=melted_df,
             palette="Set2",
-            ax=axes[i],  # Specify which subplot to use
+            ax=axes[i],
             order=["Small", "Mid", "Large"],
         )
 
-        axes[i].set_title(titles[i])
+        axes[i].set_title(config.tf_names[i])
         axes[i].set_xlabel("Market Cap Category")
         axes[i].set_ylabel("RMSE")
-        axes[i].legend(
-            title="Forecasting Model", bbox_to_anchor=(1, 1), loc="upper left"
-        )
-        axes[i].set_xticklabels(axes[i].get_xticklabels(), rotation=45)
 
-        # Apply logarithmic scale if log_scale is True
+        # Remove the legend from individual subplots
+        axes[i].get_legend().remove()
+
         if log_scale:
             axes[i].set_yscale("log")
 
-        # Remove outliers if remove_outliers is True
         if remove_outliers:
             Q1 = melted_df["value"].quantile(0.25)
             Q3 = melted_df["value"].quantile(0.75)
@@ -494,10 +508,20 @@ def mcap_rmse_boxplot(
                 lower_bound = 0
             axes[i].set_ylim(lower_bound, upper_bound)
 
-    plt.tight_layout()
-    # Add title
-    fig.subplots_adjust(top=0.9)
-    fig.suptitle(f"Boxplot of RMSE values by Market Cap Category for {pred}")
+    # Adjust the layout to leave space for a right-hand legend
+    plt.tight_layout(rect=[0, 0, 0.9, 1])
+    # fig.subplots_adjust(right=0.85)
+
+    # Add a single global legend to the figure
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="center left",
+        bbox_to_anchor=(0.9, 0.5),
+        title="Forecasting Model",
+    )
+
     plt.show()
 
 

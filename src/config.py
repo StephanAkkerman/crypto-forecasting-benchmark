@@ -20,7 +20,39 @@ mid_cap = ["LINK", "ETC", "XLM", "LTC", "TRX", "ATOM", "XMR"]
 small_cap = ["VET", "ALGO", "EOS", "CHZ", "IOTA", "NEO", "XTZ"]
 all_coins = large_cap + mid_cap + small_cap
 
+market_cap_dict = {
+    "BTC": 586_582_359_795,
+    "ETH": 251_325_536_962,
+    "BNB": 51_966_811_410,
+    "XRP": 26_933_378_690,
+    "ADA": 15_763_932_024,
+    "DOGE": 12_363_343_259,
+    "MATIC": 10_813_456_408,
+    # Mid
+    "LTC": 7_043_573_473,
+    "TRX": 5_993_703_041,
+    "LINK": 4_143_670_480,
+    "ETC": 3_107_711_056,
+    "XLM": 2_852_025_305,
+    "ATOM": 3_549_441_677,
+    "XMR": 2_968_462_104,
+    # Small
+    "VET": 1_866_409_658,
+    "ALGO": 1_673_942_369,
+    "EOS": 1_353_268_876,
+    "XTZ": 1_083_367_662,
+    "CHZ": 925_733_735,
+    "NEO": 915_645_133,
+    "IOTA": 627_241_565,
+}
+
 timeframes = ["1m", "15m", "4h", "1d"]
+tf_names = [
+    "One-Minute Timeframe",
+    "Fifteen-Minute Timeframe",
+    "Four-Hour Timeframe",
+    "Daily Timeframe",
+]
 
 # If GPU is available use it
 use_GPU = True

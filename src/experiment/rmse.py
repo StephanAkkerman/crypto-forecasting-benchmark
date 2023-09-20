@@ -78,6 +78,12 @@ def assign_mcap_category(crypto_index):
     raise ValueError(f"Invalid crypto index: {crypto_index}")
 
 
+def assign_mcap(crypto_index):
+    if crypto_index in config.market_cap_dict:
+        return config.market_cap_dict[crypto_index]
+
+    raise ValueError(f"Invalid crypto index: {crypto_index}")
+
 def build_rmse_database(
     pred: str = config.log_returns_pred, skip_existing: bool = True
 ):

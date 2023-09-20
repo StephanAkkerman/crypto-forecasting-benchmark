@@ -81,11 +81,11 @@ def section_4_1(time_frame):
 
 
 def section_4_2():
-    # baseline.tf_significance()
-    baseline.baseline_comparison_heatmap(pred=config.scaled_to_log_pred)
-    baseline.scaled_heatmap()
-    # baseline.tf_correlation()
-    # volatility.tf_significance()
+    data_properties.auto_correlation()
+    data_properties.trend()
+    data_properties.seasonality()
+    data_properties.heteroskedasticity()
+    data_properties.stochasticity()
 
 
 if __name__ == "__main__":
@@ -95,7 +95,9 @@ if __name__ == "__main__":
     # baseline.box_plot(config.log_returns_pred)
 
     # section_4_1("1m")
-    # data_properties.stochasticity()
+    data_properties.volatility_mcap()
+    # volatility.create_volatility_data()
 
     # Improve function to show all timeframes at once
-    volatility.mcap_rmse_boxplot()
+    # volatility.volatility_rmse_heatmap(config.scaled_to_log_pred)
+    # volatility.mcap_rmse_boxplot()

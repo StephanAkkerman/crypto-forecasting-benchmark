@@ -3,12 +3,11 @@ from collections import Counter
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-from statsmodels.formula.api import ols
-from scipy.stats import kruskal, mannwhitneyu
+from scipy.stats import mannwhitneyu, kruskal
 
 import config
-from experiment.rmse import read_rmse_csv
-from data_analysis.stochasticity import calc_hurst
+from experiment.rmse import read_rmse_csv, assign_mcap_category, assign_mcap
+from experiment.volatility import read_volatility_csv
 
 
 def high_auto_cor(test_type: str):
@@ -33,16 +32,18 @@ def high_auto_cor(test_type: str):
     return pivot_df[["Coin", "Time Frame", "Predominantly"]]
 
 
-def merge_rmse(df):
+def merge_rmse(df, avg: bool = True, merge: bool = True):
     # Add RMSE data to the DataFrame
     rmse_dfs = []
     for time_frame in config.timeframes:
         rmse_df = read_rmse_csv(
-            pred=config.log_returns_pred, time_frame=time_frame, avg=True
+            pred=config.log_returns_pred, time_frame=time_frame, avg=avg
         )
 
         # Add timeframe to it
         rmse_df["Time Frame"] = time_frame
+        rmse_df["Market Cap Category"] = rmse_df.index.map(assign_mcap_category)
+        rmse_df["Market Cap"] = rmse_df.index.map(assign_mcap)
 
         # Name index coin
         rmse_df["Coin"] = rmse_df.index
@@ -53,9 +54,29 @@ def merge_rmse(df):
     rmse_df = pd.concat(rmse_dfs, axis=0, ignore_index=True)
 
     # Add RMSE data to the DataFrame
-    df = pd.merge(df, rmse_df, how="inner", on=["Coin", "Time Frame"])
+    if merge:
+        return pd.merge(df, rmse_df, how="inner", on=["Coin", "Time Frame"])
+    return rmse_df
 
-    return df
+
+def mannwhiteny_test(
+    df,
+    group1_name: str,
+    group2_name: str,
+    result_column: str = "Result",
+    alternative: str = "less",
+):
+    for model in config.all_models:
+        # Separate the data into the two groups you wish to compare
+        group1 = df[df[result_column] == group1_name][model].dropna()
+
+        # This groupo should perform better (lower RMSE)
+        group2 = df[df[result_column] == group2_name][model].dropna()
+
+        # Perform the Mann-Whitney U test with 'less' as the alternative hypothesis
+        U, pval = mannwhitneyu(group2, group1, alternative=alternative)
+
+        print(f"Mann-Whitney U test for {model}: U-statistic={U}, p-value={pval}")
 
 
 def auto_correlation():
@@ -64,36 +85,23 @@ def auto_correlation():
     breusch = high_auto_cor("Breusch-Godfrey")
 
     # Find the overlap between the two DataFrames and determine the final 'Result'
-    overlap = pd.merge(
+    df = pd.merge(
         ljung,
         breusch,
         how="outer",
         on=["Coin", "Time Frame"],
         suffixes=("_ljung", "_breusch"),
     )
-    overlap["Result"] = np.where(
-        (overlap["Predominantly_ljung"] == "Autocorrelated")
-        & (overlap["Predominantly_breusch"] == "Autocorrelated"),
+    df["Result"] = np.where(
+        (df["Predominantly_ljung"] == "Autocorrelated")
+        & (df["Predominantly_breusch"] == "Autocorrelated"),
         "Autocorrelated",
         "Not Autocorrelated",
     )
 
-    overlap = overlap[["Coin", "Time Frame", "Result"]]
+    df = merge_rmse(df)
 
-    overlap = merge_rmse(overlap)
-
-    anova(overlap)
-
-
-def anova(df):
-    # Perform the ANOVA test
-    for model in config.all_models:  # Assuming Result is the last column
-        formula = (
-            f'{model} ~ C(Result) + C(Q("Time Frame")) + C(Result):C(Q("Time Frame"))'
-        )
-        lm = ols(formula, df).fit()
-        table = sm.stats.anova_lm(lm, typ=2)
-        print(f"ANOVA table for {model}:\n", table)
+    mannwhiteny_test(df, "Autocorrelated", "Not Autocorrelated")
 
 
 def find_majority(row):
@@ -124,14 +132,7 @@ def trend():
     # Add RMSE data to the DataFrame
     df = merge_rmse(df)
 
-    # Save test results
-    results = {}
-
-    for model in config.all_models:
-        groups = [df[df["Result"] == result][model] for result in df["Result"].unique()]
-        results[model] = mannwhitneyu(*groups)
-
-    print(results)
+    mannwhiteny_test(df, "trend", "no trend")
 
 
 def seasonality():
@@ -168,8 +169,7 @@ def seasonality():
 
 
 def heteroskedasticity():
-    # cond_het()
-
+    cond_het()
     uncon_het()
 
 
@@ -183,24 +183,20 @@ def uncon_het():
     # First test using breusch-pagan
     df = merge_rmse(df)
 
-    breusch_results = {}
-    for model in config.all_models:
-        groups = [
-            df[df["Breusch-Pagan"] == result][model]
-            for result in df["Breusch-Pagan"].unique()
-        ]
-        breusch_results[model] = mannwhitneyu(*groups)
+    # Rename column result to Result
+    df = df.rename(columns={"result": "Result"})
 
-    goldfeld_results = {}
-    for model in config.all_models:
-        groups = [
-            df[df["Goldfeld-Quandt"] == result][model]
-            for result in df["Goldfeld-Quandt"].unique()
-        ]
-        goldfeld_results[model] = mannwhitneyu(*groups)
+    mannwhiteny_test(df)
 
-    print(breusch_results)
-    print(goldfeld_results)
+    print("Results for Breusch-Pagan:")
+    mannwhiteny_test(
+        df, "heteroskedasticity", "homoskedasticity", result_column="Breusch-Pagan"
+    )
+
+    print("\nResults for Goldfeld-Quandt:")
+    mannwhiteny_test(
+        df, "heteroskedasticity", "homoskedasticity", result_column="Goldfeld-Quandt"
+    )
 
 
 def cond_het():
@@ -209,14 +205,9 @@ def cond_het():
     # Add RMSE data to the DataFrame
     df = merge_rmse(df)
 
-    # Save test results
-    results = {}
-
-    for model in config.all_models:
-        groups = [df[df["result"] == result][model] for result in df["result"].unique()]
-        results[model] = mannwhitneyu(*groups)
-
-    print(results)
+    mannwhiteny_test(
+        df, "heteroskedasticity", "homoskedasticity", result_column="result"
+    )
 
 
 def correlation():
@@ -228,16 +219,190 @@ def stochasticity():
 
     df = pd.read_csv(f"{config.statistics_dir}/hurst_log_returns.csv")
 
-    print(df["Result"].value_counts())
-
     # Add RMSE data to the DataFrame
     df = merge_rmse(df)
 
-    # Save test results
-    results = {}
+    mannwhiteny_test(df, "Brownian motion", "Positively correlated")
 
-    for model in config.all_models:
-        groups = [df[df["Result"] == result][model] for result in df["Result"].unique()]
-        results[model] = mannwhitneyu(*groups)
 
-    print(results)
+def volatility():
+    vol_dfs = []
+
+    for time_frame in config.timeframes:
+        vol_df = read_volatility_csv(time_frame=time_frame)
+        # Add timeframe to it
+        vol_df["Time Frame"] = time_frame
+
+        # Name index coin
+        vol_df["Coin"] = vol_df.index
+
+        vol_dfs.append(vol_df)
+
+    # Concatenate the DataFrames
+    vol_df = pd.concat(vol_dfs, axis=0, ignore_index=True)
+
+    df = merge_rmse(vol_df, avg=False)
+
+    # Initialize an empty DataFrame to store aggregated results
+    agg_results = pd.DataFrame()
+
+    for forecasting_model in config.all_models:
+        # Loop over the 5 periods
+        for period in range(config.n_periods):
+            # Get the index that corresponds to the period
+            train = [lst[period] for lst in df["train_volatility"]]
+            test = [lst[period] for lst in df["test_volatility"]]
+            y = [lst[period] for lst in df[forecasting_model]]
+
+            # Convert to dataframe
+            X = pd.DataFrame({"Train": train, "Test": test})
+            y = pd.Series(y, name="target")
+
+            # Add constant term for intercept
+            X = sm.add_constant(X)
+
+            # Fit regression model
+            model = sm.OLS(y, X).fit()
+
+            results = pd.DataFrame(
+                [
+                    {
+                        "Time Frame": time_frame,
+                        "Model": forecasting_model,
+                        "Period": period,
+                        "Intercept": model.params[0],
+                        "Train_Coef": model.params[1],
+                        "Test_Coef": model.params[2],
+                        "R-squared": model.rsquared,
+                        "P>|t|_Train": model.pvalues[1],
+                        "P>|t|_Test": model.pvalues[2],
+                        "F-statistic": model.fvalue,
+                    }
+                ]
+            )
+
+            # Append to the aggregated results DataFrame
+            agg_results = pd.concat([agg_results, results])
+
+    # Group by 'Model' and calculate the mean for each group
+    average_results = agg_results.groupby("Model").mean().reset_index()
+
+    print(average_results)
+
+
+def mcap(use_cat: bool = False):
+    df = merge_rmse(None, merge=False)
+
+    # For categories
+    if use_cat:
+        for model in config.all_models:
+            # Separate the data into the two groups you wish to compare
+            small = df[df["Market Cap Category"] == "Small"][model].dropna()
+
+            # This groupo should perform better (lower RMSE)
+            mid = df[df["Market Cap Category"] == "Mid"][model].dropna()
+
+            large = df[df["Market Cap Category"] == "Large"][model].dropna()
+
+            # Perform the Mann-Whitney U test with 'less' as the alternative hypothesis
+            U, pval = kruskal(small, mid, large)
+
+            print(f"Kruskal-Wallis test for {model}: U-statistic={U}, p-value={pval}")
+    else:
+        agg_results = pd.DataFrame()
+        for forecasting_model in config.all_models:
+            # Prepare the independent variable 'Seasonal Strength' and add a constant term for the intercept
+            X = sm.add_constant(df["Market Cap"])
+
+            # Prepare the dependent variable. This is for RandomForest. Repeat for other models.
+            y = df[forecasting_model]
+
+            # Perform linear regression
+            model = sm.OLS(y, X).fit()
+
+            results = pd.DataFrame(
+                [
+                    {
+                        "Model": forecasting_model,
+                        "Intercept": model.params[0],
+                        "Market Cap_Coef": model.params[1],
+                        "R-squared": model.rsquared,
+                        "P>|t|_Market Cap": model.pvalues[1],
+                        "F-statistic": model.fvalue,
+                    }
+                ]
+            )
+
+            # Append to the aggregated results DataFrame
+            agg_results = pd.concat([agg_results, results])
+        print(agg_results)
+
+
+def volatility_mcap(use_cat=False):
+    vol_dfs = []
+
+    for time_frame in config.timeframes:
+        vol_df = read_volatility_csv(time_frame=time_frame)
+        # Add timeframe to it
+        vol_df["Time Frame"] = time_frame
+
+        # Name index coin
+        vol_df["Market Cap"] = vol_df.index.map(assign_mcap)
+        vol_df["Market Cap Category"] = vol_df.index.map(assign_mcap_category)
+        vol_df["Coin"] = vol_df.index
+
+        vol_dfs.append(vol_df)
+
+    # Concatenate the DataFrames
+    df = pd.concat(vol_dfs, axis=0, ignore_index=True)
+
+    # For categories
+    if use_cat:
+        # for period in range(config.n_periods):
+        # Separate the data into the two groups you wish to compare
+        small = df[df["Market Cap Category"] == "Small"]["period_volatility"].dropna()
+
+        # This groupo should perform better (lower RMSE)
+        mid = df[df["Market Cap Category"] == "Mid"]["period_volatility"].dropna()
+
+        large = df[df["Market Cap Category"] == "Large"]["period_volatility"].dropna()
+
+        # Perform the Mann-Whitney U test with 'less' as the alternative hypothesis
+        U, pval = kruskal(small, mid, large)
+
+        print(f"Kruskal-Wallis test: U-statistic={U}, p-value={pval}")
+    else:
+        # Initialize an empty DataFrame to store aggregated results
+        agg_results = pd.DataFrame()
+
+        # Loop over the 5 periods
+        for period in range(config.n_periods):
+            # Get the index that corresponds to the period
+            X = df["Market Cap"]
+
+            y = [lst[period] for lst in df["period_volatility"]]
+            y = pd.Series(y, name="target")
+
+            # Add constant term for intercept
+            X = sm.add_constant(X)
+
+            # Fit regression model
+            model = sm.OLS(y, X).fit()
+
+            results = pd.DataFrame(
+                [
+                    {
+                        "Period": period,
+                        "Intercept": model.params[0],
+                        "Volatility_Coef": model.params[1],
+                        "R-squared": model.rsquared,
+                        "P>|t|_Volatility": model.pvalues[1],
+                        "F-statistic": model.fvalue,
+                    }
+                ]
+            )
+
+            # Append to the aggregated results DataFrame
+            agg_results = pd.concat([agg_results, results])
+
+        print(agg_results)
