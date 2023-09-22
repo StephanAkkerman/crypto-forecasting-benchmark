@@ -48,10 +48,10 @@ market_cap_dict = {
 
 timeframes = ["1m", "15m", "4h", "1d"]
 tf_names = [
-    "One-Minute Timeframe",
-    "Fifteen-Minute Timeframe",
-    "Four-Hour Timeframe",
-    "Daily Timeframe",
+    "One-Minute Time Frame",
+    "Fifteen-Minute Time Frame",
+    "Four-Hour Time Frame",
+    "Daily Time Frame",
 ]
 
 # If GPU is available use it

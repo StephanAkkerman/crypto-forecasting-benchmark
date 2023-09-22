@@ -9,8 +9,10 @@ from experiment import (
     volatility,
     baseline,
     data_properties,
+    data_timespan,
 )
 import config
+from data_analysis import volatility_analysis
 
 
 def model_performance(pred: str, time_frame: str):
@@ -51,6 +53,8 @@ def section_4_1(time_frame):
     if time_frame == "1d":
         models = ["ARIMA", "LightGBM", "TCN", "TBATS", "LSTM"]
         coin = "ETH"
+        # Only use this when time_frame is 1d
+        boxplots.complete_models_boxplot(preds=config.raw_preds, time_frame=time_frame)
     elif time_frame == "4h":
         models = ["ARIMA", "LightGBM", "TCN", "TBATS", "RNN"]
         coin = "TRX"
@@ -60,11 +64,9 @@ def section_4_1(time_frame):
     elif time_frame == "1m":
         models = ["ARIMA", "LightGBM", "TCN", "TBATS", "LSTM"]
         coin = "LTC"
-    # Only use this when time_frame is 1d
-    # boxplots.complete_models_boxplot(preds=config.raw_preds, time_frame=time_frame)
 
     # Black and white boxplots of all models and all datasets
-    # boxplots.complete_models_boxplot(time_frame=time_frame)
+    boxplots.complete_models_boxplot(time_frame=time_frame)
 
     # rmse.rmse_means(preds=config.log_preds, time_frame=time_frame)
     boxplots.plt_forecasting_models_comparison(
@@ -88,6 +90,17 @@ def section_4_2():
     data_properties.stochasticity()
 
 
+def section_4_3():
+    # volatility.volatility_rmse_heatmap(config.scaled_to_log_pred)
+    volatility.mcap_rmse_boxplot()
+    data_properties.mcap()
+    data_properties.volatility_mcap()
+
+
+def section_4_4():
+    data_timespan.plt_extended_model_rmse()
+
+
 if __name__ == "__main__":
     # section_4_2()
     # baseline.scaled_heatmap()
@@ -95,9 +108,12 @@ if __name__ == "__main__":
     # baseline.box_plot(config.log_returns_pred)
 
     # section_4_1("1m")
-    data_properties.volatility_mcap()
+    # data_properties.coin_correlation()
     # volatility.create_volatility_data()
 
     # Improve function to show all timeframes at once
-    # volatility.volatility_rmse_heatmap(config.scaled_to_log_pred)
-    # volatility.mcap_rmse_boxplot()
+
+    # section_4_4()
+
+    # Redo this code:
+    volatility_analysis.plot_periods()

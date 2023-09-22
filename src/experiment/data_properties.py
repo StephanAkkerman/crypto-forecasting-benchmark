@@ -3,11 +3,14 @@ from collections import Counter
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
+import matplotlib.pyplot as plt
+import seaborn as sn
 from scipy.stats import mannwhitneyu, kruskal
 
 import config
 from experiment.rmse import read_rmse_csv, assign_mcap_category, assign_mcap
 from experiment.volatility import read_volatility_csv
+from experiment.baseline import get_all_baseline_comparison
 
 
 def high_auto_cor(test_type: str):
@@ -406,3 +409,84 @@ def volatility_mcap(use_cat=False):
             agg_results = pd.concat([agg_results, results])
 
         print(agg_results)
+
+
+def time_frames(pred: str = config.log_returns_pred):
+    dfs = get_all_baseline_comparison(pred=pred)
+
+    # Add time frame to it
+    for i, time_frame in enumerate(config.timeframes):
+        dfs[i]["Time Frame"] = time_frame
+
+    # Merge dfs
+    df = pd.concat(dfs)
+
+    for model in config.all_models:
+        if model == "ARIMA":
+            continue
+
+        # Separate the data into the two groups you wish to compare
+        tf_1m = df[df["Time Frame"] == "1m"][model].dropna()
+
+        # This groupo should perform better (lower RMSE)
+        tf_15m = df[df["Time Frame"] == "15m"][model].dropna()
+
+        tf_4h = df[df["Time Frame"] == "4h"][model].dropna()
+
+        tf_1d = df[df["Time Frame"] == "1d"][model].dropna()
+
+        # Perform the Mann-Whitney U test with 'less' as the alternative hypothesis
+        U, pval = kruskal(tf_1m, tf_15m, tf_4h, tf_1d)
+
+        print(f"Kruskal-Wallis test for {model}: U-statistic={U}, p-value={pval}")
+
+
+def coin_correlation(show_heatmap=True, time_frame="1d"):
+    df = merge_rmse(None, merge=False)
+    df = df[df["Time Frame"] == time_frame]
+    df = df[["Coin"] + config.all_models]
+    # Set coin as column
+    df = df.set_index("Coin", drop=True)
+
+    if show_heatmap:
+        # Plot heatmap
+        sn.heatmap(df.corr(), annot=True, cmap="coolwarm", vmin=0, vmax=1)
+        plt.show()
+
+    # Perform linear regression
+    agg_results = pd.DataFrame()
+    for coin in config.all_coins:
+        X = df.loc[coin]
+
+        for coin2 in config.all_coins:
+            if coin == coin2:
+                continue
+            y = df.loc[coin2]
+
+            # Add constant term for intercept
+            X = sm.add_constant(X)
+
+            # Fit regression model
+            model = sm.OLS(y, X).fit()
+
+            results = pd.DataFrame(
+                [
+                    {
+                        "Coins": f"{coin}-{coin2}",
+                        "Intercept": model.params[0],
+                        "Coef": model.params[1],
+                        "R-squared": model.rsquared,
+                        "P>|t|": model.pvalues[1],
+                        "F-statistic": model.fvalue,
+                    }
+                ]
+            )
+
+            # Append to the aggregated results DataFrame
+            agg_results = pd.concat([agg_results, results])
+
+    print(agg_results)
+
+
+def extended_performance():
+    pass

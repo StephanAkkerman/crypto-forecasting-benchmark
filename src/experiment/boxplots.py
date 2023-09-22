@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 import config
-from experiment.rmse import read_rmse_csv, extended_rmse_df
+from experiment.rmse import read_rmse_csv
 from experiment.utils import get_predictions
 
 
@@ -294,21 +294,41 @@ def plt_boxplot(
     plt.show()
 
 
-def plt_boxplots(dfs: list, models: list, outliers_percentile: int, y_min: int):
+def plt_boxplots(
+    dfs: list,
+    models: list,
+    outliers_percentile: int,
+    y_min: int,
+    use_hatches: bool = False,
+    fontsize: int = 12,
+):
     """
-    Plot a boxplot of the RMSEs for each DataFrame in dfs on the same plot.
+     Plot a boxplot of the RMSEs for each DataFrame in dfs on the same plot.
 
     Parameters
     ----------
-    dfs: list of DataFrames
-    models: list of model names
-    ignore_outliers: bool
+    dfs : list
+        For instance a list of RMSE dataframes
+    models : list
+        The names of the models, column values in the dataframes
+    outliers_percentile : int
+        The percentile to use for the y-axis limits
+    y_min : int
+        The minimum value for the y-axis
+    use_hatches : bool, optional
+        If True gray scale values will be used, by default False
+    fontsize : int, optional
+        The size of the legend text and x and y-tick labels, by default 12
     """
 
     # Create a figure and axis
-    _, ax = plt.subplots(figsize=(15, 6))
+    _, ax = plt.subplots(figsize=(20, 8))
 
-    hatches = ["", "\\\\\\", "///"]
+    if use_hatches:
+        fill_styles = ["", "\\\\\\", "///"]
+    else:
+        fill_styles = plt.cm.Accent.colors
+
     legend_handles = []
 
     # Assuming all DataFrames have the same columns
@@ -329,21 +349,31 @@ def plt_boxplots(dfs: list, models: list, outliers_percentile: int, y_min: int):
     # Width of each boxplot group
     x_positions = np.arange(len(labels))
 
-    for i, (hatch, df) in enumerate(zip(hatches, dfs)):
+    for i, (style, df) in enumerate(zip(fill_styles, dfs)):
         box_data = [df[col] for col in labels]
 
         # Offsetting positions for each DataFrame's boxplots
         positions = x_positions + (i - n_dfs / 2) * 0.2 + 0.1
 
-        # Create the boxplot with custom hatches
+        # Create the boxplot
         bp = ax.boxplot(box_data, positions=positions, patch_artist=True, widths=0.1)
 
         for patch in bp["boxes"]:
-            patch.set(facecolor="white", hatch=hatch)
+            if use_hatches:
+                patch.set(facecolor="white", hatch=style)
+            else:
+                patch.set(facecolor=style)
 
         # Create a custom legend handle
         legend_handles.append(
-            Rectangle((0, 0), 1, 1, facecolor="white", edgecolor="black", hatch=hatch)
+            Rectangle(
+                (0, 0),
+                1,
+                1,
+                facecolor="white" if use_hatches else style,
+                edgecolor="black",
+                hatch=style if use_hatches else None,
+            )
         )
 
     # Calculate the average position for each group of boxplots
@@ -355,9 +385,15 @@ def plt_boxplots(dfs: list, models: list, outliers_percentile: int, y_min: int):
     # Set the x-ticks to the average positions
     ax.set_xticks(average_positions)
 
-    # Set the x-tick labels
-    ax.set_xticklabels(labels, rotation=45, ha="right")
-    ax.legend(legend_handles, [config.pred_names[m] for m in models], loc="best")
+    # Adjust y-tick label font size
+    ax.tick_params(axis="y", labelsize=fontsize)
+    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=fontsize)
+    ax.legend(
+        legend_handles,
+        [config.pred_names[m] for m in models],
+        loc="best",
+        fontsize=fontsize,
+    )
     # ax.set_title(f"The boxplots of RMSEs for each model on the {time_frame} time frame")
     ax.set_ylabel("RMSE")
     ax.set_xlabel("Forecasting Model")
@@ -374,6 +410,8 @@ def plt_single_df_boxplots(
     x_label: str = "Cryptocurrency",
     y_label: str = "RMSE",
     rotate_xlabels: bool = False,
+    fontsize: int = 12,
+    first_white: bool = False,
 ):
     """
     Plot a boxplot of the RMSEs for each item in a single DataFrame.
@@ -386,11 +424,11 @@ def plt_single_df_boxplots(
     """
 
     # Create a figure and axis
-    fig, ax = plt.subplots(figsize=(15, 6))
+    fig, ax = plt.subplots(figsize=(20, 8))
 
     hatches = ["", "\\\\\\", "///", "---", "|||"]  # Custom hatches
     colors = plt.cm.Accent.colors
-    if x_label == "Period":
+    if first_white:
         # Add white in front
         colors = ((1.0, 1.0, 1.0),) + colors
 
@@ -469,18 +507,130 @@ def plt_single_df_boxplots(
     # Set the x-ticks to the average positions
     ax.set_xticks(average_positions)
     if rotate_xlabels:
-        ax.set_xticklabels(labels, rotation=45, ha="center")
+        ax.set_xticklabels(labels, rotation=45, ha="center", fontsize=fontsize)
     else:
-        ax.set_xticklabels(labels, ha="center")
+        ax.set_xticklabels(labels, ha="center", fontsize=fontsize)
 
     # Add legend
-    ax.legend(legend_handles, list(df.columns), loc="best")
+    ax.legend(legend_handles, list(df.columns), loc="best", fontsize=fontsize)
 
     # Add title and labels
     ax.set_ylabel(y_label)
     ax.set_xlabel(x_label)
 
+    ax.tick_params(axis="y", labelsize=fontsize)
+
     plt.tight_layout()
+    plt.show()
+
+
+def plt_multiple_df_boxplots(
+    dfs: list,
+    use_hatches: bool = False,
+    outliers_percentile: int = 100,
+    y_min: int = 0,
+    x_label: str = "Cryptocurrency",
+    y_label: str = "RMSE",
+    rotate_xlabels: bool = False,
+    fontsize: int = 12,
+    first_white: bool = False,
+):
+    """
+    Plot a boxplot of the RMSEs for each DataFrame in dfs on the same plot.
+
+    Parameters
+    ----------
+    dfs: list of DataFrames
+    use_hatches: bool, optional
+        Whether to use hatches or distinct colors
+    """
+    # Create a figure and axes
+    fig, axs = plt.subplots(2, 2, figsize=(20, 8))  # Adjust figsize as needed
+    axs = axs.flatten()  # Flatten the array of axes for easier indexing
+
+    hatches = ["", "\\\\\\", "///", "---", "|||"]  # Custom hatches
+    colors = plt.cm.Accent.colors
+    if first_white:
+        # Add white in front
+        colors = ((1.0, 1.0, 1.0),) + colors
+
+    legend_handles = []
+
+    for ax_idx, df in enumerate(dfs):
+        ax = axs[ax_idx]  # Select the current axis
+
+        if type(outliers_percentile) == int:
+            all_data = np.concatenate(df.values.flatten())
+            all_data = all_data[~np.isnan(all_data)]
+            if y_min:
+                ax.set_ylim(y_min, np.percentile(all_data, outliers_percentile))
+            else:
+                ax.set_ylim(
+                    np.min(all_data), np.percentile(all_data, outliers_percentile)
+                )
+
+        labels = df.index.tolist()
+        group_width = 0.8
+        n_cols = len(df.columns)
+        box_width = group_width / n_cols
+        x_positions = np.arange(len(labels))
+        average_positions = []
+
+        for i, column in enumerate(df.columns):
+            box_data = [df.loc[row, column] for row in df.index]
+            box_data = [[x for x in sublist if str(x) != "nan"] for sublist in box_data]
+            offset = (i - n_cols / 2) * box_width + box_width / 2
+            positions = x_positions + offset
+            if i == 0:
+                average_positions = positions
+            else:
+                average_positions = [
+                    a + b for a, b in zip(average_positions, positions)
+                ]
+            bp = ax.boxplot(
+                box_data, positions=positions, patch_artist=True, widths=box_width
+            )
+            for patch in bp["boxes"]:
+                if use_hatches:
+                    patch.set(facecolor="white", hatch=hatches[i])
+                else:
+                    patch.set(facecolor=colors[i])
+
+        average_positions = [pos / n_cols for pos in average_positions]
+        ax.set_xticks(average_positions)
+        if rotate_xlabels:
+            ax.set_xticklabels(labels, rotation=45, ha="center", fontsize=fontsize)
+        else:
+            ax.set_xticklabels(labels, ha="center", fontsize=fontsize)
+        ax.set_ylabel(y_label)
+        ax.set_xlabel(x_label)
+        ax.tick_params(axis="y", labelsize=fontsize)
+        ax.set_title(config.tf_names[ax_idx])
+
+    # Add legend for all subplots
+    for i in range(n_cols):
+        legend_handles.append(
+            Rectangle(
+                (0, 0),
+                1,
+                1,
+                facecolor=colors[i] if not use_hatches else "white",
+                edgecolor="black",
+                hatch=hatches[i] if use_hatches else None,
+            )
+        )
+    plt.tight_layout(rect=[0, 0, 0.95, 1])
+
+    fig.legend(
+        legend_handles,
+        list(dfs[0].columns),
+        loc="center right",
+        fontsize=fontsize,
+        borderaxespad=0.0,
+        bbox_to_anchor=(1, 0.5),
+        title="Forecasting Model",
+    )
+
     plt.show()
 
 
@@ -563,70 +713,6 @@ def complete_models_boxplot(
     )
 
 
-def plotly_extended_model_rmse(time_frame):
-    df = extended_rmse_df(time_frame=time_frame)
-
-    # Change index
-    labels = [f"Until Period {i}" for i in df.index.tolist()]
-    df.index = labels
-
-    plotly_boxplot(df=df.T, labels=labels, plot_items=config.ml_models)
-
-
-def plt_extended_model_rmse(time_frame: str):
-    # Get RMSE data
-    rmse_df = read_rmse_csv(pred=config.extended_model, time_frame=time_frame)
-
-    data = {}
-    for model in rmse_df.columns:
-        # Get the RMSEs for the given model
-        data[model] = rmse_df[model].iloc[: config.n_periods].tolist()
-
-    n_models = len(data)
-    n_periods = len(next(iter(data.values())))
-
-    # Generate a list of unique colors for each model
-    colors = plt.cm.viridis(np.linspace(0, 1, n_models))
-
-    _, ax = plt.subplots(figsize=(12, 8))
-
-    # For each period
-    for period in range(n_periods):
-        # For each model
-        for model_idx, model_name in enumerate(data):
-            # Plot the boxplot for this model and this period with the model's unique color
-            box = ax.boxplot(
-                data[model_name][period],
-                positions=[period * n_models + model_idx],
-                widths=0.6,
-                patch_artist=True,
-            )
-            for patch in box["boxes"]:
-                patch.set_facecolor(colors[model_idx])
-
-    # Set the x-ticks for each model within each period
-    ax.set_xticks([i for i in range(n_models * n_periods)])
-
-    # Set the x-tick labels to be the model names, repeated for each period
-    ax.set_xticklabels(list(data.keys()) * n_periods, rotation=45, ha="right")
-
-    ax.set_title("Comparison of RMSE values across models and periods")
-    ax.set_xlabel("Period and Model")
-    ax.set_ylabel("RMSE")
-
-    # Create a custom legend
-    from matplotlib.lines import Line2D
-
-    legend_elements = [
-        Line2D([0], [0], color=colors[i], lw=4, label=model_name)
-        for i, model_name in enumerate(data)
-    ]
-    ax.legend(handles=legend_elements)
-
-    plt.tight_layout()
-    plt.show()
-
-
 def prediction_boxplots(
     pred: str = config.log_returns_pred,
     time_frame: str = config.timeframes[-1],
@@ -687,4 +773,5 @@ def prediction_boxplots(
         x_label="Period",
         y_label="Logarithmic Returns",
         rotate_xlabels=False,
+        first_white=True,
     )
