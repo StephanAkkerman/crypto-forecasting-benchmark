@@ -35,7 +35,7 @@ def high_auto_cor(test_type: str):
     return pivot_df[["Coin", "Time Frame", "Predominantly"]]
 
 
-def merge_rmse(df, avg: bool = True, merge: bool = True):
+def merge_rmse(df, avg: bool = True, merge: bool = True, pred=config.log_returns_pred):
     # Add RMSE data to the DataFrame
     rmse_dfs = []
     for time_frame in config.timeframes:
@@ -489,4 +489,17 @@ def coin_correlation(show_heatmap=True, time_frame="1d"):
 
 
 def extended_performance():
-    pass
+    df = merge_rmse(None, avg=False, merge=False, pred=config.extended_pred)
+
+    for time_frame in config.timeframes:
+        tf_df = df[df["Time Frame"] == time_frame]
+        print(time_frame)
+        for model in config.ml_models:
+            periods = []
+            for p in range(config.n_periods):
+                periods.append(tf_df[model].str[p].to_list())
+
+            # Perform kruskal test
+            U, pval = kruskal(*periods)
+
+            print(f"Kruskal-Wallis test for {model}: U-statistic={U}, p-value={pval}")

@@ -85,8 +85,8 @@ model_output_dir = "output/model_output"
 # Prediction output names
 log_returns_pred = "log_returns"
 raw_pred = "raw"
-extended_pred = "extended"
 scaled_pred = "scaled"
+extended_pred = "extended"
 
 # Transformed predictions
 log_to_raw_pred = "log_to_raw"
@@ -95,8 +95,10 @@ scaled_to_log_pred = "scaled_to_log"
 scaled_to_raw_pred = "scaled_to_raw"
 extended_to_raw_pred = "extended_to_raw"
 
-# Stress test output
-stress_test_dir = "output/stress_test"
+# Stress test prediction
+log_returns_stress_pred = "log_returns_stress"
+raw_stress_pred = "raw_stress"
+scaled_stress_pred = "scaled_stress"
 
 # Fancy model names dict
 pred_names = {

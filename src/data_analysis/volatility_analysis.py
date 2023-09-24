@@ -3,21 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
+import matplotlib.dates as mdates
 import plotly.graph_objects as go
 
 # Local imports
-from config import (
-    all_coins,
-    timeframes,
-    small_cap,
-    mid_cap,
-    large_cap,
-    plots_dir,
-    n_periods,
-    test_percentage,
-    val_percentage,
-)
+import config
 from data.csv_data import read_csv
+from experiment.train_test import get_train_test
 
 
 def volatility_tests():
@@ -30,7 +22,12 @@ def volatility_tests():
     get_percentiles(display=True)
 
 
-def plot_periods(timeframe="1d", coin: str = None, show_validation: bool = True):
+def plot_periods(
+    timeframe="1d",
+    coin: str = None,
+    show_validation: bool = True,
+    show_periods: bool = True,
+):
     """
     Plots the number of periods and the training, validation, and testing periods.
 
@@ -48,21 +45,32 @@ def plot_periods(timeframe="1d", coin: str = None, show_validation: bool = True)
         volatility_df = get_volatility(coin, timeframe)
         alpha = 1
 
-    # Plot the volatility data
-    ax = volatility_df.plot(figsize=(12, 6), alpha=alpha, color="grey", legend=False)
+    # Create a figure and axis
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    # Plot the volatility data using Matplotlib
+    for column in volatility_df.columns:
+        ax.plot(
+            volatility_df.index,
+            volatility_df[column],
+            alpha=alpha,
+            color="grey",
+            label="_nolegend_",
+        )
 
     # Get the lines for the average volatility, median volatility, and 0.75 and 0.25 percentiles
-    avg_line, _, overall_q3_line, overall_q1_line = plot_lines(volatility_df)
+    avg_line, _, overall_q3_line, overall_q1_line = plot_lines(volatility_df, ax)
 
     # Get the lines for the training, validation, and testing periods
-    training_lines, validation_lines, testing_lines = plot_train_test_periods(
-        volatility_df, ax, show_validation=show_validation
-    )
+    if show_periods:
+        training_lines, validation_lines, testing_lines = plot_train_test_periods(
+            time_frame=timeframe, ax=ax, show_validation=show_validation
+        )
 
     # Create first legend
     first_legend = ax.legend(
         handles=[avg_line[0], overall_q3_line, overall_q1_line],
-        loc="best",
+        loc="center right",
     )
 
     # Add the first legend manually to the current Axes.
@@ -73,57 +81,110 @@ def plot_periods(timeframe="1d", coin: str = None, show_validation: bool = True)
     else:
         handles = [training_lines[0], testing_lines[0]]
 
-    # Create second legend
-    ax.legend(
-        handles=handles,
-        loc="upper center",
-        ncols=3,
-        bbox_to_anchor=(0.5, 1.05),
-    )
+    # Create second legend (for the training, validation, and testing periods)
+    if show_periods:
+        ax.legend(
+            handles=handles,
+            loc="upper center",
+            ncols=3,
+            bbox_to_anchor=(0.5, 1.05),
+        )
 
     ax.set_ylabel("Volatility")
     ax.set_xlabel("Date")
+
+    # Set x-axis limits
+    ax.set_xlim(volatility_df.index.min(), volatility_df.index.max())
 
     plt.show()
 
 
-def plot_all_volatilies(timeframe="1d"):
+def plot_all_periods(
+    show_validation: bool = False,
+    fontsize: int = 12,
+):
     """
-    Plots the volatility of all cryptocurrencies and the average volatility.
+    Plots the number of periods and the training, validation, and testing periods.
 
     Parameters
     ----------
     timeframe : str, optional
-        The time frame to use, by default "1d"
+        The time frame of the data, by default "1d"
     """
 
-    volatility_df = get_all_volatility_data(timeframe=timeframe)
+    # Create a figure with 4 subplots, arranged in a 2x2 grid
+    fig, axs = plt.subplots(2, 2, figsize=(20, 12))
+    axs = axs.flatten()  # Flatten the array of axes for easy iteration
 
-    ax = volatility_df.plot(figsize=(12, 6), alpha=0.3, legend=False)
+    # Create empty lists to collect legend handles and labels
+    legend_handles = []
+    legend_labels = []
 
-    # Calculate the average of all volatilities
-    avg_volatility = volatility_df.mean(axis=1)
+    for i, time_frame in enumerate(config.timeframes):
+        # Get the volatility data
+        volatility_df = get_all_volatility_data(time_frame)
+        alpha = 0.2
 
-    # Plot the average volatility as a big red line with increased width
-    avg_line = plt.plot(
-        avg_volatility, color="red", linewidth=2, label="Average Volatility"
+        ax = axs[i]  # Select the current axis
+
+        # Plot the volatility data using Matplotlib
+        for column in volatility_df.columns:
+            ax.plot(
+                volatility_df.index,
+                volatility_df[column],
+                alpha=alpha,
+                color="grey",
+                label="_nolegend_",
+            )
+
+        # Get the lines for the average volatility, median volatility, and 0.75 and 0.25 percentiles
+        avg_line, _, overall_q3_line, overall_q1_line = plot_lines(volatility_df, ax)
+
+        # Collect legend handles and labels for the volatility lines
+        if i == 0:
+            legend_handles.extend([avg_line[0], overall_q3_line, overall_q1_line])
+            legend_labels.extend(
+                ["Average Volatility", "75th Percentile", "25th Percentile"]
+            )
+
+        # Get the lines for the training, validation, and testing periods
+        training_lines, validation_lines, testing_lines = plot_train_test_periods(
+            time_frame=time_frame, ax=ax, show_validation=show_validation
+        )
+
+        if show_validation:
+            handles = [training_lines[0], validation_lines[0], testing_lines[0]]
+            labels = ["Training", "Validation", "Testing"]
+        else:
+            handles = [training_lines[0], testing_lines[0]]
+            labels = ["Training", "Testing"]
+
+        # Collect legend handles and labels for the training, validation, and testing lines
+        if i == 0:
+            legend_handles.extend(handles)
+            legend_labels.extend(labels)
+
+        ax.set_ylabel("Volatility")
+        ax.set_xlabel("Date")
+
+        # Set x-axis limits
+        ax.set_xlim(volatility_df.index.min(), volatility_df.index.max())
+        ax.set_title(config.tf_names[i])  # Set the title for each subplot
+
+        # Incrase the font size of the x-axis and y-axis ticks
+        # ax.tick_params(axis="both", labelsize=fontsize)
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])  # Adjust the layout to prevent overlapping
+
+    # Create the legend for the entire figure
+    fig.legend(
+        legend_handles,
+        legend_labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1),
+        ncol=len(legend_handles),
+        fontsize=fontsize,
     )
-
-    # Calculate the overall average of the avg_volatility and plot it as a horizontal blue line
-    overall_avg_volatility = avg_volatility.mean()
-    overall_avg_line = plt.axhline(
-        y=overall_avg_volatility,
-        color="blue",
-        linewidth=2,
-        label="Overall Average Volatility",
-    )
-
-    # Show legends only for the average volatility and overall average volatility lines
-    ax.legend(handles=[avg_line[0], overall_avg_line], loc="best")
-
-    # Set y-axis title
-    ax.set_ylabel("Volatility")
-    ax.set_xlabel("Date")
 
     plt.show()
 
@@ -175,7 +236,6 @@ def window_analysis(coin="BTC", time="1d"):
     # Change x-axis labels
     axes[-1].set_xlabel("Date")  # Only set x-axis label for the last subplot
 
-    plt.savefig(f"{plots_dir}/window_analysis.png")
     plt.show()
 
 
@@ -263,7 +323,6 @@ def vol_diff(selected_coin: str = "BTC", timeframe: str = "1d"):
     ax1.set_xlabel("")
     ax2.set_xlabel("Date")
 
-    plt.savefig(f"{plots_dir}/volatility_difference.png")
     plt.show()
 
 
@@ -284,11 +343,11 @@ def avg_vol(timeframe: str = "1d") -> float:
 
     total_vol = 0
 
-    for coin in all_coins:
+    for coin in config.all_coins:
         coin = read_csv(coin, timeframe, ["volatility"]).dropna()
         total_vol += coin["volatility"].mean()
 
-    return total_vol / len(all_coins)
+    return total_vol / len(config.all_coins)
 
 
 def plot_percentiles(timeframe="1d"):
@@ -303,7 +362,7 @@ def plot_percentiles(timeframe="1d"):
 
     volatility_df = pd.DataFrame()
 
-    for coin in all_coins:
+    for coin in config.all_coins:
         coin_df = read_csv(coin, timeframe, ["volatility"]).dropna()
 
         # Set the index to the dates from coin_df
@@ -357,7 +416,6 @@ def plot_percentiles(timeframe="1d"):
     ax.set_ylabel("Volatility")
     ax.set_xlabel("Date")
 
-    plt.savefig(f"{plots_dir}/volatility_percentiles.png")
     plt.show()
 
 
@@ -377,7 +435,7 @@ def get_percentiles():
     Displays the 25th and 75th percentile for each time frame.
     """
 
-    for timeframe in timeframes:
+    for timeframe in config.timeframes:
         quantile25, quantile75 = get_percentile(
             get_all_volatility_data(timeframe=timeframe)
         )
@@ -417,7 +475,7 @@ def get_all_volatility_data(timeframe: str = "1d") -> pd.DataFrame:
     # Save the data in this dataframe
     volatility_df = pd.DataFrame()
 
-    for coin in all_coins:
+    for coin in config.all_coins:
         volatility_df = pd.concat(
             [volatility_df, get_volatility(coin, timeframe)], axis=1
         )
@@ -458,7 +516,7 @@ def calculate_percentiles(volatility_df: pd.DataFrame):
     return overall_median_volatility, overall_q3_volatility, overall_q1_volatility
 
 
-def plot_lines(volatility_df: pd.DataFrame):
+def plot_lines(volatility_df: pd.DataFrame, ax: plt.Axes):
     """
     Plots the average volatility, median volatility, and 0.75 and 0.25 percentiles.
 
@@ -466,63 +524,62 @@ def plot_lines(volatility_df: pd.DataFrame):
     ----------
     volatility_df : pd.DataFrame
         The dataframe to plot the lines for
+    ax : plt.Axes
+        The axes on which to plot the data, by default None
 
     Returns
     -------
     matplotlib.lines.Line2D, matplotlib.lines.Line2D, matplotlib.lines.Line2D, matplotlib.lines.Line2D
         The lines for the average volatility, median volatility, 0.75 percentile, and 0.25 percentile
     """
-
     avg_volatility = volatility_df.mean(axis=1)
-    avg_line = plt.plot(
+
+    # Get the x-axis values
+    # x = ax.get_xticks()
+
+    # Fill the area between the average volatility and the x-axis
+    # x_values = np.linspace(x[0], x[-1], len(avg_volatility))
+
+    avg_line = ax.plot(
+        volatility_df.index,  # Assuming the index is the x-axis
         avg_volatility,
         color="dodgerblue",
         linewidth=2.5,
         alpha=0.7,
         label="Average Volatility",
     )
-
     (
-        overall_median_volatility,
+        _,
         overall_q3_volatility,
         overall_q1_volatility,
     ) = calculate_percentiles(volatility_df)
 
-    # overall_median_line = plt.axhline(
-    #    y=overall_median_volatility,
-    #    color="lime",
-    #    linewidth=2,
-    #    alpha=0.7,
-    #    label="Overall Median Volatility",
-    # )
-    overall_q3_line = plt.axhline(
+    overall_q3_line = ax.axhline(
         y=overall_q3_volatility,
         color="lime",
         linewidth=2,
         alpha=0.7,
-        label="Overall 75th Percentile Volatility",
+        label="75th Percentile",
     )
-    overall_q1_line = plt.axhline(
+    overall_q1_line = ax.axhline(
         y=overall_q1_volatility,
         color="darkred",
         linewidth=2,
         alpha=0.7,
-        label="Overall 25th Percentile Volatility",
+        label="25th Percentile",
     )
 
     return avg_line, None, overall_q3_line, overall_q1_line
 
 
-def plot_train_test_periods(
-    volatility_df: pd.DataFrame, ax: plt.Axes, show_validation: bool
-):
+def plot_train_test_periods(time_frame: str, ax: plt.Axes, show_validation: bool):
     """
     Plots the training, validation, and testing periods on the graph.
 
     Parameters
     ----------
-    volatility_df : pd.DataFrame
-        The dataframe containing the volatility data for all coins.
+    time_frame: str
+        The time frame of the data
     ax : plt.Axes
         The axes to plot the lines on.
 
@@ -532,48 +589,31 @@ def plot_train_test_periods(
         The lines for the training, validation, and testing periods.
     """
 
-    ts_length = 999
-    test_size = int(ts_length / (1 / test_percentage - 1 + n_periods))
-    train_size = int(test_size * (1 / test_percentage - 1))
-    val_size = int(val_percentage * train_size)
+    train_set, test_set, _ = get_train_test(time_frame=time_frame)
 
-    if show_validation:
-        train_size = train_size - val_size
+    # Set the size of the validation set
+    val_size = int(config.val_percentage * len(train_set[0]))
 
     _, ymax = ax.get_ylim()
+    line_start = ymax * 1.25
 
-    line_start = ymax * 2
+    # Save the lines for the training, validation, and testing periods
     training_lines = []
     validation_lines = []
     testing_lines = []
-    for i in range(n_periods):
-        train_start = i * test_size
-        train_end = train_start + train_size
 
-        date_min = volatility_df.index.min()
-        date_max = volatility_df.index.max()
+    for i in range(config.n_periods):
+        train_start = mdates.date2num(train_set[i].start_time())
+        test_start = mdates.date2num(test_set[i].start_time())
+        test_end = mdates.date2num(test_set[i].end_time())
+        val_start = mdates.date2num(train_set[i][-val_size].end_time())
 
-        train_line_start = (volatility_df.index[train_start] - date_min) / (
-            date_max - date_min
-        )
-        train_line_end = (volatility_df.index[train_end] - date_min) / (
-            date_max - date_min
-        )
-        val_end = (volatility_df.index[train_end + val_size] - date_min) / (
-            date_max - date_min
-        )
-        test_end = (volatility_df.index[min(train_end + test_size, 968)] - date_min) / (
-            date_max - date_min
-        )
-
-        if not show_validation:
-            train_line_end = val_end
-
+        # Plot the lines and save them
         training_lines.append(
-            plt.axhline(
+            ax.hlines(
                 y=line_start,
-                xmin=train_line_start,
-                xmax=train_line_end,
+                xmin=train_start,
+                xmax=val_start if show_validation else test_start,
                 color="blue",
                 linewidth=4,
                 label="Training Periods",
@@ -581,26 +621,28 @@ def plot_train_test_periods(
         )
         if show_validation:
             validation_lines.append(
-                plt.axhline(
+                ax.hlines(
                     y=line_start,
-                    xmin=train_line_end,
-                    xmax=val_end,
+                    xmin=val_start,
+                    xmax=test_start,
                     color="green",
                     linewidth=4,
                     label="Validation Periods",
                 )
             )
         testing_lines.append(
-            plt.axhline(
+            ax.hlines(
                 y=line_start,
-                xmin=val_end,
+                xmin=test_start,
                 xmax=test_end,
                 color="red",
                 linewidth=4,
                 label="Test Periods",
             )
         )
-        line_start -= ymax * 0.1
+
+        # Shift the line start down
+        line_start -= ymax * 0.04
 
     return training_lines, validation_lines, testing_lines
 
@@ -621,9 +663,9 @@ def plotly_volatility(time_frame="1d", percentile_per_group=False):
     vol_df = get_all_volatility_data(time_frame)
 
     # Group by coin
-    small_cap_df = vol_df[small_cap]
-    mid_cap_df = vol_df[mid_cap]
-    large_cap_df = vol_df[large_cap]
+    small_cap_df = vol_df[config.small_cap]
+    mid_cap_df = vol_df[config.mid_cap]
+    large_cap_df = vol_df[config.large_cap]
 
     # Create a figure
     fig = go.Figure()

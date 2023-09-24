@@ -84,6 +84,7 @@ def assign_mcap(crypto_index):
 
     raise ValueError(f"Invalid crypto index: {crypto_index}")
 
+
 def build_rmse_database(
     pred: str = config.log_returns_pred, skip_existing: bool = True
 ):
@@ -138,6 +139,10 @@ def extended_rmse_df(time_frame: str, avg: bool = False) -> pd.DataFrame:
         data[model] = rmse_df[model].iloc[: config.n_periods].tolist()
 
     return pd.DataFrame(data, index=range(config.n_periods))
+
+
+def stress_test_rmse_df():
+    pass
 
 
 def rmse_heatmap(time_frame: str, pred=config.log_returns_pred):

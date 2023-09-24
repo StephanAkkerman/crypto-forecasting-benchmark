@@ -284,7 +284,7 @@ def stress_test_forecast(
 ):
     # Make the directories
     save_dir = (
-        f"{config.stress_test_dir}/{pred}/{forecasting_model_name}/{coin}/{time_frame}"
+        f"{config.model_output_dir}/{pred}_stress/{forecasting_model_name}/{coin}/{time_frame}"
     )
     os.makedirs(save_dir, exist_ok=True)
 

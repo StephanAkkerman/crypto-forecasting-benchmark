@@ -98,7 +98,19 @@ def section_4_3():
 
 
 def section_4_4():
-    data_timespan.plt_extended_model_rmse()
+    # data_timespan.plt_extended_model_rmse()
+    # data_properties.extended_performance()
+    # volatility_analysis.plot_all_periods(show_validation=False)
+    # volatility_analysis.plot_periods(timeframe="4h")
+    pass
+
+
+def prophet():
+    forecast.stress_test_model(
+        pred=config.log_returns_pred, forecasting_model="Prophet"
+    )
+    forecast.stress_test_model(pred=config.raw_pred, forecasting_model="Prophet")
+    forecast.stress_test_model(pred=config.scaled_pred, forecasting_model="Prophet")
 
 
 if __name__ == "__main__":
@@ -114,6 +126,4 @@ if __name__ == "__main__":
     # Improve function to show all timeframes at once
 
     # section_4_4()
-
-    # Redo this code:
-    volatility_analysis.plot_periods()
+    rmse.build_rmse_database(config.log_returns_stress_pred, skip_existing=False)
