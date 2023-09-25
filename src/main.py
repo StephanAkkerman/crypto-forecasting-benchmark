@@ -126,4 +126,5 @@ if __name__ == "__main__":
     # Improve function to show all timeframes at once
 
     # section_4_4()
-    rmse.build_rmse_database(config.log_returns_stress_pred, skip_existing=False)
+    # rmse.build_rmse_database(config.log_returns_stress_pred, skip_existing=False)
+    prophet()
