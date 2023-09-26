@@ -9,8 +9,8 @@
 
 ### File / path where STDOUT & STDERR will be written
 ###    %J is the job ID, %I is the array ID
-#SBATCH --output /science-nfs-sys/vsm01/users/6397514/Code/Crypto_Forecasting/output_%j.txt
-#SBATCH --error /science-nfs-sys/vsm01/users/6397514/Code/Crypto_Forecasting/error.txt
+#SBATCH --output /nethome/6397514/Scratch/code/timeseries-volatility-influence/output_%j.txt
+#SBATCH --error /nethome/6397514/Scratch/code/timeseries-volatility-influence/error.txt
 
 ### Request the time you need for execution in minutes
 ### The format for the parameter is: [hour:]minute:second,
@@ -24,7 +24,7 @@
 #SBATCH --partition=gpua100
 ###SBATCH
 
-source /science-nfs-sys/vsm01/users/6397514/Code/envs/thesis_env/bin/activate
-cd /science-nfs-sys/vsm01/users/6397514/Code/Crypto_Forecasting
+source /nethome/6397514/Scratch/venvs/thesis_env/bin/activate
+cd /nethome/6397514/Scratch/code/timeseries-volatility-influence
 
 srun python3 src/main.py
