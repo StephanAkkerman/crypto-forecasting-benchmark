@@ -119,9 +119,7 @@ if __name__ == "__main__":
 
     # section_4_4()
     # rmse.build_rmse_database(config.log_returns_stress_pred, skip_existing=False)
-    # forecast.find_missing_forecasts(pred=config.log_returns_stress_pred)
-    # forecast.find_missing_forecasts(pred=config.raw_stress_pred)
-    forecast.create_missing_forecasts(pred=config.raw_stress_pred)
-    # forecast.find_missing_forecasts(pred=config.scaled_stress_pred)
     # utils.raw_model_to_log(stress_test=True)
     # utils.unscale_model(stress_test=True)
+    # data_properties.seasonality()
+    data_properties.correlation(corr_method="spearman")

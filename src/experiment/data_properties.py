@@ -11,6 +11,7 @@ import config
 from experiment.rmse import read_rmse_csv, assign_mcap_category, assign_mcap
 from experiment.volatility import read_volatility_csv
 from experiment.baseline import get_all_baseline_comparison
+from data_analysis.correlation import corr_matrix
 
 
 def high_auto_cor(test_type: str):
@@ -62,6 +63,29 @@ def merge_rmse(df, avg: bool = True, merge: bool = True, pred=config.log_returns
     return rmse_df
 
 
+def merge_vol(df, merge: bool = True):
+    vol_dfs = []
+
+    for time_frame in config.timeframes:
+        vol_df = read_volatility_csv(time_frame=time_frame)
+        # Add timeframe to it
+        vol_df["Time Frame"] = time_frame
+
+        # Name index coin
+        vol_df["Market Cap"] = vol_df.index.map(assign_mcap)
+        vol_df["Market Cap Category"] = vol_df.index.map(assign_mcap_category)
+        vol_df["Coin"] = vol_df.index
+
+        vol_dfs.append(vol_df)
+
+    # Concatenate the DataFrames
+    vol_df = pd.concat(vol_dfs, axis=0, ignore_index=True)
+
+    if merge:
+        return pd.merge(df, vol_df, how="inner", on=["Coin", "Time Frame"])
+    return vol_df
+
+
 def mannwhiteny_test(
     df,
     group1_name: str,
@@ -76,13 +100,17 @@ def mannwhiteny_test(
         # This groupo should perform better (lower RMSE)
         group2 = df[df[result_column] == group2_name][model].dropna()
 
+        if len(group1) == 0 or len(group2) == 0:
+            print(f"Skipping {model}")
+            continue
+
         # Perform the Mann-Whitney U test with 'less' as the alternative hypothesis
         U, pval = mannwhitneyu(group2, group1, alternative=alternative)
 
         print(f"Mann-Whitney U test for {model}: U-statistic={U}, p-value={pval}")
 
 
-def auto_correlation():
+def auto_correlation(group_tf: bool = False):
     # Find the cryptocurrencies that show autocorrelation on the log returns
     ljung = high_auto_cor("Ljung-Box")
     breusch = high_auto_cor("Breusch-Godfrey")
@@ -103,8 +131,13 @@ def auto_correlation():
     )
 
     df = merge_rmse(df)
-
-    mannwhiteny_test(df, "Autocorrelated", "Not Autocorrelated")
+    if group_tf:
+        for tf in config.timeframes:
+            print(tf)
+            tf_df = df[df["Time Frame"] == tf]
+            mannwhiteny_test(tf_df, "Autocorrelated", "Not Autocorrelated")
+    else:
+        mannwhiteny_test(df, "Autocorrelated", "Not Autocorrelated")
 
 
 def find_majority(row):
@@ -115,18 +148,12 @@ def find_majority(row):
     return most_common_result
 
 
-def trend():
+def trend(group_tf: bool = False):
     # trend_tests(as_csv=True)
     df = pd.read_csv(f"{config.statistics_dir}/trend_results_log_returns.csv")
 
-    # Finding rows where all test columns have the same value
-    # result_df = df[df.iloc[:, 2:].apply(lambda row: len(row.unique()) == 1, axis=1)]
-
     # Apply the function across the rows
     df["Result"] = df.apply(find_majority, axis=1)
-
-    # Drop the columns that are not needed
-    df = df[["Coin", "Time Frame", "Result"]]
 
     # Change Results to trend if its increasing or decreasing
     df["Result"] = df["Result"].str.replace("increasing", "trend")
@@ -135,10 +162,51 @@ def trend():
     # Add RMSE data to the DataFrame
     df = merge_rmse(df)
 
-    mannwhiteny_test(df, "trend", "no trend")
+    if group_tf:
+        for tf in config.timeframes:
+            print(tf)
+            tf_df = df[df["Time Frame"] == tf]
+            mannwhiteny_test(tf_df, "trend", "no trend")
+    else:
+        mannwhiteny_test(df, "trend", "no trend")
 
 
-def seasonality():
+def ols_test(df, x):
+    results = {}
+    agg_results = pd.DataFrame()
+    for forecasting_model in config.all_models:
+        # Prepare the independent variable 'Seasonal Strength' and add a constant term for the intercept
+        X = sm.add_constant(df[x])
+
+        # Prepare the dependent variable. This is for RandomForest. Repeat for other models.
+        y = df[forecasting_model]
+
+        # Perform linear regression
+        model = sm.OLS(y, X).fit()
+
+        results_df = pd.DataFrame(
+            [
+                {
+                    # "Time Frame": time_frame,
+                    "Model": forecasting_model,
+                    "Intercept": model.params[0],
+                    "Coef": model.params[1],
+                    "R-squared": model.rsquared,
+                    "P>|t|": model.pvalues[1],
+                    "F-statistic": model.fvalue,
+                }
+            ]
+        )
+        # Append to the aggregated results DataFrame
+        agg_results = pd.concat([agg_results, results_df])
+
+        results[forecasting_model] = model.pvalues[1]
+
+    print(agg_results)
+    return results
+
+
+def seasonality(group_tf: bool = False):
     # Get seasonality data
     # seasonal_strength_test(log_returns=True)
 
@@ -148,76 +216,132 @@ def seasonality():
     # Add RMSE data to the DataFrame
     df = merge_rmse(df)
 
-    results = {}
-
-    for forecasting_model in config.all_models:
-        # Prepare the independent variable 'Seasonal Strength' and add a constant term for the intercept
-        X = sm.add_constant(df["Seasonal Strength"])
-
-        # Prepare the dependent variable. This is for RandomForest. Repeat for other models.
-        y = df[forecasting_model]
-
-        # Perform linear regression
-        model = sm.OLS(y, X).fit()
-
-        # Convert the summary results to a DataFrame
-        results_df = pd.DataFrame(model.summary2().tables[1])
-
-        # Access the p-value for "Seasonal Strength"
-        p_value_seasonal_strength = results_df.loc["Seasonal Strength", "P>|t|"]
-
-        results[forecasting_model] = p_value_seasonal_strength
-
-    print(results)
+    if group_tf:
+        tf_results = []
+        for tf in config.timeframes:
+            tf_df = df[df["Time Frame"] == tf]
+            tf_results.append(ols_test(tf_df, "Seasonal Strength"))
+        print(pd.DataFrame(tf_results).T)
+    else:
+        ols_test(df, "Seasonal Strength")
 
 
-def heteroskedasticity():
-    cond_het()
-    uncon_het()
+def heteroskedasticity(group_tf: bool = False):
+    cond_het(group_tf)
+    uncon_het(group_tf)
 
 
-def uncon_het():
+def uncon_het(group_tf: bool = False):
     df = pd.read_csv(
         f"{config.statistics_dir}/unconditional_heteroskedasticity_log_returns.csv"
     )
-    # Find rows where 'Breusch-Pagan' and 'Goldfeld-Quandt' have the same result
-    # same_result_df = df[df['Breusch-Pagan'] == df['Goldfeld-Quandt']]
 
     # First test using breusch-pagan
     df = merge_rmse(df)
 
-    # Rename column result to Result
-    df = df.rename(columns={"result": "Result"})
+    if group_tf:
+        for tf in config.timeframes:
+            print(tf)
+            tf_df = df[df["Time Frame"] == tf]
+            print("Results for Breusch-Pagan:")
+            mannwhiteny_test(
+                tf_df,
+                "heteroskedasticity",
+                "homoskedasticity",
+                result_column="Breusch-Pagan",
+            )
 
-    mannwhiteny_test(df)
+            print("\nResults for Goldfeld-Quandt:")
+            mannwhiteny_test(
+                tf_df,
+                "heteroskedasticity",
+                "homoskedasticity",
+                result_column="Goldfeld-Quandt",
+            )
+    else:
+        print("Results for Breusch-Pagan:")
+        mannwhiteny_test(
+            df, "heteroskedasticity", "homoskedasticity", result_column="Breusch-Pagan"
+        )
 
-    print("Results for Breusch-Pagan:")
-    mannwhiteny_test(
-        df, "heteroskedasticity", "homoskedasticity", result_column="Breusch-Pagan"
-    )
-
-    print("\nResults for Goldfeld-Quandt:")
-    mannwhiteny_test(
-        df, "heteroskedasticity", "homoskedasticity", result_column="Goldfeld-Quandt"
-    )
+        print("\nResults for Goldfeld-Quandt:")
+        mannwhiteny_test(
+            df,
+            "heteroskedasticity",
+            "homoskedasticity",
+            result_column="Goldfeld-Quandt",
+        )
 
 
-def cond_het():
+def cond_het(group_tf: bool = False):
     df = pd.read_csv(f"{config.statistics_dir}/cond_heteroskedasticity_log_returns.csv")
 
     # Add RMSE data to the DataFrame
     df = merge_rmse(df)
 
-    mannwhiteny_test(
-        df, "heteroskedasticity", "homoskedasticity", result_column="result"
-    )
+    if group_tf:
+        for tf in config.timeframes:
+            print(tf)
+            tf_df = df[df["Time Frame"] == tf]
+            mannwhiteny_test(
+                tf_df, "heteroskedasticity", "homoskedasticity", result_column="result"
+            )
+    else:
+        mannwhiteny_test(
+            df, "heteroskedasticity", "homoskedasticity", result_column="result"
+        )
 
 
-def correlation():
-    pass
+def correlation(time_frame: str = "1d", corr_method: str = "pearson"):
+    df = merge_rmse(None, merge=False)
 
+    # group by time frame
+    df = df[df["Time Frame"] == time_frame]
 
-def stochasticity():
+    # drop market cap
+    df = df.drop(columns=["Market Cap", "Time Frame", "Market Cap Category"])
+
+    # Make Coin index
+    df = df.set_index("Coin", drop=True)
+
+    df = df.T
+
+    rmse_corr = df.corr(method=corr_method)
+    price_corr = corr_matrix(time_frame, corr_method)
+    
+    agg_results = pd.DataFrame()
+    
+    for i in range(len(rmse_corr)):
+        # Get the ith row from each correlation matrix
+        X = rmse_corr.iloc[i].values
+        y = price_corr.iloc[i].values
+        
+        # Add a constant term for the intercept
+        X = sm.add_constant(X)
+
+        # Create the OLS model and fit it to the data
+        model = sm.OLS(y, X).fit()
+
+        results = pd.DataFrame(
+                [
+                    {
+                        # "Time Frame": time_frame,
+                        "Coin": rmse_corr.index[i],
+                        "Intercept": model.params[0],
+                        "Coef": model.params[1],
+                        "R-squared": model.rsquared,
+                        "P>|t|": model.pvalues[1],
+                        "F-statistic": model.fvalue,
+                    }
+                ]
+            )
+
+        # Append to the aggregated results DataFrame
+        agg_results = pd.concat([agg_results, results])
+
+    print(agg_results)
+
+def stochasticity(group_tf: bool = False):
     # calc_hurst()
 
     df = pd.read_csv(f"{config.statistics_dir}/hurst_log_returns.csv")
@@ -225,26 +349,17 @@ def stochasticity():
     # Add RMSE data to the DataFrame
     df = merge_rmse(df)
 
-    mannwhiteny_test(df, "Brownian motion", "Positively correlated")
+    if group_tf:
+        for tf in config.timeframes:
+            tf_df = df[df["Time Frame"] == tf]
+            print(tf)
+            mannwhiteny_test(tf_df, "Brownian motion", "Positively correlated")
+    else:
+        mannwhiteny_test(df, "Brownian motion", "Positively correlated")
 
 
 def volatility():
-    vol_dfs = []
-
-    for time_frame in config.timeframes:
-        vol_df = read_volatility_csv(time_frame=time_frame)
-        # Add timeframe to it
-        vol_df["Time Frame"] = time_frame
-
-        # Name index coin
-        vol_df["Coin"] = vol_df.index
-
-        vol_dfs.append(vol_df)
-
-    # Concatenate the DataFrames
-    vol_df = pd.concat(vol_dfs, axis=0, ignore_index=True)
-
-    df = merge_rmse(vol_df, avg=False)
+    df = merge_rmse(merge_vol(None, merge=False), avg=False)
 
     # Initialize an empty DataFrame to store aggregated results
     agg_results = pd.DataFrame()
@@ -270,7 +385,7 @@ def volatility():
             results = pd.DataFrame(
                 [
                     {
-                        "Time Frame": time_frame,
+                        # "Time Frame": time_frame,
                         "Model": forecasting_model,
                         "Period": period,
                         "Intercept": model.params[0],
@@ -342,22 +457,7 @@ def mcap(use_cat: bool = False):
 
 
 def volatility_mcap(use_cat=False):
-    vol_dfs = []
-
-    for time_frame in config.timeframes:
-        vol_df = read_volatility_csv(time_frame=time_frame)
-        # Add timeframe to it
-        vol_df["Time Frame"] = time_frame
-
-        # Name index coin
-        vol_df["Market Cap"] = vol_df.index.map(assign_mcap)
-        vol_df["Market Cap Category"] = vol_df.index.map(assign_mcap_category)
-        vol_df["Coin"] = vol_df.index
-
-        vol_dfs.append(vol_df)
-
-    # Concatenate the DataFrames
-    df = pd.concat(vol_dfs, axis=0, ignore_index=True)
+    df = merge_rmse(None, merge=False)
 
     # For categories
     if use_cat:

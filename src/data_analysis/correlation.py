@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import correlate
 from statsmodels.tsa.stattools import grangercausalitytests
 
-from config import all_coins, timeframes, plots_dir
+import config
 from data.csv_data import read_csv
 
 
@@ -15,65 +15,43 @@ def correlation_tests():
     Generates all correlation plots and matrices
     """
 
-    corr_matrix()
+    corr_matrices()
     corr_pval()
     cross_cor(True)
     cross_cor(False)
     granger_caus()
 
 
-def corr_matrix():
+def corr_matrix(time_frame: str, corr_method: str = "pearson"):
+    tf_df = pd.DataFrame()
+    for coin in config.all_coins:
+        df = read_csv(coin, time_frame, ["log returns"]).dropna()
+        tf_df = pd.concat([tf_df, df], axis=1, ignore_index=True)
+
+    return tf_df.corr(method=corr_method).round(1)
+
+
+def corr_matrices():
     """
     Generates the correlation matrix for all coins and time frames
     Shows each time frame separately, with Pearson and Spearman correlation
     """
 
-    one_d = pd.DataFrame()
-    one_m = pd.DataFrame()
-    four_h = pd.DataFrame()
-    fifteen_m = pd.DataFrame()
-
-    for coin in all_coins:
-        for time in timeframes:
-            df = read_csv(coin, time)
-            df = np.log(df).diff().dropna()
-
-            if time == "1d":
-                one_d = pd.concat([one_d, df], axis=1, ignore_index=True)
-            elif time == "1m":
-                one_m = pd.concat([one_m, df], axis=1, ignore_index=True)
-            elif time == "4h":
-                four_h = pd.concat([four_h, df], axis=1, ignore_index=True)
-            elif time == "15m":
-                fifteen_m = pd.concat([fifteen_m, df], axis=1, ignore_index=True)
-
-    for df in [one_m, fifteen_m, four_h, one_d]:
-        df.columns = all_coins
-
-        if df is one_m:
-            time = "1-minute"
-        elif df is fifteen_m:
-            time = "15-minute"
-        elif df is four_h:
-            time = "4-hour"
-        elif df is one_d:
-            time = "1-day"
-
-        pearson_matrix = df.corr(method="pearson").round(1)
-        spear_matrix = df.corr(method="spearman").round(1)
+    for time_frame in config.timeframes:
+        pearson_matrix = corr_matrix(time_frame, "pearson")
+        spear_matrix = corr_matrix(time_frame, "spearman")
 
         # Plot correlation matrices side by side
         _, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
         sn.heatmap(pearson_matrix, cbar=False, annot=True, ax=ax1).set(
-            title=f"{time} Pearson Correlation Matrix"
+            title=f"{time_frame} Pearson Correlation Matrix"
         )
         sn.heatmap(spear_matrix, cbar=False, annot=True, ax=ax2).set(
-            title=f"{time} Spearman Correlation Matrix"
+            title=f"{time_frame} Spearman Correlation Matrix"
         )
 
         plt.show()
-        plt.savefig(f"{plots_dir}/{time}_corr_matrix.png")
 
 
 def corr_pval(pearson: bool = False):
@@ -81,13 +59,13 @@ def corr_pval(pearson: bool = False):
     Prints the coin pairs that have a p-value below 0.05 using the Spearman or Pearson correlation
     """
 
-    for time in timeframes:
+    for time in config.timeframes:
         time_df = pd.DataFrame()
-        for coin in all_coins:
+        for coin in config.all_coins:
             first_coin = read_csv(coin, time)
             first_coin = np.log(first_coin).diff().dropna()
 
-            other_coins = [c for c in all_coins if c != coin]
+            other_coins = [c for c in config.all_coins if c != coin]
 
             for c in other_coins:
                 other_coin = read_csv(c, time)
@@ -134,15 +112,18 @@ def cross_cor(show_lags: bool = False):
     show_lags : bool, optional
         Shows the lags instead of cross-correlation, by default False
     """
-
-    for time in timeframes:
+    for time in config.timeframes:
         # Compute cross-correlations
-        cross_correlations = np.zeros((len(all_coins), len(all_coins)))
-        cross_lags = np.zeros((len(all_coins), len(all_coins)))
-        for i in range(len(all_coins)):
-            for j in range(len(all_coins)):
-                first_coin = read_csv(all_coins[i], time, ["log returns"]).dropna()
-                other_coin = read_csv(all_coins[j], time, ["log returns"]).dropna()
+        cross_correlations = np.zeros((len(config.all_coins), len(config.all_coins)))
+        cross_lags = np.zeros((len(config.all_coins), len(config.all_coins)))
+        for i in range(len(config.all_coins)):
+            for j in range(len(config.all_coins)):
+                first_coin = read_csv(
+                    config.all_coins[i], time, ["log returns"]
+                ).dropna()
+                other_coin = read_csv(
+                    config.all_coins[j], time, ["log returns"]
+                ).dropna()
 
                 # Perform cross-correlation
                 cross_corr = correlate(
@@ -173,8 +154,8 @@ def cross_cor(show_lags: bool = False):
                 vmin=0,
                 vmax=1,
                 square=True,
-                xticklabels=all_coins,
-                yticklabels=all_coins,
+                xticklabels=config.all_coins,
+                yticklabels=config.all_coins,
             )
         else:
             sn.heatmap(
@@ -182,8 +163,8 @@ def cross_cor(show_lags: bool = False):
                 annot=True,
                 cbar=False,
                 square=True,
-                xticklabels=all_coins,
-                yticklabels=all_coins,
+                xticklabels=config.all_coins,
+                yticklabels=config.all_coins,
             )
 
         if time == "1m":
@@ -200,10 +181,6 @@ def cross_cor(show_lags: bool = False):
         plt.ylabel("")
 
         plt.show()
-        if not show_lags:
-            plt.savefig(f"{plots_dir}/{time}_cross_cor.png")
-        else:
-            plt.savefig(f"{plots_dir}/{time}_cross_lags.png")
 
 
 def granger_caus():
@@ -212,10 +189,10 @@ def granger_caus():
     """
 
     max_lag = 5  # The maximum number of lags to test for
-    for time in timeframes:
-        results_df = pd.DataFrame(columns=all_coins, index=all_coins)
-        for c1 in all_coins:
-            for c2 in all_coins:
+    for time in config.timeframes:
+        results_df = pd.DataFrame(columns=config.all_coins, index=config.all_coins)
+        for c1 in config.all_coins:
+            for c2 in config.all_coins:
                 if c1 != c2:
                     first_coin = read_csv(c1, time, ["log returns"]).dropna()
                     other_coin = read_csv(c2, time, ["log returns"]).dropna()
@@ -243,10 +220,10 @@ def granger_caus():
         results_df = results_df.round(1)
 
         # Add x to columns
-        results_df.columns = [c + "_x" for c in all_coins]
+        results_df.columns = [c + "_x" for c in config.all_coins]
 
         # Add y to index
-        results_df.index = [c + "_y" for c in all_coins]
+        results_df.index = [c + "_y" for c in config.all_coins]
 
         # https://www.machinelearningplus.com/time-series/granger-causality-test-in-python/
         # See for more info
@@ -262,5 +239,3 @@ def granger_caus():
         plt.xlabel("")
         plt.ylabel("")
         plt.show()
-
-        plt.savefig(f"{plots_dir}/{time}_granger_caus.png")
