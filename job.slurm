@@ -14,8 +14,8 @@
 
 ### Request the time you need for execution in minutes
 ### The format for the parameter is: [hour:]minute:second,
-#SBATCH -t 360:00:00
-# 15 days
+#SBATCH -t 120:00:00
+# 5 days
 
 ### Memory your job needs per node, e. g. 1 GB
 #SBATCH --mem 100G
