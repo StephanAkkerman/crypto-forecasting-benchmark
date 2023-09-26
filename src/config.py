@@ -99,6 +99,8 @@ extended_to_raw_pred = "extended_to_raw"
 log_returns_stress_pred = "log_returns_stress"
 raw_stress_pred = "raw_stress"
 scaled_stress_pred = "scaled_stress"
+scaled_to_log_stress_pred = "scaled_to_log_stress"
+raw_to_log_stress_pred = "raw_to_log_stress"
 
 # Fancy model names dict
 pred_names = {

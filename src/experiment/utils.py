@@ -81,6 +81,7 @@ def get_predictions(
         config.extended_to_raw_pred,
         config.log_to_raw_pred,
         config.scaled_to_raw_pred,
+        config.raw_stress_pred,
     ]:
         value_cols = ["close"]
 
@@ -129,21 +130,30 @@ def get_predictions(
     return preds, trains, tests, rmses
 
 
-def unscale_model():
+def unscale_model(stress_test: bool = False):
     # Create scaled_to_log model data
     for forecasting_model in config.all_models:
         for coin in config.all_coins:
             print("Unscaling log returns for", forecasting_model, coin)
             for time_frame in config.timeframes:
                 scaled_to_log(
-                    model=config.scaled_pred,
+                    model=config.scaled_stress_pred
+                    if stress_test
+                    else config.scaled_pred,
                     forecasting_model=forecasting_model,
                     coin=coin,
                     time_frame=time_frame,
+                    stress_test=stress_test,
                 )
 
 
-def scaled_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
+def scaled_to_log(
+    model: str,
+    forecasting_model: str,
+    coin: str,
+    time_frame: str,
+    stress_test: bool = False,
+):
     preds, _, _, _ = get_predictions(
         model=model,
         forecasting_model=forecasting_model,
@@ -155,8 +165,14 @@ def scaled_to_log(model: str, forecasting_model: str, coin: str, time_frame: str
     # Get the log data
     trains, tests, _ = get_train_test(coin=coin, time_frame=time_frame, scale=False)
 
+    save_pred = config.scaled_to_log_pred
+    if stress_test:
+        save_pred = config.scaled_to_log_stress_pred
+
     # Create a directory to save the predictions
-    save_loc = f"{config.model_output_dir}/{config.scaled_to_log_pred}/{forecasting_model}/{coin}/{time_frame}"
+    save_loc = (
+        f"{config.model_output_dir}/{save_pred}/{forecasting_model}/{coin}/{time_frame}"
+    )
     os.makedirs(save_loc, exist_ok=True)
 
     # Loop over both lists
@@ -181,21 +197,28 @@ def scaled_to_log(model: str, forecasting_model: str, coin: str, time_frame: str
         test.to_csv(f"{save_loc}/test_{i}.csv")
 
 
-def raw_model_to_log():
+def raw_model_to_log(stress_test: bool = False):
     # Create raw_to_log model data
     for forecasting_model in config.all_models:
         for coin in config.all_coins:
             print("Converting price data to log returns for", forecasting_model, coin)
             for time_frame in config.timeframes:
                 raw_to_log(
-                    model=config.raw_pred,
+                    model=config.raw_stress_pred if stress_test else config.raw_pred,
                     forecasting_model=forecasting_model,
                     coin=coin,
                     time_frame=time_frame,
+                    stress_test=stress_test,
                 )
 
 
-def raw_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
+def raw_to_log(
+    model: str,
+    forecasting_model: str,
+    coin: str,
+    time_frame: str,
+    stress_test: bool = False,
+):
     """
     Converts the raw price data predictions to logarithmic returns
 
@@ -218,8 +241,14 @@ def raw_to_log(model: str, forecasting_model: str, coin: str, time_frame: str):
         concatenated=False,
     )
 
+    save_pred = config.raw_to_log_pred
+    if stress_test:
+        save_pred = config.raw_to_log_stress_pred
+
     # Create a directory to save the predictions
-    save_loc = f"{config.model_output_dir}/{config.raw_to_log_pred}/{forecasting_model}/{coin}/{time_frame}"
+    save_loc = (
+        f"{config.model_output_dir}/{save_pred}/{forecasting_model}/{coin}/{time_frame}"
+    )
     os.makedirs(save_loc, exist_ok=True)
 
     # Get the train data

@@ -283,9 +283,7 @@ def stress_test_forecast(
     time_frame: str,
 ):
     # Make the directories
-    save_dir = (
-        f"{config.model_output_dir}/{pred}_stress/{forecasting_model_name}/{coin}/{time_frame}"
-    )
+    save_dir = f"{config.model_output_dir}/{pred}_stress/{forecasting_model_name}/{coin}/{time_frame}"
     os.makedirs(save_dir, exist_ok=True)
 
     # Set default values
@@ -439,8 +437,12 @@ def find_missing_forecasts(pred: str, models=[]):
 def create_missing_forecasts(pred: str = config.log_returns_pred, models: list = []):
     if pred in [config.log_returns_pred, config.raw_pred, config.scaled_pred]:
         generate_func = generate_forecasts
-    elif pred == config.extended_pred:
+    elif pred.startswith("extended"):
         generate_func = generate_extended_forecasts
+    elif "stress" in pred:
+        # Remove stress suffix
+        stress_for = pred.replace("_stress", "")
+        generate_func = stress_test_forecast
 
     # Create directory
     for model_name, coin, time_frame in find_missing_forecasts(pred, models):
@@ -453,5 +455,7 @@ def create_missing_forecasts(pred: str = config.log_returns_pred, models: list =
             generate_func(model_name, coin, time_frame, raw=True)
         elif pred == config.scaled_pred:
             generate_func(model_name, coin, time_frame, scaled=True)
+        elif "stress" in pred:
+            generate_func(stress_for, model_name, coin, time_frame)
         else:
             generate_func(model_name, coin, time_frame)

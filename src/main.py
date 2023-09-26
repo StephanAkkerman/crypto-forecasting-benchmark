@@ -105,14 +105,6 @@ def section_4_4():
     pass
 
 
-def prophet():
-    forecast.stress_test_model(
-        pred=config.log_returns_pred, forecasting_model="Prophet"
-    )
-    forecast.stress_test_model(pred=config.raw_pred, forecasting_model="Prophet")
-    forecast.stress_test_model(pred=config.scaled_pred, forecasting_model="Prophet")
-
-
 if __name__ == "__main__":
     # section_4_2()
     # baseline.scaled_heatmap()
@@ -127,4 +119,9 @@ if __name__ == "__main__":
 
     # section_4_4()
     # rmse.build_rmse_database(config.log_returns_stress_pred, skip_existing=False)
-    prophet()
+    # forecast.find_missing_forecasts(pred=config.log_returns_stress_pred)
+    # forecast.find_missing_forecasts(pred=config.raw_stress_pred)
+    forecast.create_missing_forecasts(pred=config.raw_stress_pred)
+    # forecast.find_missing_forecasts(pred=config.scaled_stress_pred)
+    # utils.raw_model_to_log(stress_test=True)
+    # utils.unscale_model(stress_test=True)
