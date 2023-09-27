@@ -118,8 +118,7 @@ if __name__ == "__main__":
     # Improve function to show all timeframes at once
 
     # section_4_4()
-    # rmse.build_rmse_database(config.log_returns_stress_pred, skip_existing=False)
-    # utils.raw_model_to_log(stress_test=True)
-    # utils.unscale_model(stress_test=True)
+    # rmse.build_rmse_database(config.raw_to_log_stress_pred, skip_existing=False)
+    rmse.build_rmse_database(config.scaled_to_log_stress_pred, skip_existing=False)
     # data_properties.seasonality()
-    data_properties.correlation(corr_method="spearman")
+    # data_properties.correlation(time_frame="1d", method="both")

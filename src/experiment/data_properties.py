@@ -292,7 +292,7 @@ def cond_het(group_tf: bool = False):
         )
 
 
-def correlation(time_frame: str = "1d", corr_method: str = "pearson"):
+def correlation(time_frame: str = "1d", method: str = "pearson"):
     df = merge_rmse(None, merge=False)
 
     # group by time frame
@@ -306,40 +306,48 @@ def correlation(time_frame: str = "1d", corr_method: str = "pearson"):
 
     df = df.T
 
-    rmse_corr = df.corr(method=corr_method)
-    price_corr = corr_matrix(time_frame, corr_method)
+    if method == "both":
+        corr_methods = ["pearson", "spearman"]
+    else:
+        corr_methods = [method]
     
-    agg_results = pd.DataFrame()
-    
-    for i in range(len(rmse_corr)):
-        # Get the ith row from each correlation matrix
-        X = rmse_corr.iloc[i].values
-        y = price_corr.iloc[i].values
+    for corr_method in corr_methods:
+
+        rmse_corr = df.corr(method=corr_method)
+        price_corr = corr_matrix(time_frame, corr_method)
         
-        # Add a constant term for the intercept
-        X = sm.add_constant(X)
+        agg_results = pd.DataFrame()
+        
+        for i in range(len(rmse_corr)):
+            # Get the ith row from each correlation matrix
+            X = rmse_corr.iloc[i].values
+            y = price_corr.iloc[i].values
+            
+            # Add a constant term for the intercept
+            X = sm.add_constant(X)
 
-        # Create the OLS model and fit it to the data
-        model = sm.OLS(y, X).fit()
+            # Create the OLS model and fit it to the data
+            model = sm.OLS(y, X).fit()
 
-        results = pd.DataFrame(
-                [
-                    {
-                        # "Time Frame": time_frame,
-                        "Coin": rmse_corr.index[i],
-                        "Intercept": model.params[0],
-                        "Coef": model.params[1],
-                        "R-squared": model.rsquared,
-                        "P>|t|": model.pvalues[1],
-                        "F-statistic": model.fvalue,
-                    }
-                ]
-            )
+            results = pd.DataFrame(
+                    [
+                        {
+                            # "Time Frame": time_frame,
+                            "Coin": rmse_corr.index[i],
+                            "Intercept": model.params[0],
+                            "Coef": model.params[1],
+                            "R-squared": model.rsquared,
+                            "P>|t|": model.pvalues[1],
+                            "F-statistic": model.fvalue,
+                        }
+                    ]
+                )
 
-        # Append to the aggregated results DataFrame
-        agg_results = pd.concat([agg_results, results])
+            # Append to the aggregated results DataFrame
+            agg_results = pd.concat([agg_results, results])
 
-    print(agg_results)
+        print(corr_method)
+        print(agg_results)
 
 def stochasticity(group_tf: bool = False):
     # calc_hurst()
