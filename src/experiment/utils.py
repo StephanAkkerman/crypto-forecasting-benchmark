@@ -92,6 +92,7 @@ def get_predictions(
         pred_path = f"{file_loc}/pred_{period}.csv"
         train_path = f"{file_loc}/train_{period}.csv"
         test_path = f"{file_loc}/test_{period}.csv"
+
         if not os.path.exists(pred_path):
             print(f"Warning the following file does not exist: {pred_path}")
             return None, None, None, None

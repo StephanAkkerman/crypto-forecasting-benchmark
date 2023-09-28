@@ -527,7 +527,7 @@ def plt_single_df_boxplots(
 def plt_multiple_df_boxplots(
     dfs: list,
     use_hatches: bool = False,
-    outliers_percentile: int = 100,
+    outliers_percentile: list = [],
     y_min: int = 0,
     x_label: str = "Cryptocurrency",
     y_label: str = "RMSE",
@@ -550,6 +550,18 @@ def plt_multiple_df_boxplots(
 
     hatches = ["", "\\\\\\", "///", "---", "|||"]  # Custom hatches
     colors = plt.cm.Accent.colors
+
+    if len(outliers_percentile) == 0:
+        outliers_percentile = [100] * len(dfs)
+        
+    if len(outliers_percentile) != len(dfs):
+        print("Length of outliers_percentile must be equal to length of dfs")
+        return
+
+    # Change if columns are > colors
+    if len(dfs[0].columns) > len(colors):
+        colors = plt.cm.tab20.colors
+
     if first_white:
         # Add white in front
         colors = ((1.0, 1.0, 1.0),) + colors
@@ -559,15 +571,15 @@ def plt_multiple_df_boxplots(
     for ax_idx, df in enumerate(dfs):
         ax = axs[ax_idx]  # Select the current axis
 
-        if type(outliers_percentile) == int:
-            all_data = np.concatenate(df.values.flatten())
-            all_data = all_data[~np.isnan(all_data)]
-            if y_min:
-                ax.set_ylim(y_min, np.percentile(all_data, outliers_percentile))
-            else:
-                ax.set_ylim(
-                    np.min(all_data), np.percentile(all_data, outliers_percentile)
-                )
+        # adjust for percentile
+        all_data = np.concatenate(df.values.flatten())
+        all_data = all_data[~np.isnan(all_data)]
+        if y_min:
+            ax.set_ylim(y_min, np.percentile(all_data, outliers_percentile[ax_idx]))
+        else:
+            ax.set_ylim(
+                np.min(all_data), np.percentile(all_data, outliers_percentile[ax_idx])
+            )
 
         labels = df.index.tolist()
         group_width = 0.8
@@ -619,16 +631,20 @@ def plt_multiple_df_boxplots(
                 hatch=hatches[i] if use_hatches else None,
             )
         )
-    plt.tight_layout(rect=[0, 0, 0.95, 1])
 
+    # (left, bottom, right, top)
+    plt.tight_layout(rect=[0.02, 0, 1, 0.90])
+
+    # Create the legend for the entire figure
     fig.legend(
         legend_handles,
         list(dfs[0].columns),
-        loc="center right",
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1),
+        ncol=len(legend_handles),
         fontsize=fontsize,
-        borderaxespad=0.0,
-        bbox_to_anchor=(1, 0.5),
         title="Forecasting Model",
+        title_fontsize=fontsize,
     )
 
     plt.show()

@@ -310,19 +310,18 @@ def correlation(time_frame: str = "1d", method: str = "pearson"):
         corr_methods = ["pearson", "spearman"]
     else:
         corr_methods = [method]
-    
-    for corr_method in corr_methods:
 
+    for corr_method in corr_methods:
         rmse_corr = df.corr(method=corr_method)
         price_corr = corr_matrix(time_frame, corr_method)
-        
+
         agg_results = pd.DataFrame()
-        
+
         for i in range(len(rmse_corr)):
             # Get the ith row from each correlation matrix
             X = rmse_corr.iloc[i].values
             y = price_corr.iloc[i].values
-            
+
             # Add a constant term for the intercept
             X = sm.add_constant(X)
 
@@ -330,24 +329,25 @@ def correlation(time_frame: str = "1d", method: str = "pearson"):
             model = sm.OLS(y, X).fit()
 
             results = pd.DataFrame(
-                    [
-                        {
-                            # "Time Frame": time_frame,
-                            "Coin": rmse_corr.index[i],
-                            "Intercept": model.params[0],
-                            "Coef": model.params[1],
-                            "R-squared": model.rsquared,
-                            "P>|t|": model.pvalues[1],
-                            "F-statistic": model.fvalue,
-                        }
-                    ]
-                )
+                [
+                    {
+                        # "Time Frame": time_frame,
+                        "Coin": rmse_corr.index[i],
+                        "Intercept": model.params[0],
+                        "Coef": model.params[1],
+                        "R-squared": model.rsquared,
+                        "P>|t|": model.pvalues[1],
+                        "F-statistic": model.fvalue,
+                    }
+                ]
+            )
 
             # Append to the aggregated results DataFrame
             agg_results = pd.concat([agg_results, results])
 
         print(corr_method)
         print(agg_results)
+
 
 def stochasticity(group_tf: bool = False):
     # calc_hurst()
@@ -603,9 +603,22 @@ def extended_performance():
         tf_df = df[df["Time Frame"] == time_frame]
         print(time_frame)
         for model in config.ml_models:
-            periods = []
-            for p in range(config.n_periods):
-                periods.append(tf_df[model].str[p].to_list())
+            periods = [list(item) for item in zip(*tf_df[model])]
+
+            # Perform kruskal test
+            U, pval = kruskal(*periods)
+
+            print(f"Kruskal-Wallis test for {model}: U-statistic={U}, p-value={pval}")
+
+
+def stress_test_perf(pred=config.log_returns_stress_pred):
+    df = merge_rmse(None, avg=False, merge=False, pred=pred)
+
+    for time_frame in config.timeframes:
+        tf_df = df[df["Time Frame"] == time_frame]
+        print(time_frame)
+        for model in config.all_models:
+            periods = [list(item) for item in zip(*tf_df[model])]
 
             # Perform kruskal test
             U, pval = kruskal(*periods)

@@ -98,11 +98,13 @@ def section_4_3():
 
 
 def section_4_4():
-    # data_timespan.plt_extended_model_rmse()
-    # data_properties.extended_performance()
     # volatility_analysis.plot_all_periods(show_validation=False)
-    # volatility_analysis.plot_periods(timeframe="4h")
-    pass
+
+    # data_timespan.plt_extended_model_rmse()
+    data_properties.extended_performance()
+
+    # data_timespan.plt_stress_test_rmse()
+    # data_properties.stress_test_perf()
 
 
 if __name__ == "__main__":
@@ -117,8 +119,8 @@ if __name__ == "__main__":
 
     # Improve function to show all timeframes at once
 
-    # section_4_4()
+    section_4_4()
     # rmse.build_rmse_database(config.raw_to_log_stress_pred, skip_existing=False)
-    rmse.build_rmse_database(config.scaled_to_log_stress_pred, skip_existing=False)
+    # rmse.build_rmse_database(config.scaled_to_log_stress_pred, skip_existing=False)
     # data_properties.seasonality()
     # data_properties.correlation(time_frame="1d", method="both")

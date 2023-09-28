@@ -184,6 +184,7 @@ def generate_extended_forecasts(forecasting_model: str, coin: str, time_frame: s
         desc=f"Forecasting periods for {forecasting_model}/{coin}/{time_frame}",
         leave=False,
     ):
+        # Remove the last test set from the training set
         extended_train = complete_ts[: -len(final_test)]
 
         # Reset the model

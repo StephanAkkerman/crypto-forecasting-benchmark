@@ -1,7 +1,7 @@
 import pandas as pd
 
 import config
-from experiment.rmse import read_rmse_csv, extended_rmse_df
+from experiment.rmse import read_rmse_csv, extended_rmse_df, stress_test_rmse_df
 from experiment.boxplots import plotly_boxplot, plt_multiple_df_boxplots
 
 
@@ -15,31 +15,46 @@ def plotly_extended_model_rmse(time_frame):
     plotly_boxplot(df=df.T, labels=labels, plot_items=config.ml_models)
 
 
-def plt_extended_model_rmse(exclude_models=["NBEATS"]):
+def plt_extended_model_rmse(exclude_models=[]):
     dfs = []
 
     for time_frame in config.timeframes:
-        # Get RMSE data
-        rmse_df = read_rmse_csv(pred=config.extended_pred, time_frame=time_frame)
+        df = extended_rmse_df(time_frame=time_frame)
 
-        data = {}
-        for model in rmse_df.columns:
-            if model in exclude_models:
-                continue
+        # Add ARIMA to the df
+        arima_df = read_rmse_csv(pred=config.log_returns_pred, time_frame=time_frame)
+        arima_df = pd.DataFrame(
+            data={"ARIMA": [arima_df["ARIMA"].str.get(4).to_list()] * config.n_periods},
+            index=df.index,
+        )
+        # Add ARIMA to the df
+        df = pd.concat([arima_df, df], axis=1)
 
-            # Get the RMSEs for the given model
-            data[model] = rmse_df[model].iloc[: config.n_periods].tolist()
+        # Drop models in exclude_models
+        df = df.drop(exclude_models, axis=1)
 
-        df = pd.DataFrame(data)
-
-        # Rename indices
-        df.index = [f"Period {i+1}" for i in range(config.n_periods)]
         dfs.append(df)
 
     plt_multiple_df_boxplots(
         dfs,
-        outliers_percentile=100,
-        x_label="Period",
-        y_label="Logarithmic Returns",
+        outliers_percentile=[80, 90, 95, 99],
+        x_label="Training Period Start",
+        y_label="RMSE",
+        rotate_xlabels=False,
+        first_white=True,
+    )
+
+
+def plt_stress_test_rmse():
+    dfs = []
+
+    for time_frame in config.timeframes:
+        dfs.append(stress_test_rmse_df(time_frame=time_frame))
+
+    plt_multiple_df_boxplots(
+        dfs,
+        outliers_percentile=[80, 90, 95, 99],
+        x_label="Testing Period",
+        y_label="RMSE",
         rotate_xlabels=False,
     )

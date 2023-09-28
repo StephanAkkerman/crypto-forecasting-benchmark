@@ -136,13 +136,27 @@ def extended_rmse_df(time_frame: str, avg: bool = False) -> pd.DataFrame:
     data = {}
     for model in rmse_df.columns:
         # Get the RMSEs for the given model
-        data[model] = rmse_df[model].iloc[: config.n_periods].tolist()
+        data[model] = [list(item) for item in zip(*rmse_df[model])]
 
-    return pd.DataFrame(data, index=range(config.n_periods))
+    return pd.DataFrame(data, index=[f"Period {i+1}" for i in range(config.n_periods)])
 
 
-def stress_test_rmse_df():
-    pass
+def stress_test_rmse_df(
+    pred=config.log_returns_stress_pred,
+    time_frame: str = config.timeframes[-1],
+    avg: bool = False,
+) -> pd.DataFrame:
+    # Get RMSE data
+    rmse_df = read_rmse_csv(pred=pred, time_frame=time_frame, avg=avg)
+
+    # Get the first value of each list in the dataframe -> period 0
+    # Change the format that the first column is the period and forget about coin names
+    data = {}
+    for model in rmse_df.columns:
+        # Get the RMSEs for the given model
+        data[model] = [list(item) for item in zip(*rmse_df[model])]
+
+    return pd.DataFrame(data, index=[f"Period {i+1}" for i in range(config.n_periods)])
 
 
 def rmse_heatmap(time_frame: str, pred=config.log_returns_pred):
