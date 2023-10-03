@@ -53,6 +53,12 @@ tf_names = [
     "Four-Hour Time Frame",
     "Daily Time Frame",
 ]
+tf_names2 = [
+    "One-Minute",
+    "Fifteen-Minute",
+    "Four-Hour",
+    "Daily",
+]
 
 # If GPU is available use it
 use_GPU = True

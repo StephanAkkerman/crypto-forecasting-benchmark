@@ -81,12 +81,17 @@ def section_4_1(time_frame):
     # Boxplots of predictions
     boxplots.prediction_boxplots(time_frame=time_frame, models=models, coin=coin)
 
+    data_properties.time_frames()
+    data_properties.time_frames(pred=config.scaled_to_log_pred)
+
 
 def section_4_2():
     data_properties.auto_correlation()
     data_properties.trend()
     data_properties.seasonality()
     data_properties.heteroskedasticity()
+    # data_properties.coin_correlation()
+    # data_properties.correlation()
     data_properties.stochasticity()
 
 
@@ -112,15 +117,18 @@ if __name__ == "__main__":
     # baseline.scaled_heatmap()
     # baseline.tf_significance()
     # baseline.box_plot(config.log_returns_pred)
-
     # section_4_1("1m")
     # data_properties.coin_correlation()
     # volatility.create_volatility_data()
+    # rmse.complete_models_ranking(pred=config.scaled_to_log_pred)
 
     # Improve function to show all timeframes at once
 
-    section_4_4()
+    # section_4_4()
     # rmse.build_rmse_database(config.raw_to_log_stress_pred, skip_existing=False)
     # rmse.build_rmse_database(config.scaled_to_log_stress_pred, skip_existing=False)
     # data_properties.seasonality()
     # data_properties.correlation(time_frame="1d", method="both")
+    # baseline.results_table(pred=config.scaled_to_log_pred)
+    # data_properties.time_frames(pred=config.scaled_to_log_pred)
+    data_properties.correlation()

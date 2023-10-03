@@ -9,7 +9,7 @@ from scipy.stats.stats import pearsonr
 from scipy.stats import ttest_rel
 
 import config
-from experiment.rmse import read_rmse_csv, plot_rmse_heatmaps
+from experiment.rmse import read_rmse_csv, plot_rmse_heatmaps, plot_rmse_heatmap
 
 
 def read_comparison_csv(pred: str, time_frame: str, avg: bool = True):
@@ -134,6 +134,50 @@ def baseline_comparison_heatmap(pred: str = config.log_returns_pred, ignore_mode
         avg_y=False,
     )
 
+
+def single_baseline_heatmap(pred: str = config.log_returns_pred):
+    dfs = get_all_baseline_comparison(pred, ignore_model=[], trans=False)
+
+    new_dfs = []
+
+    # Calculate mean and keep it
+    for df in dfs:
+        # Calculate the mean of each column
+        means = df.mean()
+        new_dfs.append(means)
+
+    # Merge into 1 df
+    df = pd.concat(new_dfs, axis=1)
+    df.columns = config.tf_names2
+
+    plot_rmse_heatmap(
+        df.T,
+        title="",
+        flip_colors=True,
+        vmin=-1,
+        vmax=1,
+        avg_y=False,
+        avg_x=False,
+        x_label="Forecasting Model",
+        y_label="Time Frame",
+    )
+
+def results_table(pred: str = config.log_returns_pred):
+    dfs = get_all_baseline_comparison(pred, ignore_model=[], trans=False)
+
+    new_dfs = []
+
+    # Calculate mean and keep it
+    for df in dfs:
+        # Calculate the mean of each column
+        means = df.mean()
+        new_dfs.append(means)
+
+    # Merge into 1 df
+    df = pd.concat(new_dfs, axis=1)
+    df.columns = config.tf_names2
+    
+    print(df)
 
 def bar_plot(
     pred: str = config.log_returns_pred, ignore_model=[], ignore_outliers: bool = True

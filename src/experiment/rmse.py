@@ -183,6 +183,8 @@ def plot_rmse_heatmap(
     vmax: float = None,
     avg_y: bool = True,
     avg_x: bool = True,
+    x_label: str = "",
+    y_label: str = "",
 ):
     if avg_y:
         # Add average column at the right
@@ -214,6 +216,9 @@ def plot_rmse_heatmap(
         vmin=vmin,
         vmax=vmax,
     )
+    # Add x and y labels
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
     plt.title(title)
     plt.show()
 
@@ -566,6 +571,8 @@ def rmse_table(
     models : list, optional
         _description_, by default ["ARIMA", "TCN", "LightGBM"]
     """
+    if models == []:
+        models = config.all_models
 
     rmse_df = read_rmse_csv(pred, time_frame, fill_NaN=True)
 
@@ -592,3 +599,41 @@ def rmse_table(
 
     print(f"RMSE results for {coin} on {time_frame} using predictions from: {pred}")
     print(new_df)
+
+
+def models_ranking(pred=config.log_returns_pred, time_frame="1d", coins=[]):
+    print(f"Best performing models on {time_frame} using {pred}:")
+
+    # Read the RMSE data
+    rmse_df = read_rmse_csv(pred, time_frame, avg=True, fill_NaN=True)
+
+    if coins != []:
+        rmse_df = rmse_df.loc[coins]
+
+    # Calculate the mean of each column
+    means = rmse_df.mean()
+
+    # Order the models by their mean
+    means = means.sort_values(ascending=True)
+
+    print(means)
+
+
+def complete_models_ranking(pred=config.log_returns_pred):
+    dfs = []
+
+    # Read the RMSE data
+    for time_frame in reversed(config.timeframes):
+        rmse_df = read_rmse_csv(pred, time_frame, avg=True, fill_NaN=True)
+
+        # Calculate the mean of each column
+        means = rmse_df.mean()
+
+        # Order the models by their mean
+        means = means.sort_values(ascending=True)
+        dfs.append(means)
+
+    df = pd.concat(dfs, axis=1)
+    # Set columns
+    df.columns = reversed(config.timeframes)
+    print(df)
