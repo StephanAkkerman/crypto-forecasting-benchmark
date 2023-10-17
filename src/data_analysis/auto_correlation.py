@@ -7,19 +7,17 @@ from statsmodels.graphics.tsaplots import plot_acf
 
 # Local imports
 from config import all_coins, timeframes, plots_dir, statistics_dir
-from data.csv_data import read_csv
+from data.csv_data import get_data
 
 
-def durbin_watson(diff: bool = True, log: bool = True) -> int:
+def durbin_watson(data_type: str = "log returns") -> int:
     """
     Generates the test statistic for Durbin-Watson test for autocorrelation
 
     Parameters
     ----------
-    diff : bool, optional
-        Use the returns of the data, by default True
-    log : bool, optional
-        Use the logarithmic (returns) of the data, by default True
+    data_type: str
+        Options are: "close", "returns" "log returns", and "scaled", by default "log returns"
 
     Returns
     -------
@@ -30,45 +28,37 @@ def durbin_watson(diff: bool = True, log: bool = True) -> int:
 
     for coin in all_coins:
         for time in timeframes:
-            df = read_csv(coin, time)
+            for df in get_data(coin, time, data_type):
+                # Fit a regression model to the data
+                X = sm.add_constant(df.iloc[:, :-1])
+                y = df.iloc[:, -1]
+                model = sm.OLS(y, X).fit()
 
-            if log:
-                df = np.log(df)
+                # Perform the Durbin-Watson test
+                dw = sm.stats.stattools.durbin_watson(model.resid)
 
-            if diff:
-                df = df.diff().dropna()
+                info = {
+                    "Coin": coin,
+                    "Time": time,
+                    "Durbin-Watson": dw,
+                }
 
-            # Fit a regression model to the data
-            X = sm.add_constant(df.iloc[:, :-1])
-            y = df.iloc[:, -1]
-            model = sm.OLS(y, X).fit()
-
-            # Perform the Durbin-Watson test
-            dw = sm.stats.stattools.durbin_watson(model.resid)
-
-            info = {
-                "Coin": coin,
-                "Time": time,
-                "Durbin-Watson": dw,
-            }
-
-            # Use concat instead of append to avoid the warning
-            results = pd.concat(
-                [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
-            )
+                # Use concat instead of append to avoid the warning
+                results = pd.concat(
+                    [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
+                )
 
     # A value of 2.0 indicates no autocorrelation
-    return len(
-        results[(results["Durbin-Watson"] > 1.5) & (results["Durbin-Watson"] < 2.5)]
+    print(
+        len(
+            results[(results["Durbin-Watson"] > 1.5) & (results["Durbin-Watson"] < 2.5)]
+        )
     )
 
 
 def autocorrelation_test(
-    test_type: str = "Ljung-Box",
-    diff: bool = False,
-    log_returns: bool = True,
-    to_csv: bool = True,
-    to_excel: bool = False,
+    data_type: str = "log returns",
+    file_name: str = "",
 ) -> None:
     """
     Performs either the Ljung-Box or Breusch-Godfrey test for autocorrelation on all datasets and saves it as an excel file
@@ -77,65 +67,83 @@ def autocorrelation_test(
     ----------
     test_type : str
         The type of test to perform ('Ljung-Box' or 'Breusch-Godfrey')
-    diff : bool, optional
-        Use the returns of the data, by default True
-    log_returns : bool, optional
-        Use the logarithmic (returns) of the data, by default True
-    to_csv : bool, optional
-        Save the results to a CSV file, by default True
-    to_excel : bool, optional
-        Save the results to an Excel file, by default False
+    file_name : str, optional
+        The name for the file to be saved in /data/tests/, by default ""
     """
     results = pd.DataFrame()
-    file_name = test_type
+    nr_lags = 100
 
-    if log_returns:
-        file_name = f"{file_name}_log_returns"
-    elif diff:
-        file_name = f"{file_name}_diff"
-
-    for lag in tqdm(range(1, 101)):
+    for lag in tqdm(range(1, nr_lags + 1)):
         for coin in all_coins:
             for time in timeframes:
-                if log_returns:
-                    df = read_csv(coin, time, ["log returns"])
-                    df = df.dropna()
-                else:
-                    df = read_csv(coin, time, ["close"])
-                    if diff:
-                        df = df.diff().dropna()
+                dfs = get_data(coin, time, data_type)
+                for df in dfs:
+                    ljung_box_p_val = sm.stats.acorr_ljungbox(
+                        df.values.squeeze(), lags=lag
+                    )["lb_pvalue"].tolist()[-1]
+                    if ljung_box_p_val < 0.05:
+                        ljung_box_p_val = "Autocorrelated"
+                    else:
+                        ljung_box_p_val = "Not Autocorrelated"
 
-                if test_type == "Ljung-Box":
-                    res = sm.stats.acorr_ljungbox(df.values.squeeze(), lags=lag)
-                    p_val = res["lb_pvalue"].tolist()[-1]
-
-                elif test_type == "Breusch-Godfrey":
                     X = sm.add_constant(df.iloc[:, :-1])
                     y = df.iloc[:, -1]
-                    model = sm.OLS(y, X).fit()
-                    res = sm.stats.diagnostic.acorr_breusch_godfrey(model, nlags=lag)
-                    p_val = res[1]
+                    breusch_god_p_val = sm.stats.diagnostic.acorr_breusch_godfrey(
+                        sm.OLS(y, X).fit(), nlags=lag
+                    )[1]
 
-                info = {
-                    "Coin": coin,
-                    "Time Frame": time,
-                    "Result": "Autocorrelated"
-                    if p_val < 0.05
-                    else "Not Autocorrelated",
-                    "Lag": lag,
-                }
+                    if breusch_god_p_val < 0.05:
+                        breusch_god_p_val = "Autocorrelated"
+                    else:
+                        breusch_god_p_val = "Not Autocorrelated"
+                    info = {
+                        "Coin": coin,
+                        "Time Frame": time,
+                        "Ljung-Box": ljung_box_p_val,
+                        "Breusch-Godfrey": breusch_god_p_val,
+                        "Lag": lag,
+                    }
 
-                results = pd.concat(
-                    [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
-                )
+                    results = pd.concat(
+                        [results, pd.DataFrame(info, index=[0])],
+                        axis=0,
+                        ignore_index=True,
+                    )
 
-    if to_excel:
-        results.to_excel(f"{statistics_dir}/{file_name}.xlsx", index=False)
-
-    if to_csv:
+    if file_name != "":
         results.to_csv(f"{statistics_dir}/{file_name}.csv", index=False)
 
-    print(results)
+    # Find majority for both tests
+    for test_name in ["Ljung-Box", "Breusch-Godfrey"]:
+        # Grouping the DataFrame by 'Coin' and 'Time Frame' and counting the occurrences of "Autocorrelated"
+        grouped_df = (
+            results.groupby(["Coin", "Time Frame", test_name])
+            .size()
+            .reset_index(name="Count")
+        )
+
+        # Create a pivot table to show counts of "Autocorrelated" and "Not Autocorrelated" side by side
+        pivot_df = grouped_df.pivot_table(
+            index=["Coin", "Time Frame"],
+            columns=test_name,
+            values="Count",
+            fill_value=0,
+        ).reset_index()
+
+        print(pivot_df)
+
+        # Calculate a column to determine if predominantly "Autocorrelated"
+        pivot_df["Predominantly"] = np.where(
+            pivot_df["Autocorrelated"] >= len(dfs) * nr_lags / 2,
+            "Autocorrelated",
+            "Not Autocorrelated",
+        )
+
+        print(pivot_df["Predominantly"])
+
+        autocorrelated = pivot_df[pivot_df["Predominantly"] == "Autocorrelated"]
+        print(autocorrelated[["Coin", "Time Frame", "Predominantly"]])
+        print("Autocorrelated:", len(autocorrelated))
 
 
 def plot_acf(crypto="BTC", timeframe="1d"):
@@ -150,7 +158,7 @@ def plot_acf(crypto="BTC", timeframe="1d"):
         The timeframe of the data, by default "1d"
     """
 
-    df = read_csv(crypto, timeframe)
+    df = get_data(crypto, timeframe, data_type="returns")[0]
 
     df_diff = df.diff().dropna()
 
@@ -167,7 +175,6 @@ def plot_acf(crypto="BTC", timeframe="1d"):
     axs[1].set_ylabel("ACF")
 
     plt.show()
-    plt.savefig("output/plots/acf.png")
 
 
 def plot_log_returns(crypto="BTC", timeframe="1d"):
@@ -181,8 +188,8 @@ def plot_log_returns(crypto="BTC", timeframe="1d"):
     timeframe : str, optional
         The timeframe of the data, by default "1d"
     """
-    returns = read_csv(crypto, timeframe).diff().dropna()
-    log_returns = read_csv(crypto, timeframe, ["log returns"])
+    returns = get_data(crypto, timeframe, data_type="returns")[0]
+    log_returns = get_data(crypto, timeframe)[0]
 
     _, axs = plt.subplots(2, 1, figsize=(12, 8))
 

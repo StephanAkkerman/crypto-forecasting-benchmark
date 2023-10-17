@@ -1,12 +1,21 @@
+from collections import Counter
+
+from tqdm import tqdm
 import pandas as pd
 import pymannkendall as mk
 
 # Local imports
 from config import all_coins, timeframes, statistics_dir
-from data.csv_data import read_csv
+from data.csv_data import get_data
+from experiment.data_properties import find_majority
 
 
-def trend_tests(log_returns: bool = True, as_csv: bool = True, as_excel: bool = False):
+def trend_tests(
+    data_type: str = "log returns",
+    as_csv: bool = True,
+    as_excel: bool = False,
+    use_majority: bool = False,
+):
     """
     Performs four trend tests on the data and saves the results to an Excel file.
 
@@ -16,41 +25,56 @@ def trend_tests(log_returns: bool = True, as_csv: bool = True, as_excel: bool = 
         If True then uses the logarithmic returns, by default False
     """
 
-    file_name = f"{statistics_dir}/trend_results"
+    file_name = f"{statistics_dir}/trend_results_{data_type}"
 
-    if log_returns:
-        file_name = f"{file_name}_log_returns"
+    df = pd.DataFrame()
 
-    all_results = pd.DataFrame()
+    for test in tqdm(
+        [
+            mk.hamed_rao_modification_test,
+            mk.yue_wang_modification_test,
+            mk.pre_whitening_modification_test,
+            mk.trend_free_pre_whitening_modification_test,
+        ]
+    ):
+        results = trend_test(test, data_type)
 
-    for test in [
-        mk.hamed_rao_modification_test,
-        mk.yue_wang_modification_test,
-        mk.pre_whitening_modification_test,
-        mk.trend_free_pre_whitening_modification_test,
-    ]:
-        results = trend_test(test, log_returns)
-
-        if all_results.empty:
-            all_results = pd.concat([all_results, results], axis=0, ignore_index=True)
+        if df.empty:
+            df = pd.concat([df, results], axis=0, ignore_index=True)
 
         else:
             # Merge the DataFrames
-            all_results = pd.merge(
-                all_results,
+            df = pd.merge(
+                df,
                 results,
                 how="inner",
                 on=["Coin", "Time Frame"],
             )
 
+    if use_majority:
+        # Apply the function across the rows
+        df["Result"] = df.apply(find_majority, axis=1)
+
+        # Change Results to trend if its increasing or decreasing
+        df["Result"] = df["Result"].str.replace("increasing", "trend")
+        df["Result"] = df["Result"].str.replace("decreasing", "trend")
+
+        print(df["Result"].value_counts())
+    else:
+        # Print Results of each test
+        print(df["Hamed Rao"].value_counts())
+        print(df["ESS"].value_counts())
+        print(df["Pre-whitening"].value_counts())
+        print(df["Trend-free"].value_counts())
+
     # Save as .xlsx
     if as_excel:
-        all_results.to_excel(f"{file_name}.xlsx", index=False)
+        df.to_excel(f"{file_name}.xlsx", index=False)
     if as_csv:
-        all_results.to_csv(f"{file_name}.csv", index=False)
+        df.to_csv(f"{file_name}.csv", index=False)
 
 
-def trend_test(test, log_returns=True, as_csv: bool = True) -> pd.DataFrame:
+def trend_test(test, data_type: str) -> pd.DataFrame:
     """
     Performs a trend test on all coins and timeframes.
 
@@ -69,48 +93,35 @@ def trend_test(test, log_returns=True, as_csv: bool = True) -> pd.DataFrame:
 
     results = pd.DataFrame()
 
+    # https://pypi.org/project/pymannkendall/
     if test == mk.hamed_rao_modification_test:
         test_name = "Hamed Rao"
     elif test == mk.yue_wang_modification_test:
-        test_name = "Yue Wang"
+        test_name = "ESS"
     elif test == mk.pre_whitening_modification_test:
         test_name = "Pre-whitening"
     elif test == mk.trend_free_pre_whitening_modification_test:
-        test_name = "Trend-free pre-whitening"
+        test_name = "Trend-free"
 
     for coin in all_coins:
         for time in timeframes:
-            if log_returns:
-                df = read_csv(coin, time, ["log returns"]).dropna()
-            else:
-                df = read_csv(coin, time, ["close"])
+            trend_results = []
+            for df in get_data(coin, time, data_type):
+                trend_results.append(test(df)[0])
 
-            # https://pypi.org/project/pymannkendall/
-            (
-                trend,
-                h,
-                p,
-                z,
-                Tau,
-                s,
-                var_s,
-                slope,
-                intercept,
-            ) = test(df)
+            trend_result = trend_results[0]
+            if len(trend_results) > 1:
+                string_counts = Counter(trend_results)
+                trend_result = string_counts.most_common(1)[0][0]
 
             info = {
                 "Coin": coin,
                 "Time Frame": time,
-                test_name: trend,
+                test_name: trend_result,
             }
 
             results = pd.concat(
                 [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
             )
-
-    # print("Test:", test)
-    # print("No trend", len(results[results["Trend"] == "no trend"]))
-    # print("decreasing", len(results[results["Trend"] == "decreasing"]))
-    # print("increasing", len(results[results["Trend"] == "increasing"]))
 
     return results

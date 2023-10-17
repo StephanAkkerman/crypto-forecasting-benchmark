@@ -1,122 +1,56 @@
+from tqdm import tqdm
 import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller, kpss
 
 # Local imports
-from config import all_coins, timeframes, statistics_dir, plots_dir
-from data.csv_data import read_csv
+from config import all_coins, timeframes, statistics_dir
+from data.csv_data import get_data
 
 
-def stationarity_tests():
+def stationarity_test(
+    data_type: str = "log returns", file_name: str = "stationarity_test"
+):
     """
-    Performs the Augmented Dickey-Fuller and KPSS tests on the data and saves the results to an Excel file.
-    """
-    plot_price()
-
-    for diff in [False, True]:
-        adf_test(diff)
-        kpss_test(diff)
-
-
-def adf_test(diff: bool = False, file_name: str = "adf_test"):
-    """
-    Performs the Augmented Dickey-Fuller test on the data and saves the results to an Excel file.
+    Performs the Augmented Dickey-Fuller and KPSS test on the data and saves the results to an Excel file.
 
     Parameters
     ----------
-    diff : bool, optional
-        If True then uses returns instead, by default False
+    data_type : str
+        Options are: "close", "returns" "log returns", and "scaled", by default "log returns"
     file_name : str, optional
         The name for the file to be saved in /data/tests/, by default "adf_test"
     """
-
     results = pd.DataFrame()
 
-    for coin in all_coins:
+    for coin in tqdm(all_coins):
         for time in timeframes:
-            df = read_csv(coin, time)
+            for df in get_data(coin, time, data_type):
+                _, p_val, _, _, _, _ = adfuller(df)
+                _, p_val2, _, _ = kpss(df)
+                adf_dict = {
+                    "Coin": coin,
+                    "Time": time,
+                    "adf p-val": p_val,
+                    "kpss p-val": p_val2,
+                }
 
-            if diff:
-                df = df.diff().dropna()
-                file_name = f"{file_name}_diff"
-
-            test_stat, p_val, num_lags, num_obs, crit_vals, _ = adfuller(df)
-            first_crit = crit_vals["1%"]
-            second_crit = crit_vals["5%"]
-            third_crit = crit_vals["10%"]
-            adf_dict = {
-                "Coin": coin,
-                "Time": time,
-                "ADF Test Statistic": test_stat,
-                "p-value": p_val,
-                "Num Lags": num_lags,
-                "Num Observations": num_obs,
-                "1% Critical Value": round(first_crit, 2),
-                "5% Critical Value": round(second_crit, 2),
-                "10% Critical Value": round(third_crit, 2),
-            }
-
-            # Use concat instead of append to avoid the warning
-            results = pd.concat(
-                [results, pd.DataFrame(adf_dict, index=[0])], axis=0, ignore_index=True
-            )
+                # Use concat instead of append to avoid the warning
+                results = pd.concat(
+                    [results, pd.DataFrame(adf_dict, index=[0])],
+                    axis=0,
+                    ignore_index=True,
+                )
 
     # Write to Excel
-    results.to_excel(f"{statistics_dir}/{file_name}.xlsx")
+    if file_name != "":
+        results.to_excel(f"{statistics_dir}/{file_name}.xlsx")
 
-    # Show the coins that are stationary, p-value < 0.05
-    print(results[results["p-value"] < 0.05])
-
-
-def kpss_test(diff: bool = False, file_name: str = "kpss_test"):
-    """
-    Performs the KPSS test on the data and saves the results to an Excel file.
-
-    Parameters
-    ----------
-    diff : bool, optional
-        If True then uses returns instead, by default False
-    file_name : str, optional
-        The name for the file to be saved in /data/tests/, by default "kpss_test"
-    """
-
-    results = pd.DataFrame()
-
-    for coin in all_coins:
-        for time in timeframes:
-            df = read_csv(coin, time)
-
-            if diff:
-                df = df.diff().dropna()
-                file_name = f"{file_name}_diff"
-
-            test_stat, p_val, num_lags, crit_vals = kpss(df)
-            first_crit = crit_vals["1%"]
-            second_crit = crit_vals["5%"]
-            third_crit = crit_vals["10%"]
-            fourth_crit = crit_vals["2.5%"]
-
-            info = {
-                "Coin": coin,
-                "Time": time,
-                "KPSS Test Statistic": test_stat,
-                "p-value": p_val,
-                "Num Lags": num_lags,
-                "1% Critical Value": round(first_crit, 2),
-                "2.5% Critical Value": round(fourth_crit, 2),
-                "5% Critical Value": round(second_crit, 2),
-                "10% Critical Value": round(third_crit, 2),
-            }
-
-            # Use concat instead of append to avoid the warning
-            results = pd.concat(
-                [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
-            )
-
-    results.to_excel(f"{statistics_dir}/{file_name}.xlsx")
-
-    # Show the coins that are stationary, p-value < 0.05
-    print(results[results["p-value"] > 0.05])
+    # Show the coins that are stationary
+    adf_significant = results[results["adf p-val"] < 0.05]
+    kpss_significant = results[results["kpss p-val"] > 0.05]
+    print(adf_significant, len(adf_significant))
+    print(kpss_significant, len(kpss_significant))
 
 
 def plot_price(crypto: str = "BTC", timeframe: str = "1d"):
@@ -131,8 +65,8 @@ def plot_price(crypto: str = "BTC", timeframe: str = "1d"):
         The time frame to use, by default "1d"
     """
 
-    df = read_csv(crypto, timeframe)
-    df_diff = df.diff().dropna()
+    df = get_data(crypto, timeframe, "close")
+    df_diff = get_data(crypto, timeframe, "returns")
 
     _, axs = plt.subplots(2, 1, figsize=(12, 8))
 
@@ -149,4 +83,3 @@ def plot_price(crypto: str = "BTC", timeframe: str = "1d"):
     axs[1].set_xlabel("Date")
 
     plt.show()
-    plt.savefig(f"{plots_dir}/price.png")

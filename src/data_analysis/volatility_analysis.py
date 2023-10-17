@@ -68,17 +68,22 @@ def plot_periods(
         )
 
     # Create first legend
+    if show_periods:
+        loc="center right"
+    else:
+        loc = "best" 
+        
     first_legend = ax.legend(
         handles=[avg_line[0], overall_q3_line, overall_q1_line],
-        loc="center right",
+        loc=loc,
     )
 
     # Add the first legend manually to the current Axes.
     ax.add_artist(first_legend)
 
-    if show_validation:
+    if show_validation and show_periods:
         handles = [training_lines[0], validation_lines[0], testing_lines[0]]
-    else:
+    if show_periods:
         handles = [training_lines[0], testing_lines[0]]
 
     # Create second legend (for the training, validation, and testing periods)

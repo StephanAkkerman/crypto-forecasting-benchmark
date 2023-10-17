@@ -1,4 +1,12 @@
 # Local imports
+from data_analysis import (
+    stationarity,
+    auto_correlation,
+    trend,
+    seasonality,
+    heteroskedasticity,
+    stochasticity,
+)
 from experiment import (
     forecast,
     train_test,
@@ -12,7 +20,29 @@ from experiment import (
     data_timespan,
 )
 import config
-from data_analysis import volatility_analysis
+
+
+def data_analyses():
+    # stationarity.stationarity_test(data_type="scaled", file_name="")
+    # auto_correlation.durbin_watson(data_type="log returns")
+    # auto_correlation.durbin_watson(data_type="scaled")
+
+    # auto_correlation.autocorrelation_test(data_type="log returns", file_name="")
+    # auto_correlation.autocorrelation_test(data_type="scaled", file_name="") # 20 and 5
+
+    # trend.trend_tests(data_type="log returns", as_csv=False, as_excel=False)
+    # trend.trend_tests(data_type="scaled", as_csv=False, as_excel=False)
+
+    # seasonality.seasonal_strength_test(data_type="log returns", to_excel=False, to_csv=False)
+    # seasonality.seasonal_strength_test(data_type="scaled", to_excel=False, to_csv=False)
+
+    # heteroskedasticity.uncon_het_tests(data_type="scaled", to_excel=False, to_csv=False)
+    # heteroskedasticity.con_het_test(
+    #    data_type="log returns", to_excel=False, to_csv=False
+    # )
+
+    stochasticity.calc_hurst(data_type="log returns", to_excel=False, to_csv=False)
+    stochasticity.calc_hurst(data_type="scaled", to_excel=False, to_csv=False)
 
 
 def model_performance(pred: str, time_frame: str):
@@ -92,24 +122,33 @@ def section_4_2():
     data_properties.heteroskedasticity()
     # data_properties.coin_correlation()
     # data_properties.correlation()
-    data_properties.stochasticity()
+    data_properties.stochasticity_mann()
+    data_properties.stochasticity_OLS()
 
 
 def section_4_3():
-    # volatility.volatility_rmse_heatmap(config.scaled_to_log_pred)
+    volatility.volatility_rmse_heatmap(config.scaled_to_log_pred)
+    data_properties.volatility()
+
+    volatility.mcap_vol_boxplot()
+    data_properties.mcap_cat_vol()
+    data_properties.volatility_mcap()
+
     volatility.mcap_rmse_boxplot()
     data_properties.mcap()
-    data_properties.volatility_mcap()
+    data_properties.mcap_cat()
 
 
 def section_4_4():
     # volatility_analysis.plot_all_periods(show_validation=False)
 
-    # data_timespan.plt_extended_model_rmse()
-    data_properties.extended_performance()
+    data_timespan.plt_extended_model_rmse()
+    data_properties.data_timespan_mann(config.extended_pred, True)
 
-    # data_timespan.plt_stress_test_rmse()
-    # data_properties.stress_test_perf()
+    data_timespan.plt_stress_test_rmse()
+    data_properties.data_timespan_mann(
+        config.log_returns_stress_pred, True, 4, "greater"
+    )
 
 
 if __name__ == "__main__":
@@ -130,5 +169,15 @@ if __name__ == "__main__":
     # data_properties.seasonality()
     # data_properties.correlation(time_frame="1d", method="both")
     # baseline.results_table(pred=config.scaled_to_log_pred)
-    # data_properties.time_frames(pred=config.scaled_to_log_pred)
-    data_properties.correlation()
+    # data_timespan.plt_extended_model_rmse()
+    # data_properties.extended_performance_mann(False)
+    # data_properties.extended_performance()
+    # data_properties.data_timespan_mann(
+    #    config.log_returns_stress_pred, True, 4, "greater"
+    # )
+    # data_properties.data_timespan_mann(
+    #    config.log_returns_stress_pred, True, 0, "greater"
+    # )
+
+    # data_properties.stochasticity_OLS(use_RMSE=True, group_tf=True)
+    data_analyses()

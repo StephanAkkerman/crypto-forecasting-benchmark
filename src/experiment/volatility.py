@@ -26,9 +26,13 @@ def read_volatility_csv(time_frame: str, add_mcap: bool = False):
     df = df.applymap(lambda x: x.strip("[]").split(", "))
 
     # Remove ' from string for class columns
-    df[["train_volatility_class", "test_volatility_class", "period_volatility_class"]] = df[
+    df[
         ["train_volatility_class", "test_volatility_class", "period_volatility_class"]
-    ].applymap(lambda x: [i.strip("'") for i in x])
+    ] = df[
+        ["train_volatility_class", "test_volatility_class", "period_volatility_class"]
+    ].applymap(
+        lambda x: [i.strip("'") for i in x]
+    )
 
     # Convert list of strings to list of floats
     df[["train_volatility", "test_volatility", "period_volatility"]] = df[
@@ -70,7 +74,7 @@ def create_volatility_data():
             train_volatilty_class = []
             test_volatilty_class = []
             period_volatility_class = []
-            
+
             train_volatilty = []
             test_volatilty = []
             period_volatility = []
@@ -88,14 +92,18 @@ def create_volatility_data():
                 mean_vol_period = vol_period.mean().values[0]
 
                 # Calculate the volatility class for train, test, and period
-                for vol_list, vol in [(train_volatilty_class, mean_vol_train), (test_volatilty_class, mean_vol_test), (period_volatility_class, mean_vol_period)]:
+                for vol_list, vol in [
+                    (train_volatilty_class, mean_vol_train),
+                    (test_volatilty_class, mean_vol_test),
+                    (period_volatility_class, mean_vol_period),
+                ]:
                     vol_list.append(
                         get_volatility_class(
                             volatility=vol,
                             percentile25=percentile25,
                             percentile75=percentile75,
                         )
-                    )               
+                    )
 
                 # Also add 2 columns without classification and just the mean number
                 train_volatilty.append(mean_vol_train)
@@ -323,7 +331,7 @@ def coin_boxplot(
 
 
 def volatility_rmse_heatmap(
-    pred: str = config.log_returns_pred, exclude_model=["TFT", "NBEATS", "NHiTS"]
+    pred: str = config.log_returns_pred, exclude_model=["NBEATS"]
 ):
     """
     Plots the mean RMSE for each combination of train and test volatility class.
@@ -336,16 +344,8 @@ def volatility_rmse_heatmap(
         The time frame to use, by default "1d"
     """
 
-    fig, axes = plt.subplots(2, 2, figsize=(20, 16))
+    _, axes = plt.subplots(2, 2, figsize=(20, 16))
     axes = axes.flatten()  # Flatten the 2D array to 1D for easy iteration
-
-    # Adjust cbar percentile per time frame
-    cbar_max = {
-        "1d": 0.11,
-        "4h": 0.035,
-        "15m": 0.004,
-        "1m": 0.002,
-    }
 
     for idx, time_frame in enumerate(config.timeframes):
         # Read the data
@@ -463,6 +463,7 @@ def mcap_rmse_boxplot(
     ignore_model=[],
     log_scale: bool = False,
     remove_outliers: bool = True,
+    fontsize: int = 12,
 ):
     fig, axes = plt.subplots(2, 2, figsize=(20, 12))
     axes = axes.flatten()
@@ -508,20 +509,57 @@ def mcap_rmse_boxplot(
                 lower_bound = 0
             axes[i].set_ylim(lower_bound, upper_bound)
 
-    # Adjust the layout to leave space for a right-hand legend
-    plt.tight_layout(rect=[0, 0, 0.9, 1])
-    # fig.subplots_adjust(right=0.85)
+    # Adjust the layout to leave space for an upper center legend
+    plt.tight_layout(rect=[0, 0, 1, 0.9])
 
     # Add a single global legend to the figure
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(
         handles,
         labels,
-        loc="center left",
-        bbox_to_anchor=(0.9, 0.5),
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1),  # adjust the numbers as per your requirement
         title="Forecasting Model",
+        ncols=len(handles),
+        fontsize=fontsize,
+        title_fontsize=fontsize,
     )
 
+    plt.show()
+
+
+def mcap_vol_boxplot():
+    """
+    Creates a boxplot of volatility for each market cap category.
+    Creates this for each time frame.
+    """
+    fig, axes = plt.subplots(2, 2, figsize=(20, 12))
+    axes = axes.flatten()
+
+    for i, time_frame in enumerate(config.timeframes):
+        df = read_volatility_csv(time_frame=time_frame)
+
+        flat_data = []
+        for index, row in df.iterrows():
+            flat_data.extend([(index, val) for val in row["period_volatility"]])
+
+        df_flat = pd.DataFrame(flat_data, columns=["Coin", "period_volatility"])
+        df_flat["Market Cap Category"] = df_flat["Coin"].map(assign_mcap_category)
+
+        sns.boxplot(
+            x="Market Cap Category",
+            y="period_volatility",
+            data=df_flat,
+            color="white",
+            ax=axes[i],
+            order=["Small", "Mid", "Large"],
+        )
+
+        axes[i].set_title(config.tf_names[i])
+        axes[i].set_xlabel("Market Cap Category")
+        axes[i].set_ylabel("Volatility")
+
+    plt.tight_layout()
     plt.show()
 
 

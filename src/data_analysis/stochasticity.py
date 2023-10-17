@@ -1,65 +1,64 @@
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
-from scipy.stats import jarque_bera
 from hurst import compute_Hc
 
 from config import all_coins, timeframes, statistics_dir
-from data.csv_data import read_csv
+from data.csv_data import get_data
 
 
-def jarque_bera_test():
+def bootstrap_Hc(series, num_samples=1000):
     """
-    Performs the Jarque-Bera test for normality on the logarithmic returns of the data.
+    Bootstrap a confidence interval for the Hurst exponent of time series.
+
+    Parameters:
+        series (array-like): The time series data.
+        num_samples (int): The number of bootstrap samples to create.
+
+    Returns:
+        lower_H (float): Lower bound of the Hurst exponent.
+        upper_H (float): Upper bound of the Hurst exponent.
     """
+    n = len(series)
+    H_samples = []
 
-    results = pd.DataFrame()
+    for _ in range(num_samples):
+        sample = np.random.choice(series, size=n, replace=True)
+        H, _, _ = compute_Hc(sample, kind="change", simplified=False)
+        H_samples.append(H)
 
-    for coin in all_coins:
-        for time in timeframes:
-            df = read_csv(coin, time, ["log returns"]).dropna()
-            _, p_value = jarque_bera(df["log returns"].values.tolist())
+    lower_H = np.percentile(H_samples, 5)
+    upper_H = np.percentile(H_samples, 95)
 
-            info = {
-                "Coin": coin,
-                "Time": time,
-                "P-value": p_value,
-            }
-
-            results = pd.concat(
-                [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
-            )
-
-    alpha = 0.05  # significance level
-    # if p_value < alpha:
-    #    print(f"Reject the null hypothesis: Logarithmic returns do not follow a normal distribution (p-value={p_value:.4f})")
-    # else:
-    #    print(f"Fail to reject the null hypothesis: Logarithmic returns may follow a normal distribution (p-value={p_value:.4f})")
-
-    print(results[results["P-value"] < alpha][["Coin", "Time", "P-value"]])
+    return lower_H, upper_H
 
 
-def calc_hurst(log_returns: bool = True, to_excel: bool = False, to_csv: bool = True):
+def calc_hurst(
+    data_type: str = "log returns", to_excel: bool = False, to_csv: bool = True
+):
     """
     Calculates the Hurst exponent for the data and saves it to an Excel file.
     """
 
-    file_name = f"{statistics_dir}/hurst"
-    if log_returns:
-        file_name = f"{file_name}_log_returns"
+    file_name = f"{statistics_dir}/hurst_{data_type}"
 
     results = pd.DataFrame()
 
+    kind = "change"
+    if data_type == "close":
+        kind = "price"
+
+    if data_type == "scaled":
+        data_type = "log returns"
+
     for coin in tqdm(all_coins):
         for time in timeframes:
-            if log_returns:
-                df = read_csv(coin, time, ["log returns"]).dropna()
-                prices = df["log returns"].values.tolist()
-                H, _, _ = compute_Hc(prices, kind="change", simplified=False)
-            else:
-                df = read_csv(coin, time)
-                prices = df["close"].values.tolist()
+            Hs = []
+            for df in get_data(coin, time, data_type):
+                prices = df[data_type].values.tolist()
+                Hs.append(compute_Hc(prices, kind=kind, simplified=False)[0])
 
-                H, _, _ = compute_Hc(prices, kind="price", simplified=False)
+            H = np.mean(Hs)
 
             if 0.45 < H < 0.55:
                 hurst_result = "Brownian motion"
@@ -84,3 +83,5 @@ def calc_hurst(log_returns: bool = True, to_excel: bool = False, to_csv: bool = 
 
     if to_csv:
         results.to_csv(f"{file_name}.csv", index=False)
+
+    print(results["Result"].value_counts())

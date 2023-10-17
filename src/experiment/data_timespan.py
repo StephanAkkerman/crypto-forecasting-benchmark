@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 import config
 from experiment.rmse import read_rmse_csv, extended_rmse_df, stress_test_rmse_df

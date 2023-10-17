@@ -7,11 +7,11 @@ from statsmodels.stats.diagnostic import het_breuschpagan, het_goldfeldquandt, h
 
 # Local imports
 from config import all_coins, timeframes, statistics_dir
-from data.csv_data import read_csv
+from data.csv_data import get_data
 
 
 def uncon_het_tests(
-    log_returns: bool = True, to_excel: bool = False, to_csv: bool = True
+    data_type: str = "log returns", to_excel: bool = False, to_csv: bool = True
 ):
     """
     Tests for uncoditional heteroskedasticity using Breusch-Pagan and Goldfeld-Quandt tests.
@@ -26,43 +26,44 @@ def uncon_het_tests(
     # Read the dataset
     results = pd.DataFrame()
 
-    file_name = f"{statistics_dir}/unconditional_heteroskedasticity"
-    if log_returns:
-        file_name = f"{file_name}_log_returns"
+    file_name = f"{statistics_dir}/unconditional_heteroskedasticity_{data_type}"
 
     for coin in tqdm(all_coins):
         for time in timeframes:
-            if log_returns:
-                df = read_csv(coin, time, col_names=["log returns"]).dropna()
-            else:
-                df = read_csv(coin, time, col_names=["close"])
+            breusch_p_values = []
+            gold_p_values = []
+            for df in get_data(coin, time, data_type):
+                df["date"] = df.index
 
-            df["date"] = df.index
+                # Convert the date to unix timestamp
+                df["ts"] = df.date.values.astype(np.int64) // 10**9
 
-            # Convert the date to unix timestamp
-            df["ts"] = df.date.values.astype(np.int64) // 10**9
+                # Add a constant term to the dataset
+                df["const"] = 1
 
-            # Add a constant term to the dataset
-            df["const"] = 1
+                # Define the dependent and independent variables
+                if data_type != "close":
+                    y = df["log returns"]
+                else:
+                    y = df["close"]
 
-            # Define the dependent and independent variables
-            if log_returns:
-                y = df["log returns"]
-            else:
-                y = df["close"]
+                x = df[["ts"]]
+                x = sm.add_constant(x)
 
-            x = df[["ts"]]
-            x = sm.add_constant(x)
+                # Fit the regression model
+                model = sm.OLS(y, x).fit()
 
-            # Fit the regression model
-            model = sm.OLS(y, x).fit()
+                # Perform Breusch-Pagan test
+                _, breusch_p_value, _, _ = het_breuschpagan(
+                    model.resid, model.model.exog
+                )
+                breusch_p_values.append(breusch_p_value)
 
-            # Perform Breusch-Pagan test
-            _, breusch_p_value, _, _ = het_breuschpagan(model.resid, model.model.exog)
-            # test_name = "Breusch-Pagan"
+                _, gold_p_value, _ = het_goldfeldquandt(model.resid, model.model.exog)
+                gold_p_values.append(gold_p_value)
 
-            _, gold_p_value, _ = het_goldfeldquandt(model.resid, model.model.exog)
-            # test_name = "Goldfeld-Quandt"
+            breusch_p_value = np.mean(breusch_p_values)
+            gold_p_value = np.mean(gold_p_values)
 
             # Set signifance level
             alpha = 0.05
@@ -88,25 +89,32 @@ def uncon_het_tests(
     if to_csv:
         results.to_csv(f"{file_name}.csv", index=False)
 
+    # Print results
+    print(results["Breusch-Pagan"].value_counts())
+    print(results["Goldfeld-Quandt"].value_counts())
 
-def con_het_test(log_returns: bool = True, to_csv: bool = True, to_excel: bool = False):
+
+def con_het_test(
+    data_type: str = "log returns", to_csv: bool = True, to_excel: bool = False
+):
     """
     Perform the Engle's ARCH test for conditional heteroskedasticity on all datasets and saves it as an excel file
     """
 
-    file_name = f"{statistics_dir}/cond_heteroskedasticity"
-    if log_returns:
-        file_name = f"{file_name}_log_returns"
+    file_name = f"{statistics_dir}/cond_heteroskedasticity_{data_type}"
 
     results = pd.DataFrame()
 
     for coin in tqdm(all_coins):
         for time in timeframes:
             # Read the dataset
-            returns = read_csv(coin, time, ["log returns"]).dropna()
+            pvals = []
+            for df in get_data(coin, time, data_type):
+                # Perform the Engle's ARCH test
+                _, p_value, _, _ = het_arch(df)
+                pvals.append(p_value)
 
-            # Perform the Engle's ARCH test
-            _, p_value, _, _ = het_arch(returns)
+            p_value = np.mean(pvals)
 
             info = {
                 "Coin": coin,
@@ -120,8 +128,10 @@ def con_het_test(log_returns: bool = True, to_csv: bool = True, to_excel: bool =
             results = pd.concat(
                 [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
             )
-    # save as .xlsx
+        # save as .xlsx
     if to_csv:
         results.to_csv(f"{file_name}.csv", index=False)
     if to_excel:
         results.to_excel(f"{file_name}.xlsx")
+
+    print(results["result"].value_counts())
