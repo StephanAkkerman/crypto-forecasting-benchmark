@@ -331,7 +331,7 @@ def coin_boxplot(
 
 
 def volatility_rmse_heatmap(
-    pred: str = config.log_returns_pred, exclude_model=["NBEATS"]
+    pred: str = config.log_returns_pred, exclude_model=["NBEATS", "NHiTS", "TFT"]
 ):
     """
     Plots the mean RMSE for each combination of train and test volatility class.

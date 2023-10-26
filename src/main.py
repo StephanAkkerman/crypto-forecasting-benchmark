@@ -24,11 +24,11 @@ import config
 
 def data_analyses():
     # stationarity.stationarity_test(data_type="scaled", file_name="")
+
     # auto_correlation.durbin_watson(data_type="log returns")
     # auto_correlation.durbin_watson(data_type="scaled")
-
     # auto_correlation.autocorrelation_test(data_type="log returns", file_name="")
-    # auto_correlation.autocorrelation_test(data_type="scaled", file_name="") # 20 and 5
+    # auto_correlation.autocorrelation_test(data_type="scaled", file_name="")
 
     # trend.trend_tests(data_type="log returns", as_csv=False, as_excel=False)
     # trend.trend_tests(data_type="scaled", as_csv=False, as_excel=False)
@@ -75,10 +75,6 @@ def volatilities(pred: str = config.log_returns_pred):
     volatility.mcap_volatility_heatmap()
 
 
-def section_4():
-    section_4_1("1m", coin="LTC", models=["ARIMA", "TCN", "LSTM"])
-
-
 def section_4_1(time_frame):
     if time_frame == "1d":
         models = ["ARIMA", "LightGBM", "TCN", "TBATS", "LSTM"]
@@ -111,11 +107,19 @@ def section_4_1(time_frame):
     # Boxplots of predictions
     boxplots.prediction_boxplots(time_frame=time_frame, models=models, coin=coin)
 
+    # Tables of RMSE
+    rmse.complete_models_ranking()
+    rmse.complete_models_ranking(pred=config.scaled_to_log_pred)
+
+
+def section_4_2():
+    baseline.results_table()
+
     data_properties.time_frames()
     data_properties.time_frames(pred=config.scaled_to_log_pred)
 
 
-def section_4_2():
+def section_4_3():
     data_properties.auto_correlation()
     data_properties.trend()
     data_properties.seasonality()
@@ -126,8 +130,8 @@ def section_4_2():
     data_properties.stochasticity_OLS()
 
 
-def section_4_3():
-    volatility.volatility_rmse_heatmap(config.scaled_to_log_pred)
+def section_4_4():
+    volatility.volatility_rmse_heatmap(config.log_returns_pred)
     data_properties.volatility()
 
     volatility.mcap_vol_boxplot()
@@ -139,7 +143,7 @@ def section_4_3():
     data_properties.mcap_cat()
 
 
-def section_4_4():
+def section_4_5():
     # volatility_analysis.plot_all_periods(show_validation=False)
 
     data_timespan.plt_extended_model_rmse()
@@ -152,32 +156,10 @@ def section_4_4():
 
 
 if __name__ == "__main__":
-    # section_4_2()
-    # baseline.scaled_heatmap()
-    # baseline.tf_significance()
-    # baseline.box_plot(config.log_returns_pred)
-    # section_4_1("1m")
-    # data_properties.coin_correlation()
-    # volatility.create_volatility_data()
-    # rmse.complete_models_ranking(pred=config.scaled_to_log_pred)
+    # auto_correlation.durbin_watson(data_type="close")
+    # auto_correlation.durbin_watson(data_type="returns")
+    # auto_correlation.durbin_watson(data_type="log returns")
 
-    # Improve function to show all timeframes at once
-
-    # section_4_4()
-    # rmse.build_rmse_database(config.raw_to_log_stress_pred, skip_existing=False)
-    # rmse.build_rmse_database(config.scaled_to_log_stress_pred, skip_existing=False)
-    # data_properties.seasonality()
-    # data_properties.correlation(time_frame="1d", method="both")
-    # baseline.results_table(pred=config.scaled_to_log_pred)
-    # data_timespan.plt_extended_model_rmse()
-    # data_properties.extended_performance_mann(False)
-    # data_properties.extended_performance()
-    # data_properties.data_timespan_mann(
-    #    config.log_returns_stress_pred, True, 4, "greater"
-    # )
-    # data_properties.data_timespan_mann(
-    #    config.log_returns_stress_pred, True, 0, "greater"
-    # )
-
-    # data_properties.stochasticity_OLS(use_RMSE=True, group_tf=True)
-    data_analyses()
+    # auto_correlation.autocorrelation_tests(data_type="close", as_csv=True)
+    # auto_correlation.autocorrelation_tests(data_type="returns", as_csv=True)
+    auto_correlation.autocorrelation_tests(data_type="scaled", as_csv=True)

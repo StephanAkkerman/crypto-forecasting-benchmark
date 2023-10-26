@@ -344,7 +344,7 @@ def uncon_het(group_tf: bool = False, use_RMSE: bool = True, alternative: str = 
             print(tf)
             tf_df = df[df["Time Frame"] == tf]
             print("Results for Breusch-Pagan:")
-            print(tf_df[tf_df["Breusch-Pagan"] == "homoskedasticity"])
+            print(tf_df[tf_df["Breusch-Pagan"] == "homoskedasticity"]["Breusch-Pagan"])
             mannwhiteny_test(
                 tf_df,
                 "heteroskedasticity",
@@ -355,6 +355,9 @@ def uncon_het(group_tf: bool = False, use_RMSE: bool = True, alternative: str = 
             )
 
             print("\nResults for Goldfeld-Quandt:")
+            print(
+                tf_df[tf_df["Goldfeld-Quandt"] == "homoskedasticity"]["Goldfeld-Quandt"]
+            )
             mannwhiteny_test(
                 tf_df,
                 "heteroskedasticity",

@@ -162,6 +162,7 @@ def single_baseline_heatmap(pred: str = config.log_returns_pred):
         y_label="Time Frame",
     )
 
+
 def results_table(pred: str = config.log_returns_pred):
     dfs = get_all_baseline_comparison(pred, ignore_model=[], trans=False)
 
@@ -176,8 +177,18 @@ def results_table(pred: str = config.log_returns_pred):
     # Merge into 1 df
     df = pd.concat(new_dfs, axis=1)
     df.columns = config.tf_names2
-    
-    print(df)
+
+    # Reverse columns
+    df = df.iloc[:, ::-1]
+
+    # Calculate the mean and median across the time frames (i.e., across the columns) for each model
+    df["Mean"] = df.mean(axis=1)
+    df["Standard Deviation"] = df.std(axis=1)
+
+    # Now, df has two additional columns: 'Mean' and 'Median', representing the mean and median RMSE difference
+    # across all time frames for each model.
+    print(df[["Mean", "Standard Deviation"]])
+
 
 def bar_plot(
     pred: str = config.log_returns_pred, ignore_model=[], ignore_outliers: bool = True

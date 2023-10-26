@@ -32,10 +32,13 @@ def read_csv(coin: str, timeframe: str, col_names: list = ["close"]) -> pd.DataF
 
 
 def get_data(coin: str, time_frame: str, data_type: str = "log returns"):
+    # Data_type options are "log returns", "returns", "scaled", "close"
     if data_type != "scaled":
+        # Returns are not saved as a column and needs to be calculated here
         if data_type == "returns":
             return [read_csv(coin, time_frame, col_names=["close"]).diff().dropna()]
         else:
+            # Close and log returns are saved as a column
             return [read_csv(coin, time_frame, col_names=[data_type]).dropna()]
     else:
         data = []

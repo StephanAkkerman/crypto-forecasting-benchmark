@@ -10,55 +10,44 @@ from config import all_coins, timeframes, plots_dir, statistics_dir
 from data.csv_data import get_data
 
 
-def durbin_watson(data_type: str = "log returns") -> int:
-    """
-    Generates the test statistic for Durbin-Watson test for autocorrelation
+def durbin_watson(df) -> int:
+    # Fit a regression model to the data
+    X = sm.add_constant(df.iloc[:, :-1])
+    y = df.iloc[:, -1]
+    model = sm.OLS(y, X).fit()
 
-    Parameters
-    ----------
-    data_type: str
-        Options are: "close", "returns" "log returns", and "scaled", by default "log returns"
+    # Perform the Durbin-Watson test
+    dw = sm.stats.stattools.durbin_watson(model.resid)
 
-    Returns
-    -------
-    int
-        The number of times the test statistic is between 1.5 and 2.5 (no autocorrelation)
-    """
-    results = pd.DataFrame()
-
-    for coin in all_coins:
-        for time in timeframes:
-            for df in get_data(coin, time, data_type):
-                # Fit a regression model to the data
-                X = sm.add_constant(df.iloc[:, :-1])
-                y = df.iloc[:, -1]
-                model = sm.OLS(y, X).fit()
-
-                # Perform the Durbin-Watson test
-                dw = sm.stats.stattools.durbin_watson(model.resid)
-
-                info = {
-                    "Coin": coin,
-                    "Time": time,
-                    "Durbin-Watson": dw,
-                }
-
-                # Use concat instead of append to avoid the warning
-                results = pd.concat(
-                    [results, pd.DataFrame(info, index=[0])], axis=0, ignore_index=True
-                )
-
-    # A value of 2.0 indicates no autocorrelation
-    print(
-        len(
-            results[(results["Durbin-Watson"] > 1.5) & (results["Durbin-Watson"] < 2.5)]
-        )
-    )
+    if dw > 1.5 and dw < 2.5:
+        return "Not Autocorrelated"
+    return "Autocorrelated"
 
 
-def autocorrelation_test(
+def ljung_box(df, lag):
+    ljung_box_p_val = sm.stats.acorr_ljungbox(df.values.squeeze(), lags=lag)[
+        "lb_pvalue"
+    ].tolist()[-1]
+    if ljung_box_p_val < 0.05:
+        return "Autocorrelated"
+    return "Not Autocorrelated"
+
+
+def breusch_godfrey(df, lag):
+    X = sm.add_constant(df.iloc[:, :-1])
+    y = df.iloc[:, -1]
+    breusch_god_p_val = sm.stats.diagnostic.acorr_breusch_godfrey(
+        sm.OLS(y, X).fit(), nlags=lag
+    )[1]
+
+    if breusch_god_p_val < 0.05:
+        return "Autocorrelated"
+    return "Not Autocorrelated"
+
+
+def autocorrelation_tests(
     data_type: str = "log returns",
-    file_name: str = "",
+    as_csv: bool = False,
 ) -> None:
     """
     Performs either the Ljung-Box or Breusch-Godfrey test for autocorrelation on all datasets and saves it as an excel file
@@ -71,36 +60,31 @@ def autocorrelation_test(
         The name for the file to be saved in /data/tests/, by default ""
     """
     results = pd.DataFrame()
+    dw_results = pd.DataFrame()
     nr_lags = 100
 
-    for lag in tqdm(range(1, nr_lags + 1)):
-        for coin in all_coins:
-            for time in timeframes:
-                dfs = get_data(coin, time, data_type)
-                for df in dfs:
-                    ljung_box_p_val = sm.stats.acorr_ljungbox(
-                        df.values.squeeze(), lags=lag
-                    )["lb_pvalue"].tolist()[-1]
-                    if ljung_box_p_val < 0.05:
-                        ljung_box_p_val = "Autocorrelated"
-                    else:
-                        ljung_box_p_val = "Not Autocorrelated"
+    for coin in tqdm(all_coins):
+        for time in timeframes:
+            dfs = get_data(coin, time, data_type)
+            for df in dfs:
+                info = {
+                    "Coin": coin,
+                    "Time Frame": time,
+                    "Durbin-Watson": durbin_watson(df),
+                }
+                dw_results = pd.concat(
+                    [dw_results, pd.DataFrame(info, index=[0])],
+                    axis=0,
+                    ignore_index=True,
+                )
 
-                    X = sm.add_constant(df.iloc[:, :-1])
-                    y = df.iloc[:, -1]
-                    breusch_god_p_val = sm.stats.diagnostic.acorr_breusch_godfrey(
-                        sm.OLS(y, X).fit(), nlags=lag
-                    )[1]
-
-                    if breusch_god_p_val < 0.05:
-                        breusch_god_p_val = "Autocorrelated"
-                    else:
-                        breusch_god_p_val = "Not Autocorrelated"
+                # Ljung-Box and Breusch-Godfrey tests
+                for lag in range(1, nr_lags + 1):
                     info = {
                         "Coin": coin,
                         "Time Frame": time,
-                        "Ljung-Box": ljung_box_p_val,
-                        "Breusch-Godfrey": breusch_god_p_val,
+                        "Ljung-Box": ljung_box(df, lag),
+                        "Breusch-Godfrey": breusch_godfrey(df, lag),
                         "Lag": lag,
                     }
 
@@ -110,8 +94,17 @@ def autocorrelation_test(
                         ignore_index=True,
                     )
 
-    if file_name != "":
-        results.to_csv(f"{statistics_dir}/{file_name}.csv", index=False)
+    if as_csv:
+        results.to_csv(
+            f"{statistics_dir}/auto_correlation_results_{data_type.replace(' ', '_')}.csv",
+            index=False,
+        )
+        dw_results.to_csv(
+            f"{statistics_dir}/durbin_watson_results_{data_type.replace(' ', '_')}.csv",
+            index=False,
+        )
+
+    print("Durbin-Watson:\n", dw_results["Durbin-Watson"].value_counts())
 
     # Find majority for both tests
     for test_name in ["Ljung-Box", "Breusch-Godfrey"]:
@@ -130,8 +123,6 @@ def autocorrelation_test(
             fill_value=0,
         ).reset_index()
 
-        print(pivot_df)
-
         # Calculate a column to determine if predominantly "Autocorrelated"
         pivot_df["Predominantly"] = np.where(
             pivot_df["Autocorrelated"] >= len(dfs) * nr_lags / 2,
@@ -139,11 +130,9 @@ def autocorrelation_test(
             "Not Autocorrelated",
         )
 
-        print(pivot_df["Predominantly"])
-
         autocorrelated = pivot_df[pivot_df["Predominantly"] == "Autocorrelated"]
-        print(autocorrelated[["Coin", "Time Frame", "Predominantly"]])
-        print("Autocorrelated:", len(autocorrelated))
+        # print(autocorrelated[["Coin", "Time Frame", "Predominantly"]])
+        print(f"{test_name} Autocorrelated:", len(autocorrelated))
 
 
 def plot_acf(crypto="BTC", timeframe="1d"):

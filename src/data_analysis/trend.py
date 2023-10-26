@@ -25,7 +25,7 @@ def trend_tests(
         If True then uses the logarithmic returns, by default False
     """
 
-    file_name = f"{statistics_dir}/trend_results_{data_type}"
+    file_name = f"{statistics_dir}/trend_results_{data_type.replace(' ', '_')}"
 
     df = pd.DataFrame()
 
@@ -125,3 +125,15 @@ def trend_test(test, data_type: str) -> pd.DataFrame:
             )
 
     return results
+
+
+def trend_analysis(data_type: str = "log returns"):
+    file_name = f"{statistics_dir}/trend_results_{data_type.replace(' ', '_')}.csv"
+
+    df = pd.read_csv(file_name)
+
+    # Print Results of each test
+    print(df["Hamed Rao"].value_counts())
+    print(df["Pre-whitening"].value_counts())
+    print(df["Trend-free"].value_counts())
+    print(df["ESS"].value_counts())
