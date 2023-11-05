@@ -12,6 +12,8 @@ The research focuses on financial time series data, specifically cryptocurrency 
 Please refer to the individual scripts for more detailed information about the specific procedures and methodologies used. Contributions and suggestions for improvements are welcome.
 
 ## Supported models
+The following univariate models are supported.
+
 - ARIMA
 - Random Forest
 - XGBoost
