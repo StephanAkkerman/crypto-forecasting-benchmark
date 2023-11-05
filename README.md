@@ -7,36 +7,14 @@ This repository contains the code used in our research on the influence of volat
 
 The code includes functionalities for data preparation, model training, hyperparameter optimization, and performance evaluation. We have used Ray Tune for hyperparameter optimization and have implemented custom strategies to handle GPU memory management.
 
-The research focuses on financial time series data, specifically cryptocurrency price data, and investigates how different periods of volatility affect the performance of forecasting models. The results of this research can provide valuable insights for financial forecasting, risk management, and trading strategy development.
+The research focuses on financial time series data, specifically cryptocurrency price data, and investigates how different periods of market factors affect the performance of forecasting models. The results of this research can provide valuable insights for financial forecasting, risk management, and trading strategy development.
 
 Please refer to the individual scripts for more detailed information about the specific procedures and methodologies used. Contributions and suggestions for improvements are welcome.
-
-## Note
-This project is not yet finished and is planned to be done in October 2023. The following components have successfully been implemented:
-- [x] Data collection
-  - [x] Binance API
-  - [x] Data preprocessing
-- [x] Extensive data analysis
-  - [x] Autocorrelation
-  - [x] Correlation
-  - [x] Heteroskedasticity
-  - [x] Seasonality
-  - [x] Stochasticity
-  - [x] Trend
-  - [x] Volatility
-- [X] Hyperparameter optimization
-  - [x] Random Forest, XGBoost, LightGBM, Prophet, N-BEATS, RNN, LSTM, GRU, TFT, NHiTS
-  - [X] ARIMA, TBATS
-  - [X] Parameter analysis
-- [ ] Evaluation of optimal model
-  - [x] ARIMA
-  - [ ] Volatility analysis
-  - [ ] Market capitalization analysis
 
 ## Supported models
 - ARIMA
 - Random Forest
-- XGBoost (eXtreme Gradient Boosting)
+- XGBoost
 - LightGBM
 - Prophet
 - TBATS
@@ -79,6 +57,10 @@ pip install git+https://github.com/StephanAkkerman/Crypto_Forecasting.git
 
 The main script of this project is `main.py` located in the `src` directory. You can adjust this script to perform data analysis, evaluate models, etc. To perform hyperparameter optimization using Ray Tune use the `hyperopt_ray.py` file located in the `src/hyperopt` directory.
 
+## Examples 
+
+TODO
+
 ## Contributing
 
 Contributions are welcome! If you have a feature request, bug report, or proposal for code refactoring, please feel free to open an issue on GitHub. I appreciate your help in improving this project.
@@ -90,12 +72,12 @@ If you use this project in your research, please cite this repository and the as
 ```bibtex
 @mastersthesis{Akkerman2023,
   author  = {Stephan Akkerman},
-  title   = {Examining the Effect of Timeframes and Market Capitalization on Predictive Performance},
+  title   = {Benchmarking Cryptocurrency Forecasting Models in the Context of Data Properties and Market Factors},
   school  = {Utrecht University},
   year    = {2023},
   address = {Utrecht, The Netherlands},
   month   = {October},
-  note    = {Available at: \url{https://github.com/StephanAkkerman/Crypto_Forecasting}}
+  note    = {Available at: \url{https://github.com/StephanAkkerman/crypto-forecasting-benchmark}}
 }
 ```
 
