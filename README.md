@@ -11,7 +11,17 @@ The research focuses on financial time series data, specifically cryptocurrency 
 
 Please refer to the individual scripts for more detailed information about the specific procedures and methodologies used. Contributions and suggestions for improvements are welcome.
 
-## Supported models
+## Functionalities
+1. Fill in the desired cryptocurrency tickers and time frames in `src/config.py`.
+2. Download data straight from the Binance API, by using `create_all_data()` in `src/data/create_data.py`. The code automatically adds the logarithmic returns and volatility calculations to the resulting .csv files.
+3. Run `data_analysis_tests()` in `src/analysis.py` to perform the tests for time series data properties, such as stationarity, autocorrelation, trend, seasonality, heteroskedasticity, and stochasticity.
+4. Find the optimal hyperparameters for the implemented forecasting models by filling in the configuration file in `src/hyperopt/config.py` and run `src/hyperopt/hyperopt_ray.py`.
+5. Forecast the datasets using the optimized hyperparameters by running `forecast_models()` in `src/analysis.py`.
+6. Inspect the forecasting results by running `forecast_analysis()` in `src/analysis.py`.
+7. Inspect the impact of data properties by running `forecast_statistical_tests()` in `src/analysis.py`.
+8. Inspect the impact of market factors by running `market_factors_impact()` in `src/analysis.py`.
+
+### Supported models
 The following univariate models are supported.
 
 - ARIMA
@@ -41,7 +51,7 @@ Additionally, you will need to install several Python packages which are listed 
 ```
 pip install -r requirements.txt
 ```
-If you want to use the development version:
+Or
 ```
 pip install git+https://github.com/StephanAkkerman/Crypto_Forecasting.git
 ```
@@ -58,10 +68,6 @@ pip install git+https://github.com/StephanAkkerman/Crypto_Forecasting.git
 ## Usage
 
 The main script of this project is `main.py` located in the `src` directory. You can adjust this script to perform data analysis, evaluate models, etc. To perform hyperparameter optimization using Ray Tune use the `hyperopt_ray.py` file located in the `src/hyperopt` directory.
-
-## Examples 
-
-TODO
 
 ## Contributing
 
