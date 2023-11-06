@@ -8,9 +8,7 @@ from config import all_coins, timeframes, statistics_dir
 from data.csv_data import get_data
 
 
-def stationarity_test(
-    data_type: str = "log returns", file_name: str = "stationarity_test"
-):
+def stationarity_test(data_type: str = "log returns", as_csv=False):
     """
     Performs the Augmented Dickey-Fuller and KPSS test on the data and saves the results to an Excel file.
 
@@ -43,8 +41,8 @@ def stationarity_test(
                 )
 
     # Write to Excel
-    if file_name != "":
-        results.to_excel(f"{statistics_dir}/{file_name}.xlsx")
+    if as_csv:
+        results.to_excel(f"{statistics_dir}/stationarity_results_{data_type}.xlsx")
 
     # Show the coins that are stationary
     adf_significant = results[results["adf p-val"] < 0.05]

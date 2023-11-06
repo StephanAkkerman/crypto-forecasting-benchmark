@@ -907,7 +907,7 @@ def time_frames(pred: str = config.log_returns_pred):
 
         tf_1d = df[df["Time Frame"] == "1d"][model].dropna()
 
-        # Perform the Mann-Whitney U test with 'less' as the alternative hypothesis
+        # Perform the Kruskal-Wallis test because there are more than 2 groups
         U, pval = kruskal(tf_1m, tf_15m, tf_4h, tf_1d)
 
         print(f"Kruskal-Wallis test for {model}: U-statistic={U}, p-value={pval}")

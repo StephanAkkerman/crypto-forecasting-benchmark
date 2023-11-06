@@ -27,6 +27,7 @@ def plot_periods(
     coin: str = None,
     show_validation: bool = True,
     show_periods: bool = True,
+    dark_mode: bool = False,
 ):
     """
     Plots the number of periods and the training, validation, and testing periods.
@@ -36,17 +37,21 @@ def plot_periods(
     timeframe : str, optional
         The time frame of the data, by default "1d"
     """
+    if dark_mode:
+        plt.style.use("dark_background")
 
     # Get the volatility data
     if coin is None:
         volatility_df = get_all_volatility_data(timeframe)
         alpha = 0.2
+        if dark_mode:
+            alpha = 0.4
     else:
         volatility_df = get_volatility(coin, timeframe)
         alpha = 1
 
     # Create a figure and axis
-    fig, ax = plt.subplots(figsize=(12, 6))
+    _, ax = plt.subplots(figsize=(12, 6))
 
     # Plot the volatility data using Matplotlib
     for column in volatility_df.columns:
@@ -59,7 +64,9 @@ def plot_periods(
         )
 
     # Get the lines for the average volatility, median volatility, and 0.75 and 0.25 percentiles
-    avg_line, _, overall_q3_line, overall_q1_line = plot_lines(volatility_df, ax)
+    avg_line, _, overall_q3_line, overall_q1_line = plot_lines(
+        volatility_df, ax, limit_y=not show_periods
+    )
 
     # Get the lines for the training, validation, and testing periods
     if show_periods:
@@ -69,10 +76,10 @@ def plot_periods(
 
     # Create first legend
     if show_periods:
-        loc="center right"
+        loc = "center right"
     else:
-        loc = "best" 
-        
+        loc = "best"
+
     first_legend = ax.legend(
         handles=[avg_line[0], overall_q3_line, overall_q1_line],
         loc=loc,
@@ -105,8 +112,7 @@ def plot_periods(
 
 
 def plot_all_periods(
-    show_validation: bool = False,
-    fontsize: int = 12,
+    show_validation: bool = False, fontsize: int = 12, dark_mode: bool = True
 ):
     """
     Plots the number of periods and the training, validation, and testing periods.
@@ -116,6 +122,11 @@ def plot_all_periods(
     timeframe : str, optional
         The time frame of the data, by default "1d"
     """
+    if dark_mode:
+        plt.style.use("dark_background")
+        alpha = 0.5
+    else:
+        alpha = 0.2
 
     # Create a figure with 4 subplots, arranged in a 2x2 grid
     fig, axs = plt.subplots(2, 2, figsize=(20, 12))
@@ -128,8 +139,6 @@ def plot_all_periods(
     for i, time_frame in enumerate(config.timeframes):
         # Get the volatility data
         volatility_df = get_all_volatility_data(time_frame)
-        alpha = 0.2
-
         ax = axs[i]  # Select the current axis
 
         # Plot the volatility data using Matplotlib
@@ -143,7 +152,9 @@ def plot_all_periods(
             )
 
         # Get the lines for the average volatility, median volatility, and 0.75 and 0.25 percentiles
-        avg_line, _, overall_q3_line, overall_q1_line = plot_lines(volatility_df, ax)
+        avg_line, _, overall_q3_line, overall_q1_line = plot_lines(
+            volatility_df, ax, limit_y=False, dark_mode=dark_mode
+        )
 
         # Collect legend handles and labels for the volatility lines
         if i == 0:
@@ -154,7 +165,7 @@ def plot_all_periods(
 
         # Get the lines for the training, validation, and testing periods
         training_lines, validation_lines, testing_lines = plot_train_test_periods(
-            time_frame=time_frame, ax=ax, show_validation=show_validation
+            time_frame=time_frame, ax=ax, show_validation=show_validation, dark_mode=dark_mode
         )
 
         if show_validation:
@@ -194,7 +205,7 @@ def plot_all_periods(
     plt.show()
 
 
-def window_analysis(coin="BTC", time="1d"):
+def window_analysis(coin: str = "BTC", time: str = "1d", dark_mode: bool = False):
     """
     Shows the volatility of the data using different windows.
 
@@ -222,24 +233,72 @@ def window_analysis(coin="BTC", time="1d"):
     )
 
     df["BTC Log Returns"] = df["log returns"]
-    axes = df[
-        [
-            "BTC Log Returns",
-            "Long Window (90)",
-            "Medium Window (30)",
-            "Short Window (10)",
-        ]
-    ].plot(subplots=True, figsize=(12, 8))
 
-    # Put all legends right upper
+    if dark_mode:
+        plt.style.use("dark_background")
+
+        axes = df[
+            [
+                "BTC Log Returns",
+                "Long Window (90)",
+                "Medium Window (30)",
+                "Short Window (10)",
+            ]
+        ].plot(
+            subplots=True, figsize=(12, 8), color=["white", "cyan", "magenta", "yellow"]
+        )
+
+        # Set properties for each subplot
+        for ax in axes:
+            ax.legend(loc="upper right")
+            ax.set_ylabel(
+                "Volatility", color="white"
+            )  # Set y-axis label for each subplot
+            ax.tick_params(axis="x", colors="white")  # X tick colors
+            ax.tick_params(axis="y", colors="white")  # Y tick colors
+            ax.spines["bottom"].set_color("white")  # X axis color
+            ax.spines["left"].set_color("white")  # Y axis color
+            ax.title.set_color("white")  # Title color
+            ax.yaxis.label.set_color("white")  # Y axis label color
+            ax.xaxis.label.set_color("white")  # X axis label color
+            ax.legend(
+                facecolor="black", edgecolor="white", fontsize="medium"
+            )  # Legend colors
+
+        axes[0].set_ylabel(
+            "Log Returns", color="white"
+        )  # Set y-axis label for the first subplot
+
+        # Change x-axis labels
+        axes[-1].set_xlabel(
+            "Date", color="white"
+        )  # Only set x-axis label for the last subplot
+    else:
+        axes = df[
+            [
+                "BTC Log Returns",
+                "Long Window (90)",
+                "Medium Window (30)",
+                "Short Window (10)",
+            ]
+        ].plot(subplots=True, figsize=(12, 8))
+
+        # Put all legends right upper
+        for ax in axes:
+            ax.legend(loc="upper right")
+            ax.set_ylabel("Volatility")  # Set y-axis label for each subplot
+
+        axes[0].set_ylabel("Log Returns")  # Set y-axis label for the first subplot
+
+        # Change x-axis labels
+        axes[-1].set_xlabel("Date")  # Only set x-axis label for the last subplot
+
+    # Increase legend labels
     for ax in axes:
-        ax.legend(loc="upper right")
-        ax.set_ylabel("Volatility")  # Set y-axis label for each subplot
+        ax.legend(facecolor="white", edgecolor="black", fontsize="medium")
 
-    axes[0].set_ylabel("Log Returns")  # Set y-axis label for the first subplot
-
-    # Change x-axis labels
-    axes[-1].set_xlabel("Date")  # Only set x-axis label for the last subplot
+    # Tight layout
+    plt.tight_layout()
 
     plt.show()
 
@@ -521,7 +580,7 @@ def calculate_percentiles(volatility_df: pd.DataFrame):
     return overall_median_volatility, overall_q3_volatility, overall_q1_volatility
 
 
-def plot_lines(volatility_df: pd.DataFrame, ax: plt.Axes):
+def plot_lines(volatility_df: pd.DataFrame, ax: plt.Axes, limit_y: bool, dark_mode:bool=False):
     """
     Plots the average volatility, median volatility, and 0.75 and 0.25 percentiles.
 
@@ -568,16 +627,22 @@ def plot_lines(volatility_df: pd.DataFrame, ax: plt.Axes):
     )
     overall_q1_line = ax.axhline(
         y=overall_q1_volatility,
-        color="darkred",
+        color="red" if dark_mode else "darkred",
         linewidth=2,
         alpha=0.7,
         label="25th Percentile",
     )
 
+    # Limit the y-axis by avg line
+    if limit_y:
+        ax.set_ylim(0, avg_volatility.max() * 1.25)
+
     return avg_line, None, overall_q3_line, overall_q1_line
 
 
-def plot_train_test_periods(time_frame: str, ax: plt.Axes, show_validation: bool):
+def plot_train_test_periods(
+    time_frame: str, ax: plt.Axes, show_validation: bool, dark_mode: bool = False
+):
     """
     Plots the training, validation, and testing periods on the graph.
 
@@ -619,7 +684,7 @@ def plot_train_test_periods(time_frame: str, ax: plt.Axes, show_validation: bool
                 y=line_start,
                 xmin=train_start,
                 xmax=val_start if show_validation else test_start,
-                color="blue",
+                color="dodgerblue" if dark_mode else "blue",
                 linewidth=4,
                 label="Training Periods",
             )

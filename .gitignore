@@ -7,7 +7,7 @@ __pycache__/
 # custom files
 /ray_results
 ssh_command.txt
-
+job.slurm
 
 # C extensions
 *.so

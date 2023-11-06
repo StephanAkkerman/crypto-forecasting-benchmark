@@ -301,6 +301,7 @@ def plt_boxplots(
     y_min: int,
     use_hatches: bool = False,
     fontsize: int = 12,
+    dark_mode: bool = True,
 ):
     """
      Plot a boxplot of the RMSEs for each DataFrame in dfs on the same plot.
@@ -320,6 +321,11 @@ def plt_boxplots(
     fontsize : int, optional
         The size of the legend text and x and y-tick labels, by default 12
     """
+    if dark_mode:
+        plt.style.use("dark_background")
+        colors = plt.cm.Dark2.colors
+    else:
+        colors = plt.cm.Accent.colors
 
     # Create a figure and axis
     _, ax = plt.subplots(figsize=(20, 8))
@@ -327,7 +333,7 @@ def plt_boxplots(
     if use_hatches:
         fill_styles = ["", "\\\\\\", "///"]
     else:
-        fill_styles = plt.cm.Accent.colors
+        fill_styles = colors
 
     legend_handles = []
 
@@ -412,6 +418,7 @@ def plt_single_df_boxplots(
     rotate_xlabels: bool = False,
     fontsize: int = 12,
     first_white: bool = False,
+    dark_mode: bool = True,
 ):
     """
     Plot a boxplot of the RMSEs for each item in a single DataFrame.
@@ -422,15 +429,24 @@ def plt_single_df_boxplots(
     use_hatches: bool, optional
         Whether to use hatches or distinct colors
     """
+    if dark_mode:
+        plt.style.use("dark_background")
+        colors = plt.cm.Dark2.colors
+
+        if first_white:
+            # Add white in front
+            colors = ((0.5, 0.5, 0.5),) + colors
+    else:
+        colors = plt.cm.Accent.colors
+
+        if first_white:
+            # Add white in front
+            colors = ((1.0, 1.0, 1.0),) + colors
 
     # Create a figure and axis
     fig, ax = plt.subplots(figsize=(20, 8))
 
     hatches = ["", "\\\\\\", "///", "---", "|||"]  # Custom hatches
-    colors = plt.cm.Accent.colors
-    if first_white:
-        # Add white in front
-        colors = ((1.0, 1.0, 1.0),) + colors
 
     # plt.cm.Paired.colors#plt.cm.viridis(np.linspace(0, 1, len(df.columns)))
     legend_handles = []
@@ -534,6 +550,7 @@ def plt_multiple_df_boxplots(
     rotate_xlabels: bool = False,
     fontsize: int = 12,
     first_white: bool = False,
+    dark_mode: bool = True,
 ):
     """
     Plot a boxplot of the RMSEs for each DataFrame in dfs on the same plot.
@@ -546,14 +563,28 @@ def plt_multiple_df_boxplots(
     """
     # Create a figure and axes
     fig, axs = plt.subplots(2, 2, figsize=(20, 8))  # Adjust figsize as needed
+
+    if dark_mode:
+        fig.set_facecolor("black")
     axs = axs.flatten()  # Flatten the array of axes for easier indexing
 
     hatches = ["", "\\\\\\", "///", "---", "|||"]  # Custom hatches
-    colors = plt.cm.Accent.colors
+
+    if dark_mode:
+        plt.style.use("dark_background")
+        colors = plt.cm.Dark2.colors
+        if first_white:
+            # Add white in front
+            colors = ((0.5, 0.5, 0.5),) + colors
+    else:
+        colors = plt.cm.Accent.colors
+        if first_white:
+            # Add white in front
+            colors = ((1.0, 1.0, 1.0),) + colors
 
     if len(outliers_percentile) == 0:
         outliers_percentile = [100] * len(dfs)
-        
+
     if len(outliers_percentile) != len(dfs):
         print("Length of outliers_percentile must be equal to length of dfs")
         return
@@ -562,14 +593,19 @@ def plt_multiple_df_boxplots(
     if len(dfs[0].columns) > len(colors):
         colors = plt.cm.tab20.colors
 
-    if first_white:
-        # Add white in front
-        colors = ((1.0, 1.0, 1.0),) + colors
-
     legend_handles = []
-
     for ax_idx, df in enumerate(dfs):
         ax = axs[ax_idx]  # Select the current axis
+
+        if dark_mode:
+            ax.set_facecolor("black")
+            ax.tick_params(axis="x", colors="white")  # X tick colors
+            ax.tick_params(axis="y", colors="white")  # Y tick colors
+            ax.spines["bottom"].set_color("white")  # X axis color
+            ax.spines["left"].set_color("white")  # Y axis color
+            ax.title.set_color("white")  # Title color
+            ax.yaxis.label.set_color("white")  # Y axis label color
+            ax.xaxis.label.set_color("white")  # X axis label color
 
         # adjust for percentile
         all_data = np.concatenate(df.values.flatten())
@@ -646,7 +682,6 @@ def plt_multiple_df_boxplots(
         title="Forecasting Model",
         title_fontsize=fontsize,
     )
-
     plt.show()
 
 

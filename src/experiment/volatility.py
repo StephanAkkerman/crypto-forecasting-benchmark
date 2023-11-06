@@ -4,6 +4,7 @@ from collections import Counter
 import pandas as pd
 import numpy as np
 import seaborn as sns
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 import config
@@ -343,6 +344,7 @@ def volatility_rmse_heatmap(
     time_frame : str, optional
         The time frame to use, by default "1d"
     """
+    # plt.style.use("dark_background")
 
     _, axes = plt.subplots(2, 2, figsize=(20, 16))
     axes = axes.flatten()  # Flatten the 2D array to 1D for easy iteration
@@ -464,7 +466,21 @@ def mcap_rmse_boxplot(
     log_scale: bool = False,
     remove_outliers: bool = True,
     fontsize: int = 12,
+    dark_mode: bool = True,
 ):
+    if dark_mode:
+        plt.style.use("dark_background")
+        colors = plt.cm.Dark2.colors
+        PROPS = {
+            "boxprops": {"edgecolor": "white"},
+            "medianprops": {"color": "white"},
+            "whiskerprops": {"color": "white"},
+            "capprops": {"color": "white"},
+        }
+    else:
+        colors = plt.cm.Accent.colors
+        PROPS = {}
+
     fig, axes = plt.subplots(2, 2, figsize=(20, 12))
     axes = axes.flatten()
 
@@ -484,9 +500,10 @@ def mcap_rmse_boxplot(
             y="value",
             hue="variable",
             data=melted_df,
-            palette="Set2",
+            palette=colors,
             ax=axes[i],
             order=["Small", "Mid", "Large"],
+            **PROPS,
         )
 
         axes[i].set_title(config.tf_names[i])
@@ -528,11 +545,24 @@ def mcap_rmse_boxplot(
     plt.show()
 
 
-def mcap_vol_boxplot():
+def mcap_vol_boxplot(dark_mode: bool = True):
     """
     Creates a boxplot of volatility for each market cap category.
     Creates this for each time frame.
     """
+    if dark_mode:
+        plt.style.use("dark_background")
+        colors = plt.cm.Dark2.colors
+        PROPS = {
+            "boxprops": {"edgecolor": "white"},
+            "medianprops": {"color": "white"},
+            "whiskerprops": {"color": "white"},
+            "capprops": {"color": "white"},
+        }
+    else:
+        colors = plt.cm.Accent.colors
+        PROPS = {}
+
     fig, axes = plt.subplots(2, 2, figsize=(20, 12))
     axes = axes.flatten()
 
@@ -550,9 +580,10 @@ def mcap_vol_boxplot():
             x="Market Cap Category",
             y="period_volatility",
             data=df_flat,
-            color="white",
+            palette=colors[:3],
             ax=axes[i],
             order=["Small", "Mid", "Large"],
+            **PROPS,
         )
 
         axes[i].set_title(config.tf_names[i])
