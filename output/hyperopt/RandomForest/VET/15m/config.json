@@ -1,1 +1,0 @@
-[{"lags": 1, "n_estimators": 1000, "max_depth": 8, "output_chunk_length": 1}, {"lags": 30, "n_estimators": 250, "max_depth": 12, "output_chunk_length": 1}, {"lags": 14, "n_estimators": 1000, "max_depth": 8, "output_chunk_length": 1}]

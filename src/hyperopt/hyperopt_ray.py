@@ -171,7 +171,7 @@ def train_model(
     data_loc: str,
     period: int,
     train_series: list,
-    save_results: bool = True,
+    save_results: bool = False,
 ):
     """
     Train the model and report the results.
@@ -188,6 +188,8 @@ def train_model(
         The period to train the model on.
     train_series : list
         The training data.
+    save_results: bool
+        Whether to save the results during the hyperopt process or not.
     """
 
     used_configs = load_config(data_loc)
@@ -339,6 +341,9 @@ def hyperopt_dataset(
 
     if save_results:
         analysis.get_dataframe().to_csv(f"{folder_loc}/analysis.csv", index=False)
+
+    # Delete all redundant files after succesfully optimizing
+    delete_config(save_loc)
 
 
 def hyperopt_model(

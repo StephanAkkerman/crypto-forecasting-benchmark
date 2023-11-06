@@ -1,1 +1,0 @@
-[{"lags": 7, "num_leaves": 100, "n_estimators": 80, "max_depth": -1, "min_child_samples": 35, "reg_alpha": 8.562876047395095, "reg_lambda": 0.08523845858195096, "output_chunk_length": 1}]
