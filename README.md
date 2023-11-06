@@ -11,32 +11,42 @@ The research focuses on financial time series data, specifically cryptocurrency 
 
 Please refer to the individual scripts for more detailed information about the specific procedures and methodologies used. Contributions and suggestions for improvements are welcome.
 
-## Functionalities
-1. Fill in the desired cryptocurrency tickers and time frames in `src/config.py`.
-2. Download data straight from the Binance API, by using `create_all_data()` in `src/data/create_data.py`. The code automatically adds the logarithmic returns and volatility calculations to the resulting .csv files.
-3. Run `data_analysis_tests()` in `src/analysis.py` to perform the tests for time series data properties, such as stationarity, autocorrelation, trend, seasonality, heteroskedasticity, and stochasticity.
-4. Find the optimal hyperparameters for the implemented forecasting models by filling in the configuration file in `src/hyperopt/config.py` and run `src/hyperopt/hyperopt_ray.py`.
-5. Forecast the datasets using the optimized hyperparameters by running `forecast_models()` in `src/analysis.py`.
-6. Inspect the forecasting results by running `forecast_analysis()` in `src/analysis.py`.
-7. Inspect the impact of data properties by running `forecast_statistical_tests()` in `src/analysis.py`.
-8. Inspect the impact of market factors by running `market_factors_impact()` in `src/analysis.py`.
+## Features & Usage Guide
 
-### Supported models
-The following univariate models are supported.
+### Configuration & Data Retrieval
+- **Setup Configurations:** Begin by specifying your preferred cryptocurrency symbols and the time frames for analysis in `src/config.py`. This sets up your environment for the data you're interested in.
+- **Download Market Data:** Leverage `create_all_data()` in `src/data/create_data.py` to fetch data directly from the Binance API. Our script enriches your dataset with essential financial metrics such as logarithmic returns and volatility measures, outputting them in neatly organized .csv files for easy use.
 
-- ARIMA
-- Random Forest
-- XGBoost
-- LightGBM
-- Prophet
-- TBATS
-- N-BEATS
-- RNN
-- LSTM
-- GRU
-- TCN
-- TFT
-- NHiTS
+### Data Analysis & Testing
+- **Time Series Analysis:** Employ `data_analysis_tests()` from `src/analysis.py` to conduct thorough testing on your time series datasets. We've incorporated checks for key properties including stationarity, autocorrelation, trends, seasonality, heteroskedasticity, and random walks to ensure comprehensive understanding of data behavior.
+- **Hyperparameter Optimization:** Tailor the forecasting models to your needs. Fill out the parameters in `src/hyperopt/config.py` and execute `src/hyperopt/hyperopt_ray.py` to determine the optimal settings for achieving the best prediction performance.
+
+### Forecasting & Results Evaluation
+- **Run Forecasts:** With the fine-tuned hyperparameters, you can run `forecast_models()` in `src/analysis.py` to start forecasting the future of your chosen cryptocurrencies.
+- **Analyze Forecasts:** To evaluate how well your forecasts are performing, `forecast_analysis()` is your go-to function in the same `src/analysis.py` script. It will help you visualize and understand the predictive capabilities of your models.
+- **Examine Data Impact:** To assess how various data properties may be influencing your forecasts, `forecast_statistical_tests()` in `src/analysis.py` will run diagnostic checks.
+- **Market Factors Analysis:** Understand the influence of external market factors with `market_factors_impact()` also found in `src/analysis.py`, giving you insights into how different variables affect cryptocurrency prices.
+
+### Supported Forecasting Models
+Our toolkit supports an extensive range of univariate forecasting models to cater to a variety of data patterns and prediction needs:
+
+- **Traditional Models:**
+  - ARIMA: Autoregressive Integrated Moving Average, for capturing linear trends and seasonality.
+- **Machine Learning Models:**
+  - Random Forest: A robust ensemble of decision trees for non-linear trend capture.
+  - XGBoost: eXtreme Gradient Boosting for efficient and powerful predictive performance.
+  - LightGBM: Light Gradient Boosting Machine, renowned for its speed and accuracy.
+  - Prophet: Designed for forecasting with daily observations that display patterns on different time scales.
+- **Advanced Time Series Models:**
+  - TBATS: Incorporating multiple seasonalities, Box-Cox transformation, ARMA errors, Trend and Seasonal components.
+  - N-BEATS: Neural Basis Expansion Analysis for interpretable time series forecasting.
+- **Deep Learning Models:**
+  - RNN: Recurrent Neural Network for capturing temporal dynamic behavior.
+  - LSTM: Long Short-Term Memory networks, ideal for making predictions based on long-term sequential patterns.
+  - GRU: Gated Recurrent Units, for modeling sequences with fewer parameters than LSTM.
+  - TCN: Temporal Convolutional Network, a convolution-based architecture designed to handle sequence modeling tasks.
+  - TFT: Temporal Fusion Transformers, for high-performance interpretable forecasting.
+  - NHiTS: A recent deep learning approach that exploits hierarchical time series forecasting without the need for pre-defined hierarchies.
 
 ## Getting Started
 
@@ -64,10 +74,6 @@ pip install git+https://github.com/StephanAkkerman/Crypto_Forecasting.git
 
 > **Warning**
 > You might need to change the `batch_size` and `parallel_trials` parameters to prevent GPU OOM errors. You can find these parameters in the `search_space.py` file located in the `src/hyperopt` directory.
-
-## Usage
-
-The main script of this project is `main.py` located in the `src` directory. You can adjust this script to perform data analysis, evaluate models, etc. To perform hyperparameter optimization using Ray Tune use the `hyperopt_ray.py` file located in the `src/hyperopt` directory.
 
 ## Contributing
 
