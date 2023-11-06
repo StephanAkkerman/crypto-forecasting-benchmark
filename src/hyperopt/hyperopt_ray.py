@@ -406,4 +406,4 @@ if __name__ == "__main__":
     # Note: It is important to have all the code that runs the Ray Tune trials in this file.
     # Otherwise, Ray Tune will not be able to find the functions.
 
-    hyperopt_dataset("Prophet", save_results=True, coin="ATOM", time_frame="1d")
+    hyperopt_full()

@@ -16,6 +16,7 @@ from experiment import (
     baseline,
     data_properties,
     data_timespan,
+    forecast,
 )
 
 
@@ -23,7 +24,7 @@ def data_analysis_tests(data_type: str = "log returns", as_csv=False, as_excel=F
     """
     Performs all the data analysis tests:
     - Stationarity
-    - Auto correlation
+    - Autocorrelation
     - Trend
     - Seasonality
     - Heteroskedasticity
@@ -62,6 +63,23 @@ def data_analysis_tests(data_type: str = "log returns", as_csv=False, as_excel=F
     stochasticity.calc_hurst(data_type=data_type, to_excel=as_csv, to_csv=as_excel)
 
 
+def forecast_models():
+    forecast.forecast_all()
+
+
+def stress_test_all():
+    forecast.stress_test_all()
+
+
+def forecast_models_extended():
+    forecast.forecast_all(pred=config.extended_pred)
+
+
+def forecast_analysis():
+    for time_frame in config.timeframes:
+        section_4_1(time_frame)
+
+
 def section_4_1(time_frame):
     if time_frame == "1d":
         models = ["ARIMA", "LightGBM", "TCN", "TBATS", "LSTM"]
@@ -93,7 +111,16 @@ def section_4_1(time_frame):
     rmse.complete_models_ranking(pred=config.scaled_to_log_pred)
 
 
-def section_4_2():
+def forecast_statistical_tests():
+    """
+    Performs all the data analysis tests for section 4.2:
+    - Autocorrelation
+    - Trend
+    - Seasonality
+    - Heteroskedasticity
+    - Stochasticity
+    """
+
     data_properties.auto_correlation()
     data_properties.trend()
     data_properties.seasonality()
@@ -102,20 +129,23 @@ def section_4_2():
     data_properties.stochasticity_OLS()
 
 
-def section_4_3():
+def market_factors_impact():
+    # Volatility
     volatility.volatility_rmse_heatmap(config.log_returns_pred)
     data_properties.volatility()
 
+    # Market cap and volatility
     volatility.mcap_vol_boxplot()
     data_properties.mcap_cat_vol()
     data_properties.volatility_mcap()
 
+    # Market cap and RMSE
     volatility.mcap_rmse_boxplot()
     data_properties.mcap()
     data_properties.mcap_cat()
 
 
-def section_4_4():
+def time_frame_impact():
     baseline.results_table()
 
     data_properties.time_frames()

@@ -5,7 +5,6 @@ from tqdm import tqdm
 
 from darts import concatenate
 
-
 # Models
 from darts.models import (
     StatsForecastAutoARIMA,
@@ -34,6 +33,28 @@ logger.setLevel(logging.CRITICAL)
 
 
 def get_model(model_name: str, coin: str, time_frame: str):
+    """
+    Gets the model with the best hyperparameters.
+
+    Parameters
+    ----------
+    model_name : str
+        The name of the model to get as specified in config.all_models
+    coin : str
+        The name of the coin to get as specified in config.all_coins
+    time_frame : str
+        The name of the time frame to get as specified in config.timeframes
+
+    Returns
+    -------
+    Darts Forecasting Model
+        The model with the best hyperparameters.
+
+    Raises
+    ------
+    ValueError
+        If no model is found.
+    """
     if model_name == "ARIMA":
         return StatsForecastAutoARIMA(
             start_p=0,
@@ -247,6 +268,22 @@ def forecast_all(
     start_from_time_frame: str = None,
     ignore_model: list = [],
 ):
+    """
+    Forecast all models for all coins and time frames.
+
+    Parameters
+    ----------
+    pred : str, optional
+        The type of predictions to use, by default =config.log_returns_pred
+    start_from_model : str, optional
+        Fill this in if some model(s) can be skipped, by default None
+    start_from_coin : str, optional
+        Fill this in if certain coins can be skipped, by default None
+    start_from_time_frame : str, optional
+        Fill this in if certain time frames can be skipped, by default None
+    ignore_model : list, optional
+        Fill this in if a model can always be ignored, by default []
+    """
     models = config.all_models
 
     if pred == config.extended_pred:
