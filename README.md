@@ -66,13 +66,13 @@ Or
 pip install git+https://github.com/StephanAkkerman/Crypto_Forecasting.git
 ```
 
-> **Note**
+> [!NOTE]
 > While using a GPU is optional, it is highly recommended for performing hyperparameter optimization and fitting and evaluating the models. You can do that by simply running the following line of code in your terminal, this will install the latest version of PyTorch with CUDA 12.1 support. 
 > ``` 
 >pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
 > ```
 
-> **Warning**
+> [!WARNING]
 > You might need to change the `batch_size` and `parallel_trials` parameters to prevent GPU OOM errors. You can find these parameters in the `search_space.py` file located in the `src/hyperopt` directory.
 
 ## Contributing
