@@ -5,7 +5,7 @@
 
 ---
 
-This repository contains the code used in our research on the influence of volatility on the predictive performance of time series forecasting models. We have implemented a variety of models including ARIMA, XGBoost, N-BEATS, and Prophet, among others, using libraries such as Darts, StatsForecast, and fbprophet.
+This repository contains the code used in [our research paper](https://studenttheses.uu.nl/handle/20.500.12932/45623) on the influence of volatility on the predictive performance of time series forecasting models. We have implemented a variety of models including ARIMA, XGBoost, N-BEATS, and Prophet, among others, using libraries such as Darts, StatsForecast, and fbprophet.
 
 The code includes functionalities for data preparation, model training, hyperparameter optimization, and performance evaluation. We have used Ray Tune for hyperparameter optimization and have implemented custom strategies to handle GPU memory management.
 
