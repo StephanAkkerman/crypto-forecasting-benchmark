@@ -1,0 +1,49 @@
+name: Copy GitHub Labels
+
+on:
+  workflow_dispatch:
+
+jobs:
+  copy-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Copy labels from another repository
+        uses: actions/github-script@0.9.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const sourceRepo = 'StephanAkkerman/fintwit-bot';
+            const targetOwner = context.repo.owner;
+            const targetRepo = context.repo.repo;
+
+            // Fetch labels from the source repository
+            const response = await github.rest.issues.listLabelsForRepo({
+              owner: sourceRepo.split('/')[0],
+              repo: sourceRepo.split('/')[1],
+            });
+            const labels = response.data;
+
+            // Create or update labels in the target repository
+            for (const label of labels) {
+              await github.rest.issues.createLabel({
+                owner: targetOwner,
+                repo: targetRepo,
+                name: label.name,
+                color: label.color,
+                description: label.description || '',
+              }).catch(error => {
+                // If label exists, update it
+                if (error.status === 422) {
+                  github.rest.issues.updateLabel({
+                    owner: targetOwner,
+                    repo: targetRepo,
+                    name: label.name,
+                    color: label.color,
+                    description: label.description || '',
+                  });
+                }
+              });
+            }
