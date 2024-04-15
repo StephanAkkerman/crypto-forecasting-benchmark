@@ -8,10 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Copy labels from another repository
-        uses: actions/github-script@0.9.0
+        uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -26,24 +26,28 @@ jobs:
             });
             const labels = response.data;
 
-            // Create or update labels in the target repository
+            // Loop through labels and create/update them in the target repository
             for (const label of labels) {
-              await github.rest.issues.createLabel({
-                owner: targetOwner,
-                repo: targetRepo,
-                name: label.name,
-                color: label.color,
-                description: label.description || '',
-              }).catch(error => {
-                // If label exists, update it
+              try {
+                // Try to create the label
+                await github.rest.issues.createLabel({
+                  owner: targetOwner,
+                  repo: targetRepo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description || '',
+                });
+              } catch (error) {
+                // If label exists (error 422), update it
                 if (error.status === 422) {
-                  github.rest.issues.updateLabel({
+                  await github.rest.issues.updateLabel({
                     owner: targetOwner,
                     repo: targetRepo,
+                    current_name: label.name,
                     name: label.name,
                     color: label.color,
                     description: label.description || '',
                   });
                 }
-              });
+              }
             }
