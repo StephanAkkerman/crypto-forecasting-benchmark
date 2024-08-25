@@ -1,9 +1,11 @@
 import os
 
+import analysis
+
 # Local Import
 import config
-import analysis
 from data.binance_data import fetchData
+from experiment import rmse
 
 if __name__ == "__main__":
     # Start by testing if the data is available
@@ -26,6 +28,7 @@ if __name__ == "__main__":
 
     # Start the forecasting
     analysis.forecast_models()
+    rmse.build_complete_rmse_database()
 
     # Optional: extended forecasts
     # analysis.forecast_models_extended()

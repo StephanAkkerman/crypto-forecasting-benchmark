@@ -1,9 +1,9 @@
 import os
 
-import pandas as pd
-import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 
 # Local imports
 import config
@@ -200,9 +200,9 @@ def plot_rmse_heatmap(
         cmap = "RdYlGn_r"
 
     # Specify custom range
-    if vmin == None:
+    if vmin is None:
         vmin = df.min().min()
-    if vmax == None:
+    if vmax is None:
         vmax = df.max().max()
 
     plt.figure(figsize=(15, 10))
@@ -536,9 +536,7 @@ def rmse_means(preds: list, time_frame: str = "1d"):
 
     for i, df in enumerate(dfs):
         pred = preds[i]  # Assuming the models list and dfs list are aligned
-        means[
-            pred
-        ] = (
+        means[pred] = (
             df.mean()
         )  # Calculate the mean for each column and store it in the dictionary
 

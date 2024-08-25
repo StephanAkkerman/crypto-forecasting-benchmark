@@ -86,7 +86,7 @@ volatility_dir = "output/volatility"
 comparison_dir = "output/comparison"
 
 # Model directories
-model_output_dir = "output/model_output"
+model_output_dir = "output/forecasts"
 
 # Prediction output names
 log_returns_pred = "log_returns"
