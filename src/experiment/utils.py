@@ -2,16 +2,16 @@ import os
 
 import numpy as np
 import pandas as pd
-from darts.metrics import rmse
 from darts import concatenate
+from darts.dataprocessing.transformers import Scaler
+from darts.metrics import rmse
 from darts.timeseries import TimeSeries
 from sklearn.preprocessing import MinMaxScaler
-from darts.dataprocessing.transformers import Scaler
 
 # Local imports
 import config
-from experiment.train_test import get_train_test
 from data.csv_data import read_csv
+from experiment.train_test import get_train_test
 
 
 def all_model_predictions(
@@ -74,16 +74,6 @@ def get_predictions(
     tests = []
     rmses = []
 
-    value_cols = ["log returns"]
-
-    if model in [
-        config.raw_pred,
-        config.extended_to_raw_pred,
-        config.scaled_to_raw_pred,
-        config.raw_stress_pred,
-    ]:
-        value_cols = ["close"]
-
     for period in range(config.n_periods):
         file_loc = (
             f"{config.model_output_dir}/{model}/{forecasting_model}/{coin}/{time_frame}"
@@ -97,17 +87,21 @@ def get_predictions(
             return None, None, None, None
 
         # Create the prediction TimeSeries
+        pred_df = pd.read_csv(pred_path)
+        # The value_cols is always the 2nd column (that is not time)
         pred = TimeSeries.from_dataframe(
-            pd.read_csv(pred_path), time_col="time", value_cols=value_cols
+            pred_df, time_col="time", value_cols=pred_df.columns[1]
         )
         try:
+            train_df = pd.read_csv(train_path)
             train = TimeSeries.from_dataframe(
-                pd.read_csv(train_path), time_col="date", value_cols=value_cols
+                train_df, time_col="date", value_cols=train_df.columns[1]
             )
         except Exception:
             train = None
+        test_df = pd.read_csv(test_path)
         test = TimeSeries.from_dataframe(
-            pd.read_csv(test_path), time_col="date", value_cols=value_cols
+            test_df, time_col="date", value_cols=test_df.columns[1]
         )
 
         # Calculate the RMSE for this period and add it to the list
@@ -137,9 +131,9 @@ def unscale_model(stress_test: bool = False):
             print("Unscaling log returns for", forecasting_model, coin)
             for time_frame in config.timeframes:
                 scaled_to_log(
-                    model=config.scaled_stress_pred
-                    if stress_test
-                    else config.scaled_pred,
+                    model=(
+                        config.scaled_stress_pred if stress_test else config.scaled_pred
+                    ),
                     forecasting_model=forecasting_model,
                     coin=coin,
                     time_frame=time_frame,
