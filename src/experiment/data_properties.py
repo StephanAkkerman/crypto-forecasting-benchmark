@@ -62,7 +62,7 @@ def merge_rmse(df, avg: bool = True, merge: bool = True, pred=config.log_returns
 
 def merge_vol(df, merge: bool = True, avg: bool = False):
     vol_dfs = []
-
+    
     for time_frame in config.timeframes:
         vol_df = read_volatility_csv(time_frame=time_frame)
         # Add timeframe to it

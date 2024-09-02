@@ -1,19 +1,15 @@
 import os
 from collections import Counter
 
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 
 import config
-from data_analysis.volatility_analysis import (
-    get_tf_percentile,
-    get_volatility,
-)
+from data_analysis.volatility_analysis import get_tf_percentile, get_volatility
+from experiment.rmse import assign_mcap_category, read_rmse_csv
 from experiment.train_test import get_train_test
-from experiment.rmse import read_rmse_csv, assign_mcap_category
 
 
 def strip_quotes(cell):
@@ -21,7 +17,14 @@ def strip_quotes(cell):
 
 
 def read_volatility_csv(time_frame: str, add_mcap: bool = False):
-    df = pd.read_csv(f"{config.volatility_dir}/vol_{time_frame}.csv", index_col=0)
+    file_loc = f"{config.volatility_dir}/vol_{time_frame}.csv"
+
+    # Check if the file exists
+    if not os.path.exists(file_loc):
+        print(f"Did not found volatility data for {file_loc}. Creating it...")
+        create_volatility_data()
+
+    df = pd.read_csv(file_loc, index_col=0)
 
     # Convert string to list
     df = df.applymap(lambda x: x.strip("[]").split(", "))
