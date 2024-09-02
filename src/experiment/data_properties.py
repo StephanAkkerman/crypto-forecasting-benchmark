@@ -1,31 +1,31 @@
 from collections import Counter
 
-import pandas as pd
-import numpy as np
-import statsmodels.api as sm
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sn
-from scipy.stats import mannwhitneyu, kruskal
+import statsmodels.api as sm
+from scipy.stats import kruskal, mannwhitneyu
 
 import config
-from experiment.rmse import read_rmse_csv, assign_mcap_category, assign_mcap
-from experiment.volatility import read_volatility_csv
-from experiment.baseline import get_all_baseline_comparison
 from data_analysis.correlation import corr_matrix
+from experiment.baseline import get_all_baseline_comparison
+from experiment.rmse import assign_mcap, assign_mcap_category, read_rmse_csv
+from experiment.volatility import read_volatility_csv
 
 
-def high_auto_cor(test_type: str):
+def high_auto_cor(test_type: str = "Ljung-Box", data_type: str = "log_returns"):
     # Make an analysis of the data
-    df = pd.read_csv(f"{config.statistics_dir}/{test_type}_log_returns.csv")
-
+    df = pd.read_csv(f"{config.statistics_dir}/auto_correlation_results_{data_type}.csv")
+    
     # Grouping the DataFrame by 'Coin' and 'Time Frame' and counting the occurrences of "Autocorrelated"
     grouped_df = (
-        df.groupby(["Coin", "Time Frame", "Result"]).size().reset_index(name="Count")
+        df.groupby(["Coin", "Time Frame", test_type]).size().reset_index(name="Count")
     )
 
     # Create a pivot table to show counts of "Autocorrelated" and "Not Autocorrelated" side by side
     pivot_df = grouped_df.pivot_table(
-        index=["Coin", "Time Frame"], columns="Result", values="Count", fill_value=0
+        index=["Coin", "Time Frame"], columns=test_type, values="Count", fill_value=0
     ).reset_index()
 
     # Calculate a column to determine if predominantly "Autocorrelated"
@@ -34,7 +34,6 @@ def high_auto_cor(test_type: str):
     )
 
     return pivot_df[["Coin", "Time Frame", "Predominantly"]]
-
 
 def merge_rmse(df, avg: bool = True, merge: bool = True, pred=config.log_returns_pred):
     # Add RMSE data to the DataFrame
