@@ -1,3 +1,4 @@
+import os
 from collections import Counter
 
 import matplotlib.pyplot as plt
@@ -9,6 +10,10 @@ from scipy.stats import kruskal, mannwhitneyu
 
 import config
 from data_analysis.correlation import corr_matrix
+from data_analysis.heteroskedasticity import con_het_test, uncon_het_tests
+from data_analysis.seasonality import seasonal_strength_test
+from data_analysis.stochasticity import calc_hurst
+from data_analysis.trend import trend_tests
 from experiment.baseline import get_all_baseline_comparison
 from experiment.rmse import assign_mcap, assign_mcap_category, read_rmse_csv
 from experiment.volatility import read_volatility_csv
@@ -16,8 +21,10 @@ from experiment.volatility import read_volatility_csv
 
 def high_auto_cor(test_type: str = "Ljung-Box", data_type: str = "log_returns"):
     # Make an analysis of the data
-    df = pd.read_csv(f"{config.statistics_dir}/auto_correlation_results_{data_type}.csv")
-    
+    df = pd.read_csv(
+        f"{config.statistics_dir}/auto_correlation_results_{data_type}.csv"
+    )
+
     # Grouping the DataFrame by 'Coin' and 'Time Frame' and counting the occurrences of "Autocorrelated"
     grouped_df = (
         df.groupby(["Coin", "Time Frame", test_type]).size().reset_index(name="Count")
@@ -34,6 +41,7 @@ def high_auto_cor(test_type: str = "Ljung-Box", data_type: str = "log_returns"):
     )
 
     return pivot_df[["Coin", "Time Frame", "Predominantly"]]
+
 
 def merge_rmse(df, avg: bool = True, merge: bool = True, pred=config.log_returns_pred):
     # Add RMSE data to the DataFrame
@@ -62,7 +70,7 @@ def merge_rmse(df, avg: bool = True, merge: bool = True, pred=config.log_returns
 
 def merge_vol(df, merge: bool = True, avg: bool = False):
     vol_dfs = []
-    
+
     for time_frame in config.timeframes:
         vol_df = read_volatility_csv(time_frame=time_frame)
         # Add timeframe to it
@@ -205,7 +213,11 @@ def find_majority(row):
 
 
 def trend(group_tf: bool = False, use_RMSE: bool = True, alternative: str = "less"):
-    # trend_tests(as_csv=True)
+    # Test if the data is available
+    if not os.path.exists(f"{config.statistics_dir}/trend_results_log_returns.csv"):
+        print("Trend data not available, generating it now...")
+        trend_tests(as_csv=True)
+
     df = pd.read_csv(f"{config.statistics_dir}/trend_results_log_returns.csv")
 
     # Apply the function across the rows
@@ -301,8 +313,10 @@ def ols_test(df, x, use_RMSE: bool):
 
 
 def seasonality(group_tf: bool = False, use_RMSE: bool = True):
-    # Get seasonality data
-    # seasonal_strength_test(log_returns=True)
+    # Check if the data is available
+    if not os.path.exists(f"{config.statistics_dir}/stl_seasonality_log_returns.csv"):
+        print("Seasonality data not available, generating it now...")
+        seasonal_strength_test(log_returns=True)
 
     # Read seasonality data
     df = pd.read_csv(f"{config.statistics_dir}/stl_seasonality_log_returns.csv")
@@ -330,6 +344,15 @@ def heteroskedasticity(group_tf: bool = False, use_RMSE: bool = True):
 
 
 def uncon_het(group_tf: bool = False, use_RMSE: bool = True, alternative: str = "less"):
+    # Test if the data is available
+    if not os.path.exists(
+        f"{config.statistics_dir}/unconditional_heteroskedasticity_log_returns.csv"
+    ):
+        print(
+            "Unconditional heteroskedasticity data not available, generating it now..."
+        )
+        uncon_het_tests()
+
     df = pd.read_csv(
         f"{config.statistics_dir}/unconditional_heteroskedasticity_log_returns.csv"
     )
@@ -388,6 +411,13 @@ def uncon_het(group_tf: bool = False, use_RMSE: bool = True, alternative: str = 
 
 
 def cond_het(group_tf: bool = True, use_RMSE: bool = True, alternative: str = "less"):
+    # Check if the data is available
+    if not os.path.exists(
+        f"{config.statistics_dir}/cond_heteroskedasticity_log_returns.csv"
+    ):
+        print("Conditional heteroskedasticity data not available, generating it now...")
+        con_het_test()
+
     df = pd.read_csv(f"{config.statistics_dir}/cond_heteroskedasticity_log_returns.csv")
 
     # Add RMSE data to the DataFrame
@@ -477,6 +507,11 @@ def correlation(time_frame: str = "1d", method: str = "pearson"):
 def stochasticity_mann(
     group_tf: bool = False, use_RMSE: bool = True, alternative: str = "less"
 ):
+    # Check if the data is available
+    if not os.path.exists(f"{config.statistics_dir}/hurst_log_returns.csv"):
+        print("Hurst data not available, generating it now...")
+        calc_hurst()
+
     df = pd.read_csv(f"{config.statistics_dir}/hurst_log_returns.csv")
 
     # Add RMSE data to the DataFrame
@@ -505,6 +540,11 @@ def stochasticity_mann(
 
 
 def stochasticity_OLS(group_tf: bool = False, use_RMSE: bool = True):
+    # Check if the data is available
+    if not os.path.exists(f"{config.statistics_dir}/hurst_log_returns.csv"):
+        print("Hurst data not available, generating it now...")
+        calc_hurst()
+
     # Uses the H-value instead of category
     df = pd.read_csv(f"{config.statistics_dir}/hurst_log_returns.csv")
 
@@ -825,7 +865,7 @@ def mcap_cat_vol(kruskal_test: bool, group_tf: bool):
             U, pval2 = mannwhitneyu(large, small, alternative="less")
             U, pval3 = mannwhitneyu(large, mid, alternative="less")
 
-            print(f"Mann-Whitney test:", pval, pval2, pval3)
+            print("Mann-Whitney test:", pval, pval2, pval3)
 
 
 def volatility_mcap(group_tf: bool):
