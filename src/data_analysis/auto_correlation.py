@@ -1,12 +1,12 @@
-from tqdm import tqdm
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-import matplotlib.pyplot as plt
 from statsmodels.graphics.tsaplots import plot_acf
+from tqdm import tqdm
 
 # Local imports
-from config import all_coins, timeframes, plots_dir, statistics_dir
+from config import all_coins, plots_dir, statistics_dir, timeframes
 from data.csv_data import get_data
 
 
@@ -46,8 +46,7 @@ def breusch_godfrey(df, lag):
 
 
 def autocorrelation_tests(
-    data_type: str = "log returns",
-    as_csv: bool = False,
+    data_type: str = "log returns", as_csv: bool = True, as_excel: bool = False
 ) -> None:
     """
     Performs either the Ljung-Box or Breusch-Godfrey test for autocorrelation on all datasets and saves it as an excel file
@@ -62,6 +61,14 @@ def autocorrelation_tests(
     results = pd.DataFrame()
     dw_results = pd.DataFrame()
     nr_lags = 100
+
+    auto_cor_file = (
+        f"{statistics_dir}/auto_correlation_results_{data_type.replace(' ', '_')}"
+    )
+    durbin_watson_file = (
+        f"{statistics_dir}/durbin_watson_results_{data_type.replace(' ', '_')}"
+    )
+    files = [auto_cor_file, durbin_watson_file]
 
     for coin in tqdm(all_coins):
         for time in timeframes:
@@ -95,14 +102,11 @@ def autocorrelation_tests(
                     )
 
     if as_csv:
-        results.to_csv(
-            f"{statistics_dir}/auto_correlation_results_{data_type.replace(' ', '_')}.csv",
-            index=False,
-        )
-        dw_results.to_csv(
-            f"{statistics_dir}/durbin_watson_results_{data_type.replace(' ', '_')}.csv",
-            index=False,
-        )
+        for file in files:
+            results.to_csv(f"{file}.csv", index=False)
+    if as_excel:
+        for file in files:
+            results.to_excel(f"{file}.xlsx", index=False)
 
     print("Durbin-Watson:\n", dw_results["Durbin-Watson"].value_counts())
 

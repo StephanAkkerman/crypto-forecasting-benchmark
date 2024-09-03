@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 from statsmodels.tsa.seasonal import STL
+from tqdm import tqdm
 
 # Local imports
-from config import all_coins, timeframes, statistics_dir
+from config import all_coins, statistics_dir, timeframes
 from data.csv_data import get_data
 
 
@@ -25,7 +25,7 @@ def seasonal_strength_test(
     """
 
     stl_df = pd.DataFrame()
-    file_name = f"{statistics_dir}/stl_seasonality_{data_type}"
+    file_name = f"{statistics_dir}/stl_seasonality_{data_type.replace(' ', '_')}"
 
     for coin in tqdm(all_coins):
         for time in timeframes:

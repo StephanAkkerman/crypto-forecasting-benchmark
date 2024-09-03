@@ -46,7 +46,7 @@ market_cap_dict = {
     "IOTA": 627_241_565,
 }
 
-timeframes = ["1m", "15m", "4h", "1d"]
+time_frames = timeframes = ["1m", "15m", "4h", "1d"]
 tf_names = [
     "One-Minute Time Frame",
     "Fifteen-Minute Time Frame",

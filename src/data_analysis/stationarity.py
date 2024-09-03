@@ -1,14 +1,14 @@
-from tqdm import tqdm
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 from statsmodels.tsa.stattools import adfuller, kpss
+from tqdm import tqdm
 
 # Local imports
-from config import all_coins, timeframes, statistics_dir
+from config import all_coins, statistics_dir, timeframes
 from data.csv_data import get_data
 
 
-def stationarity_test(data_type: str = "log returns", as_csv=False):
+def stationarity_test(data_type: str = "log returns", as_csv=True, as_excel=False):
     """
     Performs the Augmented Dickey-Fuller and KPSS test on the data and saves the results to an Excel file.
 
@@ -20,6 +20,7 @@ def stationarity_test(data_type: str = "log returns", as_csv=False):
         The name for the file to be saved in /data/tests/, by default "adf_test"
     """
     results = pd.DataFrame()
+    file = f"{statistics_dir}/stationarity_results_{data_type}"
 
     for coin in tqdm(all_coins):
         for time in timeframes:
@@ -42,7 +43,9 @@ def stationarity_test(data_type: str = "log returns", as_csv=False):
 
     # Write to Excel
     if as_csv:
-        results.to_excel(f"{statistics_dir}/stationarity_results_{data_type}.xlsx")
+        results.to_csv(f"{file}.csv")
+    if as_excel:
+        results.to_excel(f"{file}.xlsx")
 
     # Show the coins that are stationary
     adf_significant = results[results["adf p-val"] < 0.05]

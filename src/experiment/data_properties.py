@@ -203,13 +203,33 @@ def auto_correlation(
         )
 
 
-def trend(group_tf: bool = False, use_RMSE: bool = True, alternative: str = "less"):
+def trend(
+    group_tf: bool = False,
+    use_RMSE: bool = True,
+    alternative: str = "less",
+    use_majority: bool = True,
+    use_column: str = "Hamed Rao",
+):
+    # Function to determine the majority value in a row
+    def majority_value(row):
+        # Get the values excluding the 'Coin' and 'Time Frame' columns
+        values = row[2:]
+        # Return the mode (most frequent value)
+        return values.mode()[0]
+
     # Test if the data is available
     if not os.path.exists(f"{config.statistics_dir}/trend_results_log_returns.csv"):
         print("Trend data not available, generating it now...")
         trend_tests(as_csv=True, use_majority=True)
 
     df = pd.read_csv(f"{config.statistics_dir}/trend_results_log_returns.csv")
+
+    # Add result column if use_majority is True
+    if use_majority:
+        # Apply the function to each row and create the 'Result' column
+        df["Result"] = df.apply(majority_value, axis=1)
+    else:
+        df["Result"] = df[use_column]
 
     # Add RMSE data to the DataFrame
     df = merge_rmse(df)
@@ -226,6 +246,7 @@ def trend(group_tf: bool = False, use_RMSE: bool = True, alternative: str = "les
                 "no trend",
                 use_RMSE=use_RMSE,
                 alternative=alternative,
+                result_column="",
             )
     else:
         mannwhiteny_test(
@@ -300,7 +321,7 @@ def seasonality(group_tf: bool = False, use_RMSE: bool = True):
     # Check if the data is available
     if not os.path.exists(f"{config.statistics_dir}/stl_seasonality_log_returns.csv"):
         print("Seasonality data not available, generating it now...")
-        seasonal_strength_test(log_returns=True)
+        seasonal_strength_test(data_type="log returns", to_csv=True)
 
     # Read seasonality data
     df = pd.read_csv(f"{config.statistics_dir}/stl_seasonality_log_returns.csv")
@@ -335,7 +356,7 @@ def uncon_het(group_tf: bool = False, use_RMSE: bool = True, alternative: str = 
         print(
             "Unconditional heteroskedasticity data not available, generating it now..."
         )
-        uncon_het_tests()
+        uncon_het_tests(data_type="log returns", to_csv=True)
 
     df = pd.read_csv(
         f"{config.statistics_dir}/unconditional_heteroskedasticity_log_returns.csv"
@@ -400,7 +421,7 @@ def cond_het(group_tf: bool = True, use_RMSE: bool = True, alternative: str = "l
         f"{config.statistics_dir}/cond_heteroskedasticity_log_returns.csv"
     ):
         print("Conditional heteroskedasticity data not available, generating it now...")
-        con_het_test()
+        con_het_test(data_type="log returns", to_csv=True)
 
     df = pd.read_csv(f"{config.statistics_dir}/cond_heteroskedasticity_log_returns.csv")
 
@@ -494,7 +515,7 @@ def stochasticity_mann(
     # Check if the data is available
     if not os.path.exists(f"{config.statistics_dir}/hurst_log_returns.csv"):
         print("Hurst data not available, generating it now...")
-        calc_hurst()
+        calc_hurst(data_type="log returns", to_csv=True)
 
     df = pd.read_csv(f"{config.statistics_dir}/hurst_log_returns.csv")
 

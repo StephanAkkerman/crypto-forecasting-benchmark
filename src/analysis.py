@@ -1,26 +1,27 @@
+import os
+
 import config
 from data_analysis import (
-    stationarity,
     auto_correlation,
-    trend,
-    seasonality,
     heteroskedasticity,
+    seasonality,
+    stationarity,
     stochasticity,
+    trend,
     volatility_analysis,
 )
-
 from experiment import (
-    boxplots,
-    rmse,
-    volatility,
     baseline,
+    boxplots,
     data_properties,
     data_timespan,
     forecast,
+    rmse,
+    volatility,
 )
 
 
-def data_analysis_tests(data_type: str = "log returns", as_csv=False, as_excel=False):
+def data_analysis_tests(data_type: str = "log returns", as_csv=True, as_excel=False):
     """
     Performs all the data analysis tests:
     - Stationarity
@@ -33,34 +34,41 @@ def data_analysis_tests(data_type: str = "log returns", as_csv=False, as_excel=F
     data_type : str
         Options are: "close", "returns" "log returns", and "scaled", by default "log returns"
     as_csv : bool, optional
-        Whether to save the results as a CSV, by default False
+        Whether to save the results as a CSV, by default True
     as_excel : bool, optional
         Whether to save the results as an Excel file, by default False
     """
+    # Create the directory
+    os.makedirs(config.statistics_dir, exist_ok=True)
+
     # Stationarity
-    stationarity.stationarity_test(data_type=data_type, as_csv=as_csv)
+    stationarity.stationarity_test(
+        data_type=data_type, as_csv=as_csv, as_excel=as_excel
+    )
 
     # Auto correlation
-    auto_correlation.autocorrelation_tests(data_type=data_type, as_csv=as_csv)
+    auto_correlation.autocorrelation_tests(
+        data_type=data_type, as_csv=as_csv, as_excel=as_excel
+    )
 
     # Trend
     trend.trend_tests(data_type=data_type, as_csv=as_csv, as_excel=as_excel)
 
     # Seasonality
     seasonality.seasonal_strength_test(
-        data_type=data_type, to_excel=as_csv, to_csv=as_excel
+        data_type=data_type, to_excel=as_excel, to_csv=as_csv
     )
 
     # Heteroskedasticity
     heteroskedasticity.uncon_het_tests(
-        data_type=data_type, to_excel=as_csv, to_csv=as_excel
+        data_type=data_type, to_excel=as_excel, to_csv=as_csv
     )
     heteroskedasticity.con_het_test(
-        data_type=data_type, to_excel=as_csv, to_csv=as_excel
+        data_type=data_type, to_excel=as_excel, to_csv=as_csv
     )
 
     # Stochasticity
-    stochasticity.calc_hurst(data_type=data_type, to_excel=as_csv, to_csv=as_excel)
+    stochasticity.calc_hurst(data_type=data_type, to_excel=as_excel, to_csv=as_excel)
 
 
 def forecast_models():

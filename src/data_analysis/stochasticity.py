@@ -1,9 +1,9 @@
-import pandas as pd
 import numpy as np
-from tqdm import tqdm
+import pandas as pd
 from hurst import compute_Hc
+from tqdm import tqdm
 
-from config import all_coins, timeframes, statistics_dir
+from config import all_coins, statistics_dir, timeframes
 from data.csv_data import get_data
 
 
@@ -40,7 +40,7 @@ def calc_hurst(
     Calculates the Hurst exponent for the data and saves it to an Excel file.
     """
 
-    file_name = f"{statistics_dir}/hurst_{data_type}"
+    file_name = f"{statistics_dir}/hurst_{data_type.replace(' ', '_')}"
 
     results = pd.DataFrame()
 

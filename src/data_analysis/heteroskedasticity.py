@@ -1,12 +1,11 @@
-from tqdm import tqdm
-
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-from statsmodels.stats.diagnostic import het_breuschpagan, het_goldfeldquandt, het_arch
+from statsmodels.stats.diagnostic import het_arch, het_breuschpagan, het_goldfeldquandt
+from tqdm import tqdm
 
 # Local imports
-from config import all_coins, timeframes, statistics_dir
+from config import all_coins, statistics_dir, timeframes
 from data.csv_data import get_data
 
 
@@ -26,7 +25,7 @@ def uncon_het_tests(
     # Read the dataset
     results = pd.DataFrame()
 
-    file_name = f"{statistics_dir}/unconditional_heteroskedasticity_{data_type}"
+    file_name = f"{statistics_dir}/unconditional_heteroskedasticity_{data_type.replace(' ', '_')}"
 
     for coin in tqdm(all_coins):
         for time in timeframes:
@@ -71,12 +70,14 @@ def uncon_het_tests(
             info = {
                 "Coin": coin,
                 "Time Frame": time,
-                "Breusch-Pagan": "heteroskedasticity"
-                if breusch_p_value < alpha
-                else "homoskedasticity",
-                "Goldfeld-Quandt": "heteroskedasticity"
-                if gold_p_value < alpha
-                else "homoskedasticity",
+                "Breusch-Pagan": (
+                    "heteroskedasticity"
+                    if breusch_p_value < alpha
+                    else "homoskedasticity"
+                ),
+                "Goldfeld-Quandt": (
+                    "heteroskedasticity" if gold_p_value < alpha else "homoskedasticity"
+                ),
             }
 
             results = pd.concat(
@@ -101,7 +102,9 @@ def con_het_test(
     Perform the Engle's ARCH test for conditional heteroskedasticity on all datasets and saves it as an excel file
     """
 
-    file_name = f"{statistics_dir}/cond_heteroskedasticity_{data_type}"
+    file_name = (
+        f"{statistics_dir}/cond_heteroskedasticity_{data_type.replace(' ', '_')}"
+    )
 
     results = pd.DataFrame()
 
@@ -120,9 +123,9 @@ def con_het_test(
                 "Coin": coin,
                 "Time Frame": time,
                 "p-value": p_value,
-                "result": "heteroskedasticity"
-                if p_value < 0.05
-                else "homoskedasticity",
+                "result": (
+                    "heteroskedasticity" if p_value < 0.05 else "homoskedasticity"
+                ),
             }
 
             results = pd.concat(
