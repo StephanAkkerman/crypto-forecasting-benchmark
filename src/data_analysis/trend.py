@@ -1,13 +1,20 @@
 from collections import Counter
 
-from tqdm import tqdm
 import pandas as pd
 import pymannkendall as mk
+from tqdm import tqdm
 
 # Local imports
-from config import all_coins, timeframes, statistics_dir
+from config import all_coins, statistics_dir, timeframes
 from data.csv_data import get_data
-from experiment.data_properties import find_majority
+
+
+def find_majority(row):
+    # Count the frequency of each unique result in the row
+    counter = Counter(row)
+    # Find the most common result
+    most_common_result, _ = counter.most_common(1)[0]
+    return most_common_result
 
 
 def trend_tests(

@@ -1,5 +1,4 @@
 import os
-from collections import Counter
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -204,28 +203,13 @@ def auto_correlation(
         )
 
 
-def find_majority(row):
-    # Count the frequency of each unique result in the row
-    counter = Counter(row)
-    # Find the most common result
-    most_common_result, _ = counter.most_common(1)[0]
-    return most_common_result
-
-
 def trend(group_tf: bool = False, use_RMSE: bool = True, alternative: str = "less"):
     # Test if the data is available
     if not os.path.exists(f"{config.statistics_dir}/trend_results_log_returns.csv"):
         print("Trend data not available, generating it now...")
-        trend_tests(as_csv=True)
+        trend_tests(as_csv=True, use_majority=True)
 
     df = pd.read_csv(f"{config.statistics_dir}/trend_results_log_returns.csv")
-
-    # Apply the function across the rows
-    df["Result"] = df.apply(find_majority, axis=1)
-
-    # Change Results to trend if its increasing or decreasing
-    df["Result"] = df["Result"].str.replace("increasing", "trend")
-    df["Result"] = df["Result"].str.replace("decreasing", "trend")
 
     # Add RMSE data to the DataFrame
     df = merge_rmse(df)
