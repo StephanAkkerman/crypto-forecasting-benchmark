@@ -137,20 +137,20 @@ def forecast_statistical_tests():
     data_properties.stochasticity_OLS()
 
 
-def market_factors_impact():
+def market_factors_impact(group_tf: bool = False):
     # Volatility
     volatility.volatility_rmse_heatmap(config.log_returns_pred)
     data_properties.volatility()
 
     # Market cap and volatility
     volatility.mcap_vol_boxplot()
-    data_properties.mcap_cat_vol()
-    data_properties.volatility_mcap()
+    data_properties.mcap_cat_vol(group_tf=group_tf)
+    data_properties.volatility_mcap(group_tf=group_tf)
 
     # Market cap and RMSE
     volatility.mcap_rmse_boxplot()
-    data_properties.mcap()
-    data_properties.mcap_cat()
+    data_properties.mcap(group_tf=group_tf)
+    data_properties.mcap_cat(group_tf=group_tf)
 
 
 def time_frame_impact():

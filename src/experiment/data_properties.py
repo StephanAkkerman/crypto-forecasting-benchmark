@@ -755,7 +755,7 @@ def vol_categories_kruskal():
         print(pd.DataFrame(results, index=config.all_models))
 
 
-def mcap_cat(kruskal_test: bool, group_tf: bool):
+def mcap_cat(group_tf: bool=False):
     df = merge_rmse(None, merge=False)
 
     dfs = []
@@ -774,22 +774,21 @@ def mcap_cat(kruskal_test: bool, group_tf: bool):
             mid = df[df["Market Cap Category"] == "Mid"][model].dropna()
             large = df[df["Market Cap Category"] == "Large"][model].dropna()
 
-            if kruskal_test:
-                # Perform the Mann-Whitney U test with 'less' as the alternative hypothesis
-                U, pval = kruskal(small, mid, large)
+            # Perform the Mann-Whitney U test with 'less' as the alternative hypothesis
+            U, pval = kruskal(small, mid, large)
 
-                print(
-                    f"Kruskal-Wallis test for {model}: U-statistic={U}, p-value={pval}"
-                )
-            else:
-                U, pval = mannwhitneyu(mid, small, alternative="less")
-                U, pval2 = mannwhitneyu(large, small, alternative="less")
-                U, pval3 = mannwhitneyu(large, mid, alternative="less")
+            print(
+                f"Kruskal-Wallis test for {model}: U-statistic={U}, p-value={pval}"
+            )
 
-                print(f"Mann-Whitney test for {model}:", pval, pval2, pval3)
+            U, pval = mannwhitneyu(mid, small, alternative="less")
+            U, pval2 = mannwhitneyu(large, small, alternative="less")
+            U, pval3 = mannwhitneyu(large, mid, alternative="less")
+
+            print(f"Mann-Whitney test for {model}:", pval, pval2, pval3)
 
 
-def mcap(group_tf: bool):
+def mcap(group_tf: bool=False):
     df = merge_rmse(None, merge=False)
 
     dfs = []
@@ -832,7 +831,7 @@ def mcap(group_tf: bool):
         print(agg_results)
 
 
-def mcap_cat_vol(kruskal_test: bool, group_tf: bool):
+def mcap_cat_vol(group_tf: bool = False):
     df = merge_vol(None, merge=False)
 
     dfs = []
@@ -862,18 +861,17 @@ def mcap_cat_vol(kruskal_test: bool, group_tf: bool):
         large = [sum(x) / len(x) for x in zip(*large.to_list())]
 
         # Perform the Mann-Whitney U test with 'less' as the alternative hypothesis
-        if kruskal_test:
-            U, pval = kruskal(small, mid, large)
-            print(f"Kruskal-Wallis test: U-statistic={U}, p-value={pval}")
-        else:
-            U, pval = mannwhitneyu(mid, small, alternative="less")
-            U, pval2 = mannwhitneyu(large, small, alternative="less")
-            U, pval3 = mannwhitneyu(large, mid, alternative="less")
+        U, pval = kruskal(small, mid, large)
+        print(f"Kruskal-Wallis test: U-statistic={U}, p-value={pval}")
 
-            print("Mann-Whitney test:", pval, pval2, pval3)
+        U, pval = mannwhitneyu(mid, small, alternative="less")
+        U, pval2 = mannwhitneyu(large, small, alternative="less")
+        U, pval3 = mannwhitneyu(large, mid, alternative="less")
+
+        print("Mann-Whitney test:", pval, pval2, pval3)
 
 
-def volatility_mcap(group_tf: bool):
+def volatility_mcap(group_tf: bool=False):
     # We only have 1 mcap value
 
     df = merge_vol(None, merge=False)

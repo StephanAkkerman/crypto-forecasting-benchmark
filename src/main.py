@@ -39,7 +39,7 @@ if __name__ == "__main__":
     # Analysis of the results
     analysis.forecast_analysis()
     analysis.forecast_statistical_tests()
-    analysis.market_factors_impact()
+    analysis.market_factors_impact(group_tf=False)
 
-    # Compare to baseline
+    # # Compare to baseline
     baseline.create_all_baseline_comparison()

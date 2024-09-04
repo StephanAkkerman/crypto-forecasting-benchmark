@@ -401,7 +401,7 @@ def scaled_heatmap():
     # visualize
     plot_rmse_heatmaps(
         dfs,
-        title=f"RMSE percentual comparison between forecasting models and baseline (ARIMA) model for",
+        title="RMSE percentual comparison between forecasting models and baseline (ARIMA) model for",
         titles=titles,
         flip_colors=True,
         vmin=-3,
