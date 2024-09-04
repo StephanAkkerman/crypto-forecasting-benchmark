@@ -5,7 +5,7 @@ import analysis
 # Local Import
 import config
 from data.binance_data import fetchData
-from experiment import rmse
+from experiment import baseline, rmse
 
 if __name__ == "__main__":
     # Start by testing if the data is available
@@ -40,3 +40,6 @@ if __name__ == "__main__":
     analysis.forecast_analysis()
     analysis.forecast_statistical_tests()
     analysis.market_factors_impact()
+
+    # Compare to baseline
+    baseline.create_all_baseline_comparison()
