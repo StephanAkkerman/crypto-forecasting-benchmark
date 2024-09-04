@@ -1,15 +1,15 @@
 import os
 from itertools import combinations
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
-from scipy.stats.stats import pearsonr
 from scipy.stats import ttest_rel
+from scipy.stats.stats import pearsonr
 
 import config
-from experiment.rmse import read_rmse_csv, plot_rmse_heatmaps, plot_rmse_heatmap
+from experiment.rmse import plot_rmse_heatmap, plot_rmse_heatmaps, read_rmse_csv
 
 
 def read_comparison_csv(pred: str, time_frame: str, avg: bool = True):
@@ -39,6 +39,10 @@ def create_baseline_comparison(
     """Compare the RMSE of the baseline model (ARIMA) to the other models and saves the data as .csv"""
 
     rmse_df = read_rmse_csv(pred, time_frame=time_frame)
+
+    if rmse_df.empty():
+        print("No data to compare")
+        return
 
     if pred == config.extended_pred:
         baseline_df = read_rmse_csv(config.log_returns_pred, time_frame=time_frame)[

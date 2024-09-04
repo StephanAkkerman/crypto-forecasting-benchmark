@@ -36,10 +36,14 @@ def read_rmse_csv(
     ignore_model=[],
     fill_NaN: bool = True,
 ) -> pd.DataFrame:
+    file = f"{config.rmse_dir}/{pred}/rmse_{time_frame}.csv"
+    # Check if the file exists
+    if not os.path.exists(file):
+        print(f"File {file} does not exist.")
+        return pd.DataFrame()
+
     # Read the data from the .csv
-    df = pd.read_csv(
-        f"{config.rmse_dir}/{pred}/rmse_{time_frame}.csv", index_col=0
-    ).drop(columns=ignore_model)
+    df = pd.read_csv(file, index_col=0).drop(columns=ignore_model)
 
     # Convert string to list of floats
     df = df.applymap(lambda x: x.strip("[]").split(", "))
