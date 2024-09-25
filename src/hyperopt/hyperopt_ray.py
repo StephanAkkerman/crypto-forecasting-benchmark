@@ -1,48 +1,43 @@
-import os
 import json
+import os
 
+from darts.metrics import mae, rmse
+
+# Models
+from darts.models import (
+    TBATS,
+    LightGBMModel,
+    NBEATSModel,
+    NHiTSModel,
+    Prophet,
+    RandomForest,
+    RNNModel,
+    TCNModel,
+    TFTModel,
+    XGBModel,
+)
 from ray import tune
 from ray.air.config import RunConfig
-
-# https://docs.ray.io/en/latest/tune/api/suggestion.html
-from ray.tune.search.hebo import HEBOSearch
 
 # https://docs.ray.io/en/latest/tune/api/schedulers.html
 # https://docs.ray.io/en/latest/tune/api/doc/ray.tune.schedulers.AsyncHyperBandScheduler.html
 from ray.tune.schedulers import ASHAScheduler
-from darts.metrics import rmse, mae
 
-# Models
-from darts.models import (
-    RNNModel,
-    TCNModel,
-    NBEATSModel,
-    TFTModel,
-    RandomForest,
-    XGBModel,
-    LightGBMModel,
-    NHiTSModel,
-    TBATS,
-    Prophet,
-)
+# https://docs.ray.io/en/latest/tune/api/suggestion.html
+from ray.tune.search.hebo import HEBOSearch
+from search_space import default_args, model_config
+from train_test import get_train_test
+from utils import delete_config, get_reporter, get_resources, get_search_space
 
 # Local files
 from config import (
-    val_percentage,
     all_coins,
-    timeframes,
-    num_samples,
-    results_folder,
-    parallel_trials,
     hyperopt_period,
-)
-from search_space import default_args, model_config
-from train_test import get_train_test
-from utils import (
-    get_resources,
-    get_reporter,
-    get_search_space,
-    delete_config,
+    num_samples,
+    parallel_trials,
+    results_folder,
+    timeframes,
+    val_percentage,
 )
 
 
@@ -396,7 +391,10 @@ def hyperopt_full(
     """
     models = list(model_config)
 
-    for model in models[models.index(start_from_model) :]:
+    if start_from_model:
+        models = models[models.index(start_from_model) :]
+
+    for model in models:
         start_from_tf = None
         coin = "BTC"
 
