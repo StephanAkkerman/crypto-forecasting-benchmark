@@ -395,7 +395,7 @@ def hyperopt_full(
         models = models[models.index(start_from_model) :]
 
     for model in models:
-        start_from_tf = None
+        time_frame = None
         coin = "BTC"
 
         # If specifying a model to start from
